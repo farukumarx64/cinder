@@ -4,6 +4,9 @@ project(Cinder VERSION 0.1.0 LANGUAGES C)
 
 include(CTest)
 
+option(CINDER_ENABLE_ASAN "Enable AddressSanitizer for development" OFF)
+option(CINDER_ENABLE_UBSAN "Enable UndefinedBehaviorSanitizer for development" OFF)
+
 add_executable(cinder src/cli.c)
 
 target_compile_definitions(cinder PRIVATE
@@ -21,6 +24,27 @@ target_compile_options(cinder PRIVATE
     -Wextra
     -Wpedantic
 )
+
+if(CINDER_ENABLE_ASAN OR CINDER_ENABLE_UBSAN)
+    if(NOT CMAKE_C_COMPILER_ID MATCHES "^(GNU|Clang|AppleClang)$")
+        message(FATAL_ERROR "Cinder sanitizer builds require a GCC or Clang toolchain.")
+    endif()
+
+    target_compile_options(cinder PRIVATE -fno-omit-frame-pointer)
+endif()
+
+if(CINDER_ENABLE_ASAN)
+    target_compile_options(cinder PRIVATE -fsanitize=address)
+    target_link_options(cinder PRIVATE -fsanitize=address)
+endif()
+
+if(CINDER_ENABLE_UBSAN)
+    target_compile_options(cinder PRIVATE
+        -fsanitize=undefined
+        -fno-sanitize-recover=undefined
+    )
+    target_link_options(cinder PRIVATE -fsanitize=undefined)
+endif()
 
 if(BUILD_TESTING)
     add_test(NAME cli_version

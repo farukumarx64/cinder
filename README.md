@@ -19,7 +19,9 @@ and exits successfully with status `0`.
 - The macOS build was verified on Apple Silicon with Apple Clang 21.0.0 and
   CMake 4.4.4. Linux support is planned but has not yet been verified.
 - CTest provides a smoke test for the version command.
-- Sanitizers, CI, and a GitHub remote are still pending.
+- Opt-in AddressSanitizer and UndefinedBehaviorSanitizer builds passed the
+  smoke test on macOS, both separately and together.
+- CI and a GitHub remote are still pending.
 - Model loading, inference, and the `info`, `run`, and `bench` commands are
   planned features; they are not implemented yet.
 
@@ -80,11 +82,79 @@ Failures show diagnostics; the test has a ten-second timeout.
 
 To configure a build without tests, pass `-DBUILD_TESTING=OFF` to CMake.
 
+## Sanitizer builds
+
+Sanitizers add checks that run while the program executes. Use a GCC or Clang
+toolchain with its sanitizer runtime libraries installed. Both options default
+to `OFF` and can be enabled independently:
+
+| CMake option | Purpose |
+| --- | --- |
+| `CINDER_ENABLE_ASAN` | Detect memory errors such as out-of-bounds access and use-after-free. |
+| `CINDER_ENABLE_UBSAN` | Detect undefined behavior such as signed integer overflow and invalid pointer alignment. |
+
+For development, enable both in a separate Debug build:
+
+```sh
+cmake -S . -B build-sanitize \
+  -DCMAKE_BUILD_TYPE=Debug \
+  -DCINDER_ENABLE_ASAN=ON \
+  -DCINDER_ENABLE_UBSAN=ON
+cmake --build build-sanitize
+(cd build-sanitize && ctest --output-on-failure)
+```
+
+The flags apply to both compilation and linking. Sanitizer builds retain frame
+pointers for clearer stack traces. UBSan uses `-fno-sanitize-recover=undefined`
+so a detected error terminates the program with a failure instead of continuing.
+CTest reports failures through the existing smoke test.
+
+CMake remembers these options per build directory. Use `build/` for ordinary
+builds and `build-sanitize/` for sanitizer builds; explicitly set either option
+to `OFF` when disabling it in an existing build directory. Benchmark with
+sanitizers disabled because their checks add runtime overhead.
+
+The current smoke test exercises only the version command. Additional tests
+will need to exercise tensor allocation and inference as those features arrive.
+Passing the current test is not evidence that future memory-management code is
+free of errors.
+
+See the upstream [AddressSanitizer documentation](https://clang.llvm.org/docs/AddressSanitizer.html)
+and [UndefinedBehaviorSanitizer documentation](https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html)
+for the supported checks and runtime options.
+
+### Leak checks
+
+Leak detection depends on the toolchain. On the verified Apple Silicon setup
+with Apple Clang 21.0.0, setting `ASAN_OPTIONS=detect_leaks=1` reports that leak
+detection is unsupported. The default macOS sanitizer command above does not
+force that setting.
+
+On macOS, run the native `leaks` tool against the ordinary build:
+
+```sh
+leaks --atExit -- ./build/cinder --version
+```
+
+This reported zero leaks for the current version-command execution. The tool
+needs permission to inspect the process it launches; a restrictive sandbox can
+block it. An inspection error is not a successful leak check.
+
+On Linux with a LeakSanitizer-capable toolchain, explicitly enable leak checks
+when running the sanitizer build's tests:
+
+```sh
+(cd build-sanitize && ASAN_OPTIONS=detect_leaks=1 ctest --output-on-failure)
+```
+
+The Linux command still needs verification in the planned Linux CI job. See the
+[LeakSanitizer documentation](https://clang.llvm.org/docs/LeakSanitizer.html).
+
 ## Repository layout
 
 | Path | Purpose |
 | --- | --- |
-| `CMakeLists.txt` | Executable target, version definition, compiler settings, and CTest registration. |
+| `CMakeLists.txt` | Executable target, version definition, compiler/sanitizer settings, and CTest registration. |
 | `src/cli.c` | Command-line argument handling and version output. |
 | `tests/check_version.cmake` | Checks the version command's exit status and output. |
 | `ROADMAP.md` | Scope, implementation decisions, milestones, and progress. |
