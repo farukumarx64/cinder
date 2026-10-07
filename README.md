@@ -18,7 +18,8 @@ and exits successfully with status `0`.
   build files are ignored.
 - The macOS build was verified on Apple Silicon with Apple Clang 21.0.0 and
   CMake 4.4.4. Linux support is planned but has not yet been verified.
-- Automated tests, sanitizers, CI, and a GitHub remote are still pending.
+- CTest provides a smoke test for the version command.
+- Sanitizers, CI, and a GitHub remote are still pending.
 - Model loading, inference, and the `info`, `run`, and `bench` commands are
   planned features; they are not implemented yet.
 
@@ -61,12 +62,31 @@ standard error and return a nonzero exit status.
 Keep generated files in a separate build directory. The ignore rules cover
 `build/`, `build-*/`, and `cmake-build-*/`, along with common generated CMake files.
 
+## Run the smoke test
+
+CTest ships with CMake. Tests are enabled by default through `BUILD_TESTING`.
+Configure and build the executable before running the test:
+
+```sh
+cmake -S . -B build
+cmake --build build
+(cd build && ctest --output-on-failure)
+```
+
+The `cli_version` test runs `cinder --version` and requires exit status `0`,
+exactly `Cinder 0.1.0-dev` followed by a newline on standard output, and empty
+standard error. The expected version follows the CMake project version.
+Failures show diagnostics; the test has a ten-second timeout.
+
+To configure a build without tests, pass `-DBUILD_TESTING=OFF` to CMake.
+
 ## Repository layout
 
 | Path | Purpose |
 | --- | --- |
-| `CMakeLists.txt` | Executable target, version definition, C standard, and compiler warnings. |
+| `CMakeLists.txt` | Executable target, version definition, compiler settings, and CTest registration. |
 | `src/cli.c` | Command-line argument handling and version output. |
+| `tests/check_version.cmake` | Checks the version command's exit status and output. |
 | `ROADMAP.md` | Scope, implementation decisions, milestones, and progress. |
 | `.gitignore` | Generated build files and macOS metadata exclusions. |
 

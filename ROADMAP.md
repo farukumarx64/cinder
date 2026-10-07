@@ -28,8 +28,8 @@ Phase 0 is in progress. Complete and verify each scoped setup task before moving
 - [x] Add the basic README describing the current setup, prerequisites, build commands, and development workflow.
 - [ ] Choose and add the project license. **Pending the owner's selection.**
 - [x] Implement `cinder --version`; verify its output, successful exit status, and rejection of missing, unknown, or extra arguments.
-- [ ] Add the CTest version-command smoke test. **Next scoped task.**
-- [ ] Configure sanitizer builds and supported leak checks.
+- [x] Add the CTest version-command smoke test; verify exact output, exit status, empty standard error, and failure detection.
+- [ ] Configure sanitizer builds and supported leak checks. **Next scoped task.**
 - [ ] Set up the GitHub repository and remote after choosing its location and visibility.
 - [ ] Add and verify macOS and Linux CI.
 - [ ] Verify the documented setup from a fresh checkout before closing M0.
@@ -203,6 +203,7 @@ cinder/
 │   └── cli.c
 │
 ├── tests/
+│   ├── check_version.cmake
 │   ├── test_tensor.c
 │   ├── test_ops.c
 │   ├── test_model.c
