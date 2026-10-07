@@ -17,14 +17,15 @@ and exits successfully with status `0`.
 - A local Git repository on `main` tracks source and documentation. Generated
   build files are ignored.
 - The macOS build was verified on Apple Silicon with Apple Clang 21.0.0 and
-  CMake 4.4.4. Linux support is planned but has not yet been verified.
+  CMake 4.4.4. GitHub Actions also verified builds and tests on macOS 15 and
+  Ubuntu 24.04.
 - CTest provides a smoke test for the version command.
 - Opt-in AddressSanitizer and UndefinedBehaviorSanitizer builds passed the
   smoke test on macOS, both separately and together.
 - The public GitHub repository is [farukumarx64/cinder](https://github.com/farukumarx64/cinder).
   The local `main` branch tracks `origin/main` over SSH.
-- GitHub Actions is configured for macOS, Linux, and Linux sanitizer checks;
-  the first hosted run is pending verification.
+- GitHub Actions passed all three jobs: macOS, Linux, and Linux with ASan,
+  UBSan, and leak detection enabled.
 - Model loading, inference, and the `info`, `run`, and `bench` commands are
   planned features; they are not implemented yet.
 
@@ -150,8 +151,8 @@ when running the sanitizer build's tests:
 (cd build-sanitize && ASAN_OPTIONS=detect_leaks=1 ctest --output-on-failure)
 ```
 
-The Linux command is configured in the sanitizer CI job; its first hosted run
-is pending verification. See the
+The Linux sanitizer CI job passed the version-command smoke test with leak
+detection enabled. See the
 [LeakSanitizer documentation](https://clang.llvm.org/docs/LeakSanitizer.html).
 
 ## Continuous integration
@@ -172,6 +173,8 @@ for the same branch or pull request.
 
 The workflow uses read-only repository permissions and a pinned checkout action.
 Check results and failure logs in [GitHub Actions](https://github.com/farukumarx64/cinder/actions/workflows/ci.yml).
+All three jobs passed in the [first hosted run](https://github.com/farukumarx64/cinder/actions/runs/37680825782)
+on October 7, 2026.
 Leak detection is enabled only in the Linux sanitizer job because the verified
 Apple Clang runtime does not support LeakSanitizer on this Mac.
 
