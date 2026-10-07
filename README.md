@@ -10,7 +10,7 @@ Training happens outside the runtime.
 ## Current status
 
 **Phase 0: project setup is in progress.** The project currently contains a CMake
-build and a minimal C entry point. Running the executable produces no output
+build and a CLI that supports `--version`. The command prints `Cinder 0.1.0-dev`
 and exits successfully with status `0`.
 
 - C11 compilation with `-Wall`, `-Wextra`, and `-Wpedantic` is configured.
@@ -18,8 +18,7 @@ and exits successfully with status `0`.
   build files are ignored.
 - The macOS build was verified on Apple Silicon with Apple Clang 21.0.0 and
   CMake 4.4.4. Linux support is planned but has not yet been verified.
-- Version handling, automated tests, sanitizers, CI, and a GitHub remote are
-  still pending.
+- Automated tests, sanitizers, CI, and a GitHub remote are still pending.
 - Model loading, inference, and the `info`, `run`, and `bench` commands are
   planned features; they are not implemented yet.
 
@@ -44,12 +43,20 @@ From the project root:
 ```sh
 cmake -S . -B build
 cmake --build build
-./build/cinder
+./build/cinder --version
 ```
 
 The first command configures the project and generates build files in `build/`.
-The second compiles and links the executable. The third runs the minimal entry
-point; silent completion is the expected behavior at this stage.
+The second compiles and links the executable. The third prints:
+
+```text
+Cinder 0.1.0-dev
+```
+
+The version number comes from CMake's project version, with `-dev` appended for
+the development build. The CLI currently accepts exactly one argument:
+`--version`. Missing, unknown, or extra arguments print a usage message to
+standard error and return a nonzero exit status.
 
 Keep generated files in a separate build directory. The ignore rules cover
 `build/`, `build-*/`, and `cmake-build-*/`, along with common generated CMake files.
@@ -58,8 +65,8 @@ Keep generated files in a separate build directory. The ignore rules cover
 
 | Path | Purpose |
 | --- | --- |
-| `CMakeLists.txt` | Executable target, C standard, and compiler warnings. |
-| `src/cli.c` | Minimal program entry point; CLI behavior will be added here. |
+| `CMakeLists.txt` | Executable target, version definition, C standard, and compiler warnings. |
+| `src/cli.c` | Command-line argument handling and version output. |
 | `ROADMAP.md` | Scope, implementation decisions, milestones, and progress. |
 | `.gitignore` | Generated build files and macOS metadata exclusions. |
 

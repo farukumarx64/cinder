@@ -26,9 +26,9 @@ Phase 0 is in progress. Complete and verify each scoped setup task before moving
 - [x] Configure the C11 executable with `-Wall`, `-Wextra`, and `-Wpedantic`; build and run the minimal entry point.
 - [x] Initialize Git on `main` and add ignore rules for generated build files and macOS metadata.
 - [x] Add the basic README describing the current setup, prerequisites, build commands, and development workflow.
-- [ ] Choose and add the project license. **Current scoped task; awaiting the owner's selection.**
-- [ ] Implement `cinder --version`.
-- [ ] Add the CTest version-command smoke test.
+- [ ] Choose and add the project license. **Pending the owner's selection.**
+- [x] Implement `cinder --version`; verify its output, successful exit status, and rejection of missing, unknown, or extra arguments.
+- [ ] Add the CTest version-command smoke test. **Next scoped task.**
 - [ ] Configure sanitizer builds and supported leak checks.
 - [ ] Set up the GitHub repository and remote after choosing its location and visibility.
 - [ ] Add and verify macOS and Linux CI.

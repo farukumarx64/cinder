@@ -4,6 +4,10 @@ project(Cinder VERSION 0.1.0 LANGUAGES C)
 
 add_executable(cinder src/cli.c)
 
+target_compile_definitions(cinder PRIVATE
+    CINDER_VERSION="${PROJECT_VERSION}-dev"
+)
+
 set_target_properties(cinder PROPERTIES
     C_STANDARD 11
     C_STANDARD_REQUIRED YES
