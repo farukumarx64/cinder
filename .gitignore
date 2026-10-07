@@ -1,0 +1,19 @@
+# Out-of-source CMake build directories.
+/build/
+/build-*/
+/cmake-build-*/
+
+# Generated files from an in-source CMake build.
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+Testing/
+compile_commands.json
+/Makefile
+/cinder
+*.o
+*.obj
+
+# macOS metadata.
+.DS_Store
