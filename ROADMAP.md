@@ -30,8 +30,8 @@ Phase 0 is in progress. Complete and verify each scoped setup task before moving
 - [x] Implement `cinder --version`; verify its output, successful exit status, and rejection of missing, unknown, or extra arguments.
 - [x] Add the CTest version-command smoke test; verify exact output, exit status, empty standard error, and failure detection.
 - [x] Configure opt-in ASan and UBSan builds; verify each separately and together, confirm error detection with temporary probes, and document platform-specific leak checks. Native macOS `leaks` reports zero leaks for `--version`; Apple Clang LeakSanitizer is unavailable on the verified setup.
-- [ ] Set up the GitHub repository and remote after choosing its location and visibility. **Next scoped task.**
-- [ ] Add and verify macOS and Linux CI, including Linux LeakSanitizer checks.
+- [x] Set up the public `farukumarx64/cinder` GitHub repository; `origin` uses SSH and local `main` tracks `origin/main`.
+- [ ] Add and verify macOS and Linux CI, including Linux LeakSanitizer checks. **Workflow configured; hosted verification in progress.**
 - [ ] Verify the documented setup from a fresh checkout before closing M0.
 
 ---

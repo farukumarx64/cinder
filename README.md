@@ -21,7 +21,10 @@ and exits successfully with status `0`.
 - CTest provides a smoke test for the version command.
 - Opt-in AddressSanitizer and UndefinedBehaviorSanitizer builds passed the
   smoke test on macOS, both separately and together.
-- CI and a GitHub remote are still pending.
+- The public GitHub repository is [farukumarx64/cinder](https://github.com/farukumarx64/cinder).
+  The local `main` branch tracks `origin/main` over SSH.
+- GitHub Actions is configured for macOS, Linux, and Linux sanitizer checks;
+  the first hosted run is pending verification.
 - Model loading, inference, and the `info`, `run`, and `bench` commands are
   planned features; they are not implemented yet.
 
@@ -147,8 +150,30 @@ when running the sanitizer build's tests:
 (cd build-sanitize && ASAN_OPTIONS=detect_leaks=1 ctest --output-on-failure)
 ```
 
-The Linux command still needs verification in the planned Linux CI job. See the
+The Linux command is configured in the sanitizer CI job; its first hosted run
+is pending verification. See the
 [LeakSanitizer documentation](https://clang.llvm.org/docs/LeakSanitizer.html).
+
+## Continuous integration
+
+[The CI workflow](.github/workflows/ci.yml) runs on pushes to `main`, pull
+requests, and manual dispatch from the repository's Actions tab.
+
+| Job | Runner | Checks |
+| --- | --- | --- |
+| Linux build | Ubuntu 24.04 | Debug configuration, compilation, and CTest. |
+| macOS build | macOS 15 | Debug configuration, compilation, and CTest. |
+| Linux sanitizers | Ubuntu 24.04 with Clang | Debug build with ASan and UBSan, then CTest with leak detection enabled. |
+
+Each job starts from a fresh checkout, prints its toolchain versions, and fails
+if configuration, compilation, or testing fails. CTest also fails if no tests
+are registered. Jobs have a ten-minute limit, and newer runs replace older runs
+for the same branch or pull request.
+
+The workflow uses read-only repository permissions and a pinned checkout action.
+Check results and failure logs in [GitHub Actions](https://github.com/farukumarx64/cinder/actions/workflows/ci.yml).
+Leak detection is enabled only in the Linux sanitizer job because the verified
+Apple Clang runtime does not support LeakSanitizer on this Mac.
 
 ## Repository layout
 
@@ -157,6 +182,7 @@ The Linux command still needs verification in the planned Linux CI job. See the
 | `CMakeLists.txt` | Executable target, version definition, compiler/sanitizer settings, and CTest registration. |
 | `src/cli.c` | Command-line argument handling and version output. |
 | `tests/check_version.cmake` | Checks the version command's exit status and output. |
+| `.github/workflows/ci.yml` | macOS/Linux build jobs and the Linux sanitizer job. |
 | `ROADMAP.md` | Scope, implementation decisions, milestones, and progress. |
 | `.gitignore` | Generated build files and macOS metadata exclusions. |
 
