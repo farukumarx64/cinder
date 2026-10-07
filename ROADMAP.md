@@ -25,7 +25,8 @@ Phase 0 is in progress. Complete and verify each scoped setup task before moving
 - [x] Install CMake and verify the existing C compiler.
 - [x] Configure the C11 executable with `-Wall`, `-Wextra`, and `-Wpedantic`; build and run the minimal entry point.
 - [x] Initialize Git on `main` and add ignore rules for generated build files and macOS metadata.
-- [ ] Add the basic README and resolve the license choice. **Next scoped task.**
+- [x] Add the basic README describing the current setup, prerequisites, build commands, and development workflow.
+- [ ] Choose and add the project license. **Current scoped task; awaiting the owner's selection.**
 - [ ] Implement `cinder --version`.
 - [ ] Add the CTest version-command smoke test.
 - [ ] Configure sanitizer builds and supported leak checks.
