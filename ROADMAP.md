@@ -14,15 +14,15 @@ The purpose of the project is to understand what happens underneath those abstra
 
 This plan was revised on October 7, 2026 to clarify implementation contracts and introduce verification earlier. The project began in an empty folder; the checklist below records actual progress, while the later milestones remain targets.
 
-The daily dates are planning targets. Preserve the milestone order, the October 25 feature freeze, and the October 31 release target; adjust individual workdays to actual progress. Begin with M0 even though its original target dates have passed.
+The daily dates are planning targets. Preserve the milestone order, the October 25 feature freeze, and the October 31 release target; adjust individual workdays to actual progress. M0 was completed on October 8, 2026; Current Progress tracks the remaining work.
 
 All predictions, accuracy percentages, and benchmark timings shown in this document are illustrative until measured.
 
 ## Current Progress
 
-Phase 0's technical setup checks have passed; the license choice remains open.
-Phase 1 has started with the tensor contract. Implement and verify one scoped
-step at a time.
+Phase 0 (M0) is complete as of October 8, 2026, including the MIT license and
+verified development setup. Phase 1 has started with the tensor contract.
+Implement and verify one scoped step at a time.
 
 ### Phase 0 checklist
 
@@ -30,7 +30,7 @@ step at a time.
 - [x] Configure the C11 executable with `-Wall`, `-Wextra`, and `-Wpedantic`; build and run the minimal entry point.
 - [x] Initialize Git on `main` and add ignore rules for generated build files and macOS metadata.
 - [x] Add the basic README describing the current setup, prerequisites, build commands, and development workflow.
-- [ ] Choose and add the project license. **Pending the owner's selection; required to close M0.**
+- [x] Choose and add the project license. The owner selected the [MIT License](LICENSE); copyright (c) 2026 Faruk Umar.
 - [x] Implement `cinder --version`; verify its output, successful exit status, and rejection of missing, unknown, or extra arguments.
 - [x] Add the CTest version-command smoke test; verify exact output, exit status, empty standard error, and failure detection.
 - [x] Configure opt-in ASan and UBSan builds; verify each separately and together, confirm error detection with temporary probes, and document platform-specific leak checks. Native macOS `leaks` reports zero leaks for `--version`; Apple Clang LeakSanitizer is unavailable on the verified setup.
@@ -54,7 +54,8 @@ Silicon, Apple Clang 21.0.0, CMake/CTest 4.4.4, GNU Make 3.81, and Git 2.54.0.
 
 This verifies the documented commands with the installed macOS toolchain.
 Linux and hosted macOS coverage is recorded in the CI checklist item above.
-The license choice is the only remaining Phase 0 checklist item; M0 remains open.
+The MIT license was added on October 8, 2026, completing the final Phase 0
+checklist item and closing M0.
 
 ### Phase 1 checklist
 
@@ -202,7 +203,7 @@ These decisions refine the existing scope without adding operators or a general 
 - **Verification:** run unit tests, sanitizers, and macOS/Linux CI early. Compare intermediate outputs and final outputs against deterministic float32 reference fixtures with explicit absolute and relative tolerances.
 - **First end-to-end checkpoint:** export the tiny `2 → 4 → 2` network, load it in C, and match its reference outputs before beginning MNIST integration.
 
-The detailed binary layout belongs in `docs/MODEL_FORMAT.md` during Phase 3. These decisions are enough to start M0 and the core math work now.
+The detailed binary layout belongs in `docs/MODEL_FORMAT.md` during Phase 3. The core math implementation follows the decisions above.
 
 ---
 
@@ -1586,7 +1587,7 @@ Documentation + release
 CINDER v0.1.0
 ```
 
-Follow these milestones in order even if individual daily targets shift. The first implementation step is M0: CMake, a version command, a smoke test, CI, and sanitizer configuration. Then build tensor allocation and matrix-vector multiplication collaboratively, with the core loops understood before moving on.
+Follow these milestones in order even if individual daily targets shift. M0 is complete: CMake, a version command, a smoke test, CI, sanitizer configuration, setup verification, and the MIT license are in place. Next, build tensor allocation and matrix-vector multiplication collaboratively, with the core loops understood before moving on.
 
 The **October 25 deadline is the internal deadline**.
 

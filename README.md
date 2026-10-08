@@ -9,9 +9,9 @@ Training happens outside the runtime.
 
 ## Current status
 
-**Phase 1: the tensor contract is defined; implementation is next.** Phase 0's
-technical setup checks passed, while its license choice remains pending. The
-project currently contains a CMake build and a CLI that supports `--version`.
+**Phase 1: the tensor contract is defined; implementation is next.** Phase 0 is
+complete, including the MIT license and verified development setup. The project
+currently contains a CMake build and a CLI that supports `--version`.
 The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
 
 - C11 compilation with `-Wall`, `-Wextra`, and `-Wpedantic` is configured.
@@ -197,6 +197,7 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | `tests/check_version.cmake` | Checks the version command's exit status and output. |
 | `.github/workflows/ci.yml` | macOS/Linux build jobs and the Linux sanitizer job. |
 | `ROADMAP.md` | Scope, implementation decisions, milestones, and progress. |
+| `LICENSE` | MIT license and copyright notice. |
 | `.gitignore` | Generated build files and macOS metadata exclusions. |
 
 ## Development workflow
@@ -207,11 +208,13 @@ task. Record unresolved issues before moving on.
 
 The roadmap is the source of truth for progress. Its future command examples
 and benchmark numbers describe targets, not existing capabilities or measured
-performance. Phase 0 ends only when its setup checks are complete.
+performance. Phase 0 is complete; follow the Phase 1 checklist for the next steps.
 
 The v0.1.0 scope excludes training, GPU execution, convolutional layers,
 quantization, SIMD, multithreading, and arbitrary computation graphs.
 
 ## License
 
-The license choice is pending the project owner's selection.
+Cinder is licensed under the [MIT License](LICENSE).
+
+Copyright (c) 2026 Faruk Umar.
