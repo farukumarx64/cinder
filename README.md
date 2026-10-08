@@ -26,6 +26,9 @@ and exits successfully with status `0`.
   The local `main` branch tracks `origin/main` over SSH.
 - GitHub Actions passed all three jobs: macOS, Linux, and Linux with ASan,
   UBSan, and leak detection enabled.
+- The documented macOS setup was verified from a fresh GitHub clone of
+  `1190c0e` on October 8, 2026. The ordinary build, sanitizer build, smoke
+  tests, native leak check, and build without tests all passed.
 - Model loading, inference, and the `info`, `run`, and `bench` commands are
   planned features; they are not implemented yet.
 

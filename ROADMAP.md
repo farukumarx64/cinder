@@ -26,13 +26,31 @@ Phase 0 is in progress. Complete and verify each scoped setup task before moving
 - [x] Configure the C11 executable with `-Wall`, `-Wextra`, and `-Wpedantic`; build and run the minimal entry point.
 - [x] Initialize Git on `main` and add ignore rules for generated build files and macOS metadata.
 - [x] Add the basic README describing the current setup, prerequisites, build commands, and development workflow.
-- [ ] Choose and add the project license. **Pending the owner's selection.**
+- [ ] Choose and add the project license. **Next scoped task; pending the owner's selection.**
 - [x] Implement `cinder --version`; verify its output, successful exit status, and rejection of missing, unknown, or extra arguments.
 - [x] Add the CTest version-command smoke test; verify exact output, exit status, empty standard error, and failure detection.
 - [x] Configure opt-in ASan and UBSan builds; verify each separately and together, confirm error detection with temporary probes, and document platform-specific leak checks. Native macOS `leaks` reports zero leaks for `--version`; Apple Clang LeakSanitizer is unavailable on the verified setup.
 - [x] Set up the public `farukumarx64/cinder` GitHub repository; `origin` uses SSH and local `main` tracks `origin/main`.
 - [x] Add and verify macOS and Linux CI, including Linux LeakSanitizer checks. All three jobs passed in [the first hosted run](https://github.com/farukumarx64/cinder/actions/runs/37680825782): macOS 15, Ubuntu 24.04, and Ubuntu 24.04 with Clang ASan, UBSan, and leak detection enabled.
-- [ ] Verify the documented setup from a fresh checkout before closing M0. **Next scoped task.**
+- [x] Verify the documented setup from a fresh checkout before closing M0. The README commands passed on macOS on October 8, 2026; details below.
+
+### Fresh-checkout verification — October 8, 2026
+
+Cloned the public GitHub repository over HTTPS into a new temporary directory
+at commit `1190c0ec06475524563c2ee2afa64f74ad9c02ae`, without copying existing
+build directories or CMake caches. Verification used macOS 27.0.1 on Apple
+Silicon, Apple Clang 21.0.0, CMake/CTest 4.4.4, GNU Make 3.81, and Git 2.54.0.
+
+- The documented configure and build commands succeeded; `--version` printed `Cinder 0.1.0-dev`.
+- The ordinary build passed the CTest smoke test (1/1).
+- The Debug build with ASan and UBSan enabled passed the same test (1/1).
+- Native macOS `leaks --atExit` exited successfully and reported zero leaks for the version command.
+- A separate build with `BUILD_TESTING=OFF` compiled, printed its version, and registered zero tests as expected.
+- Generated files were ignored, and the fresh clone's Git working tree remained clean.
+
+This verifies the documented commands with the installed macOS toolchain.
+Linux and hosted macOS coverage is recorded in the CI checklist item above.
+The license choice is the only remaining Phase 0 checklist item; M0 remains open.
 
 ---
 
