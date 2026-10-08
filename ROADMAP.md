@@ -20,13 +20,17 @@ All predictions, accuracy percentages, and benchmark timings shown in this docum
 
 ## Current Progress
 
-Phase 0 is in progress. Complete and verify each scoped setup task before moving to tensor implementation.
+Phase 0's technical setup checks have passed; the license choice remains open.
+Phase 1 has started with the tensor contract. Implement and verify one scoped
+step at a time.
+
+### Phase 0 checklist
 
 - [x] Install CMake and verify the existing C compiler.
 - [x] Configure the C11 executable with `-Wall`, `-Wextra`, and `-Wpedantic`; build and run the minimal entry point.
 - [x] Initialize Git on `main` and add ignore rules for generated build files and macOS metadata.
 - [x] Add the basic README describing the current setup, prerequisites, build commands, and development workflow.
-- [ ] Choose and add the project license. **Next scoped task; pending the owner's selection.**
+- [ ] Choose and add the project license. **Pending the owner's selection; required to close M0.**
 - [x] Implement `cinder --version`; verify its output, successful exit status, and rejection of missing, unknown, or extra arguments.
 - [x] Add the CTest version-command smoke test; verify exact output, exit status, empty standard error, and failure detection.
 - [x] Configure opt-in ASan and UBSan builds; verify each separately and together, confirm error detection with temporary probes, and document platform-specific leak checks. Native macOS `leaks` reports zero leaks for `--version`; Apple Clang LeakSanitizer is unavailable on the verified setup.
@@ -51,6 +55,17 @@ Silicon, Apple Clang 21.0.0, CMake/CTest 4.4.4, GNU Make 3.81, and Git 2.54.0.
 This verifies the documented commands with the installed macOS toolchain.
 Linux and hosted macOS coverage is recorded in the CI checklist item above.
 The license choice is the only remaining Phase 0 checklist item; M0 remains open.
+
+### Phase 1 checklist
+
+- [x] Define the tensor contract: `rows`, `cols`, `data`, row-major layout, ownership, and error behavior. See [the contract](docs/TENSOR.md), [tensor declarations](include/cinder/tensor.h), and [error types](include/cinder/error.h). Function implementations are pending.
+- [ ] Implement tensor creation and cleanup, including dimension/overflow checks, allocation failure cleanup, and CTest coverage with sanitizers applied to the new code and test target. **Next scoped task.**
+- [ ] Implement checked tensor fill/get/set and their tests.
+- [ ] Implement matrix-vector multiplication; explain the loops and verify a non-square example calculated by hand.
+- [ ] Implement bias addition and validate vector lengths.
+- [ ] Implement ReLU and test negative, zero, and positive values.
+- [ ] Implement stable Softmax and its empty/non-finite input handling.
+- [ ] Validate the math operations against deterministic float32 NumPy fixtures using the documented tolerance rule.
 
 ---
 
@@ -499,11 +514,13 @@ M0 — Cinder builds, prints its version, and passes a smoke test with CI and sa
 
 ## Tensor and Mathematical Operations
 
-Create a minimal tensor representation.
+The minimal representation and API contract are now defined in
+[`docs/TENSOR.md`](docs/TENSOR.md) and the public headers. Implementations remain
+pending; follow the scoped checklist in Current Progress.
 
 For `v0.1.0`, two-dimensional tensors are enough.
 
-Example:
+Contract representation:
 
 ```c
 typedef struct {

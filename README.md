@@ -9,9 +9,10 @@ Training happens outside the runtime.
 
 ## Current status
 
-**Phase 0: project setup is in progress.** The project currently contains a CMake
-build and a CLI that supports `--version`. The command prints `Cinder 0.1.0-dev`
-and exits successfully with status `0`.
+**Phase 1: the tensor contract is defined; implementation is next.** Phase 0's
+technical setup checks passed, while its license choice remains pending. The
+project currently contains a CMake build and a CLI that supports `--version`.
+The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
 
 - C11 compilation with `-Wall`, `-Wextra`, and `-Wpedantic` is configured.
 - A local Git repository on `main` tracks source and documentation. Generated
@@ -29,6 +30,9 @@ and exits successfully with status `0`.
 - The documented macOS setup was verified from a fresh GitHub clone of
   `1190c0e` on October 8, 2026. The ordinary build, sanitizer build, smoke
   tests, native leak check, and build without tests all passed.
+- The [tensor contract](docs/TENSOR.md) defines the representation, ownership,
+  indexing, and error behavior. Public headers declare the API; tensor
+  allocation and operations are not implemented yet.
 - Model loading, inference, and the `info`, `run`, and `bench` commands are
   planned features; they are not implemented yet.
 
@@ -187,6 +191,9 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | --- | --- |
 | `CMakeLists.txt` | Executable target, version definition, compiler/sanitizer settings, and CTest registration. |
 | `src/cli.c` | Command-line argument handling and version output. |
+| `include/cinder/tensor.h` | Tensor representation and function declarations. |
+| `include/cinder/error.h` | Status codes and caller-owned error details. |
+| `docs/TENSOR.md` | Tensor layout, ownership, validation, and failure contract. |
 | `tests/check_version.cmake` | Checks the version command's exit status and output. |
 | `.github/workflows/ci.yml` | macOS/Linux build jobs and the Linux sanitizer job. |
 | `ROADMAP.md` | Scope, implementation decisions, milestones, and progress. |
