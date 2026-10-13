@@ -2,7 +2,10 @@
 
 This is the contract for the first Phase 1 implementation. Types and function
 declarations are in `include/cinder/tensor.h` and `include/cinder/error.h`.
-The functions are not implemented or linked into the CLI yet.
+Creation and cleanup are implemented in `src/tensor.c`, built as the
+`cinder_core` static library shared by the CLI and ordinary tensor tests.
+The CLI still exposes only `--version`; fill/get/set remain declarations for
+the next implementation step.
 
 ## Representation and layout
 
@@ -23,7 +26,8 @@ typedef struct {
 `size_t` is the unsigned type used for sizes and indices. Dimensions count
 elements, not bytes. The supported platform must represent C `float` as
 IEEE 754 binary32 (32 bits, four 8-bit bytes). The allocation implementation
-must check this platform requirement at compile time.
+checks byte size, float size, radix, precision, exponent range, and subnormal
+support at compile time.
 
 Storage is row-major: all elements of the first row appear before those of the
 second row. With zero-based indices:
@@ -81,6 +85,8 @@ modifies or frees the tensor.
 
 ## Access and mutation
 
+These functions are declared; their implementations and tests are next.
+
 - `cinder_tensor_fill` replaces all elements with one finite value.
 - `cinder_tensor_get` reads a single element into a separate caller-owned
   `float`. It reports an error if that element is non-finite.
@@ -125,9 +131,27 @@ the result. Functions do not print diagnostics, terminate the process, use
 global error state, or allocate memory for error messages. The caller decides
 whether to report, propagate, or handle an error.
 
-## Next implementation check
+## Allocation verification
 
-Implement create/free first, with CTest coverage for zero initialization,
-invalid dimensions, both size-overflow cases, and allocation failure cleanup.
-Run those tests with ASan and UBSan enabled on the new code and test target.
-Fill/get/set and their bounds/finite-value tests follow as a separate step.
+`tensor_allocation` links the ordinary `cinder_core` library and exercises
+zero initialization, several shapes, writable contiguous storage, independent
+allocations, invalid arguments, both overflow checks, optional error details,
+and repeated cleanup. `cinder_tensor_free(NULL)` is also exercised.
+
+`tensor_allocation_failures` compiles the actual `src/tensor.c` implementation
+inside a test translation unit, replacing only its calls to `malloc`, `calloc`,
+and `free`. The wrappers can fail a selected allocation and track live blocks.
+They verify cleanup when either allocation fails, absence of allocation during
+validation failures, and successful creation after an earlier failure. The
+largest byte-safe element count is checked with the first allocation forced to
+fail, so the test does not attempt an enormous allocation. This executable does
+not link a second copy of the implementation from `cinder_core`.
+
+On October 9, 2026, all three CTest tests passed locally on macOS in Debug,
+Release, and combined ASan/UBSan builds. The core library and test translation
+units receive the same warning and sanitizer settings. Native macOS leak
+checks reported zero leaks for both tensor test executables. A build with
+`BUILD_TESTING=OFF` also passed. Hosted CI verification of the new tests awaits
+the next push.
+
+Next: implement fill/get/set and their bounds/finite-value tests.

@@ -6,7 +6,7 @@
 #include "cinder/error.h"
 
 /*
- * Contract declarations only; implementations will be added separately.
+ * Creation and cleanup are implemented; fill/get/set are declarations only.
  * See docs/TENSOR.md for ownership, failure behavior, and examples.
  *
  * A live tensor owns rows * cols contiguous float32 elements. Both dimensions
