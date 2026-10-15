@@ -2,6 +2,7 @@
 
 #include <float.h>
 #include <limits.h>
+#include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -83,4 +84,79 @@ void cinder_tensor_free(cinder_tensor_t *tensor)
     }
     free(tensor->data);
     free(tensor);
+}
+
+cinder_status_t cinder_tensor_fill(
+    cinder_tensor_t *tensor,
+    float value,
+    cinder_error_t *error
+)
+{
+    if (tensor == NULL) {
+        return tensor_result(CINDER_ERROR_INVALID_ARGUMENT, error,
+                             "Tensor must not be NULL.");
+    }
+    if (!isfinite(value)) {
+        return tensor_result(CINDER_ERROR_NONFINITE, error,
+                             "Tensor fill value must be finite.");
+    }
+
+    /* Creation validated this product; live tensor metadata must stay intact. */
+    size_t count = tensor->rows * tensor->cols;
+    for (size_t i = 0; i < count; ++i) {
+        tensor->data[i] = value;
+    }
+    return tensor_result(CINDER_OK, error, "");
+}
+
+cinder_status_t cinder_tensor_get(
+    const cinder_tensor_t *tensor,
+    size_t row,
+    size_t col,
+    float *out_value,
+    cinder_error_t *error
+)
+{
+    if (tensor == NULL || out_value == NULL) {
+        return tensor_result(CINDER_ERROR_INVALID_ARGUMENT, error,
+                             "Tensor and output value pointers must not be NULL.");
+    }
+    if (row >= tensor->rows || col >= tensor->cols) {
+        return tensor_result(CINDER_ERROR_OUT_OF_BOUNDS, error,
+                             "Tensor row or column index is out of bounds.");
+    }
+
+    float value = tensor->data[row * tensor->cols + col];
+    if (!isfinite(value)) {
+        return tensor_result(CINDER_ERROR_NONFINITE, error,
+                             "Tensor element must be finite.");
+    }
+    /* Preserve the caller's output until every check has passed. */
+    *out_value = value;
+    return tensor_result(CINDER_OK, error, "");
+}
+
+cinder_status_t cinder_tensor_set(
+    cinder_tensor_t *tensor,
+    size_t row,
+    size_t col,
+    float value,
+    cinder_error_t *error
+)
+{
+    if (tensor == NULL) {
+        return tensor_result(CINDER_ERROR_INVALID_ARGUMENT, error,
+                             "Tensor must not be NULL.");
+    }
+    if (row >= tensor->rows || col >= tensor->cols) {
+        return tensor_result(CINDER_ERROR_OUT_OF_BOUNDS, error,
+                             "Tensor row or column index is out of bounds.");
+    }
+    if (!isfinite(value)) {
+        return tensor_result(CINDER_ERROR_NONFINITE, error,
+                             "Tensor element value must be finite.");
+    }
+
+    tensor->data[row * tensor->cols + col] = value;
+    return tensor_result(CINDER_OK, error, "");
 }

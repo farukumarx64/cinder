@@ -22,7 +22,7 @@ All predictions, accuracy percentages, and benchmark timings shown in this docum
 
 Phase 0 (M0) is complete as of October 8, 2026, including the MIT license and
 verified development setup. Phase 1 now includes the tensor contract and tested
-allocation/cleanup.
+allocation/cleanup and basic access.
 Implement and verify one scoped step at a time.
 
 ### Phase 0 checklist
@@ -61,9 +61,9 @@ checklist item and closing M0.
 ### Phase 1 checklist
 
 - [x] Define the tensor contract: `rows`, `cols`, `data`, row-major layout, ownership, and error behavior. See [the contract](docs/TENSOR.md), [tensor declarations](include/cinder/tensor.h), and [error types](include/cinder/error.h).
-- [x] Implement tensor creation and cleanup, including dimension/overflow checks, zero initialization, allocation failure cleanup, and CTest coverage with sanitizers applied to the new code and test targets. On October 9, 2026, all 3 tests passed locally on macOS in Debug, Release, and combined ASan/UBSan builds; both tensor executables reported zero native leaks. A build without tests also passed. Hosted CI for the new tests is pending the next push.
-- [ ] Implement checked tensor fill/get/set and their tests. **Next scoped task.**
-- [ ] Implement matrix-vector multiplication; explain the loops and verify a non-square example calculated by hand.
+- [x] Implement tensor creation and cleanup, including dimension/overflow checks, zero initialization, allocation failure cleanup, and CTest coverage with sanitizers applied to the new code and test targets. On October 9, 2026, all 3 tests passed locally on macOS in Debug, Release, and combined ASan/UBSan builds; both tensor executables reported zero native leaks. A build without tests also passed.
+- [x] Implement checked tensor fill/get/set and their tests. On October 15, 2026, all 4 tests passed locally on macOS in Debug, Release, and combined ASan/UBSan builds. Access tests cover row-major indexing, bounds, non-finite values, failure preservation, and optional error details; allocator tracking confirms no access allocations. The new test executable reported zero native leaks, and a build without tests passed. Hosted CI for this step awaits the next push.
+- [ ] Implement matrix-vector multiplication; explain the loops and verify a non-square example calculated by hand. **Next scoped task.**
 - [ ] Implement bias addition and validate vector lengths.
 - [ ] Implement ReLU and test negative, zero, and positive values.
 - [ ] Implement stable Softmax and its empty/non-finite input handling.
@@ -517,9 +517,9 @@ M0 — Cinder builds, prints its version, and passes a smoke test with CI and sa
 ## Tensor and Mathematical Operations
 
 The minimal representation and API contract are now defined in
-[`docs/TENSOR.md`](docs/TENSOR.md) and the public headers. Creation and cleanup
-are implemented and tested; follow the scoped checklist in Current Progress
-for element access and math operations.
+[`docs/TENSOR.md`](docs/TENSOR.md) and the public headers. Creation, cleanup,
+and checked fill/get/set are implemented and tested; follow the scoped
+checklist in Current Progress for math operations.
 
 For `v0.1.0`, two-dimensional tensors are enough.
 

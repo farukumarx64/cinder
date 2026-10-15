@@ -1,5 +1,6 @@
 #include "cinder/tensor.h"
 
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -134,6 +135,21 @@ int main(void)
     CHECK(error.message[0] == '\0');
     CHECK(allocation_calls == 2);
     CHECK(live_count == 2);
+
+    /* Access must work even when the next allocation would fail. */
+    fail_on_call = allocation_calls + 1;
+    float value = -1.0f;
+    CHECK(cinder_tensor_fill(tensor, 2.0f, &error) == CINDER_OK);
+    CHECK(cinder_tensor_set(tensor, 1, 2, 3.0f, &error) == CINDER_OK);
+    CHECK(cinder_tensor_get(tensor, 1, 2, &value, &error) == CINDER_OK);
+    CHECK(value == 3.0f);
+    CHECK(cinder_tensor_fill(tensor, NAN, &error) == CINDER_ERROR_NONFINITE);
+    CHECK(cinder_tensor_set(tensor, 0, 3, 1.0f, &error) == CINDER_ERROR_OUT_OF_BOUNDS);
+    CHECK(cinder_tensor_get(tensor, SIZE_MAX, 0, &value, &error) == CINDER_ERROR_OUT_OF_BOUNDS);
+    CHECK(value == 3.0f);
+    CHECK(allocation_calls == 2);
+    CHECK(live_count == 2);
+
     cinder_tensor_free(tensor);
     CHECK(live_count == 0);
     cinder_tensor_free(NULL);

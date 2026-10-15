@@ -9,7 +9,7 @@ Training happens outside the runtime.
 
 ## Current status
 
-**Phase 1: tensor allocation and cleanup are implemented and tested.** Phase 0 is
+**Phase 1: tensor allocation, cleanup, and basic access are implemented and tested.** Phase 0 is
 complete, including the MIT license and verified development setup. The project
 currently contains a CMake build and a CLI that supports `--version`.
 The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
@@ -20,7 +20,8 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
 - The macOS build was verified on Apple Silicon with Apple Clang 21.0.0 and
   CMake 4.4.4. GitHub Actions also verified builds and tests on macOS 15 and
   Ubuntu 24.04.
-- CTest provides the version-command smoke test and two tensor allocation tests.
+- CTest provides the version-command smoke test, two tensor allocation tests,
+  and the tensor-access test.
 - Opt-in AddressSanitizer and UndefinedBehaviorSanitizer builds passed the
   smoke test on macOS, both separately and together.
 - The public GitHub repository is [farukumarx64/cinder](https://github.com/farukumarx64/cinder).
@@ -33,10 +34,13 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
 - The [tensor contract](docs/TENSOR.md) defines the representation, ownership,
   indexing, and error behavior. Creation and cleanup are implemented, including
   size validation, zero initialization, and allocation failure handling.
-- All three tests passed locally on macOS in Debug, Release, and combined
-  ASan/UBSan builds on October 9, 2026. Native leak checks reported zero leaks
-  for both tensor test executables. Tensor fill/get/set and math operations
-  remain pending.
+- Checked `fill`, `get`, and `set` support row-major indexing, reject invalid
+  indices and non-finite values, and preserve data or outputs on failure.
+- All four tests passed locally on macOS in Debug, Release, and combined
+  ASan/UBSan builds on October 15, 2026. The new access test reported zero native
+  leaks; the allocation tests also passed native leak checks on October 9.
+  Math operations remain pending; hosted CI verification of access is pending
+  the next push.
 - Model loading, inference, and the `info`, `run`, and `bench` commands are
   planned features; they are not implemented yet.
 
@@ -82,7 +86,7 @@ Keep generated files in a separate build directory. The ignore rules cover
 ## Run the tests
 
 CTest ships with CMake. Tests are enabled by default through `BUILD_TESTING`.
-Configure and build the executable before running the test:
+Configure and build the project before running the tests:
 
 ```sh
 cmake -S . -B build
@@ -95,17 +99,22 @@ exactly `Cinder 0.1.0-dev` followed by a newline on standard output, and empty
 standard error. The expected version follows the CMake project version.
 Failures show diagnostics; the test has a ten-second timeout.
 
-Two more CTest tests exercise tensor memory management:
+Three more CTest tests exercise tensor memory management and access:
 
 - `tensor_allocation` checks dimensions, zero initialization, writable storage,
   independent tensors, invalid arguments, both size-overflow cases, repeated
   creation/cleanup, and optional error details against the `cinder_core` library.
 - `tensor_allocation_failures` forces the first and second allocations to fail,
   checks partial cleanup and NULL outputs, and confirms validation happens
-  before allocation. It compiles the same implementation with allocator
+  before allocation. It also checks that access functions do not allocate.
+  It compiles the same implementation with allocator
   substitutions confined to the test; production has no failure switches.
+- `tensor_access` checks fills across several shapes, reads and writes against
+  known row-major storage, NULL pointers, boundary and huge indices, NaN and
+  infinities, unchanged data/outputs on error, and optional error details.
+  Finite extremes, subnormal values, and signed zero are also exercised.
 
-Both tensor tests have ten-second timeouts. Their checks stay active in Release
+All tensor tests have ten-second timeouts. Their checks stay active in Release
 builds, where ordinary C `assert` checks could be disabled by `NDEBUG`.
 
 To configure a build without tests, pass `-DBUILD_TESTING=OFF` to CMake.
@@ -133,7 +142,7 @@ cmake --build build-sanitize
 ```
 
 Shared CMake settings apply warning and sanitizer flags to the core library,
-CLI, and both test executables, including sanitizer flags at executable link
+CLI, and all test executables, including sanitizer flags at executable link
 time. Sanitizer builds retain frame pointers for clearer stack traces. UBSan
 uses `-fno-sanitize-recover=undefined` so a detected error terminates the program
 with a failure instead of continuing. CTest reports any failing test.
@@ -143,8 +152,8 @@ builds and `build-sanitize/` for sanitizer builds; explicitly set either option
 to `OFF` when disabling it in an existing build directory. Benchmark with
 sanitizers disabled because their checks add runtime overhead.
 
-The current tests exercise the version command and tensor allocation/cleanup.
-Additional tests will cover element access and inference as those features
+The current tests exercise the version command, tensor allocation/cleanup,
+and basic access. Additional tests will cover math and inference as those features
 arrive. Passing the current tests is not evidence that future code is free of
 memory errors.
 
@@ -165,11 +174,12 @@ On macOS, run the native `leaks` tool against the ordinary build:
 leaks --atExit -- ./build/cinder --version
 leaks --atExit -- ./build/test_tensor
 leaks --atExit -- ./build/test_tensor_alloc_failures
+leaks --atExit -- ./build/test_tensor_access
 ```
 
-These commands reported zero leaks for the version command and both tensor
-test executables. The tool
-needs permission to inspect the process it launches; a restrictive sandbox can
+These commands reported zero leaks for the version command and tensor test
+executables during their respective verification steps. The tool needs
+permission to inspect the process it launches; a restrictive sandbox can
 block it. An inspection error is not a successful leak check.
 
 On Linux with a LeakSanitizer-capable toolchain, explicitly enable leak checks
@@ -179,9 +189,9 @@ when running the sanitizer build's tests:
 (cd build-sanitize && ASAN_OPTIONS=detect_leaks=1 ctest --output-on-failure)
 ```
 
-The Linux sanitizer CI job previously passed the version-command smoke test
-with leak detection enabled. It will also run the new tensor tests on the next
-CI run after these changes are pushed; those hosted results are pending. See the
+The Linux sanitizer CI job runs the full CTest suite with leak detection
+enabled. The new access checks will run after these changes are pushed;
+their hosted results are pending. See the
 [LeakSanitizer documentation](https://clang.llvm.org/docs/LeakSanitizer.html).
 
 ## Continuous integration
@@ -213,12 +223,13 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | --- | --- |
 | `CMakeLists.txt` | Core library and executable targets, shared compiler/sanitizer settings, and CTest registration. |
 | `src/cli.c` | Command-line argument handling and version output. |
-| `src/tensor.c` | Checked tensor allocation, zero initialization, error reporting, and cleanup. |
+| `src/tensor.c` | Tensor allocation, cleanup, checked fill/get/set, and error reporting. |
 | `include/cinder/tensor.h` | Tensor representation and function declarations. |
 | `include/cinder/error.h` | Status codes and caller-owned error details. |
 | `docs/TENSOR.md` | Tensor layout, ownership, validation, and failure contract. |
 | `tests/check_version.cmake` | Checks the version command's exit status and output. |
 | `tests/test_tensor.c` | Tests the core library's allocation and cleanup API. |
+| `tests/test_tensor_access.c` | Tests row-major access, bounds, finite values, and failure behavior. |
 | `tests/test_tensor_alloc_failures.c` | Forces allocation failures and tracks cleanup with test-only allocator substitutions. |
 | `.github/workflows/ci.yml` | macOS/Linux build jobs and the Linux sanitizer job. |
 | `ROADMAP.md` | Scope, implementation decisions, milestones, and progress. |

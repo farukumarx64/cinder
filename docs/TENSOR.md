@@ -2,10 +2,9 @@
 
 This is the contract for the first Phase 1 implementation. Types and function
 declarations are in `include/cinder/tensor.h` and `include/cinder/error.h`.
-Creation and cleanup are implemented in `src/tensor.c`, built as the
+Creation, cleanup, and fill/get/set are implemented in `src/tensor.c`, built as the
 `cinder_core` static library shared by the CLI and ordinary tensor tests.
-The CLI still exposes only `--version`; fill/get/set remain declarations for
-the next implementation step.
+The CLI still exposes only `--version`; the tensor API is exercised by C tests.
 
 ## Representation and layout
 
@@ -85,7 +84,7 @@ modifies or frees the tensor.
 
 ## Access and mutation
 
-These functions are declared; their implementations and tests are next.
+All three access functions are implemented and allocate no memory.
 
 - `cinder_tensor_fill` replaces all elements with one finite value.
 - `cinder_tensor_get` reads a single element into a separate caller-owned
@@ -96,6 +95,24 @@ All three functions reject NULL required pointers. Get and set check bounds
 before computing an offset. Fill and set reject NaN and positive/negative
 infinity. On failure, fill and set leave the tensor unchanged; get leaves its
 output value unchanged. Get never changes the tensor.
+
+Validation order is required pointers, row/column bounds (for get/set), then
+finite values. A set call with both an invalid index and NaN therefore reports
+`CINDER_ERROR_OUT_OF_BOUNDS`. A get call with a NULL output pointer reports
+`CINDER_ERROR_INVALID_ARGUMENT` before inspecting indices or elements.
+
+Bounds are checked separately: `row >= rows || col >= cols` rejects the call
+before calculating `row * cols + col`. For a `2 x 3` tensor, `(0, 3)` is invalid
+even though its flattened offset would land inside the array at the next row.
+Successful creation already checked the total element count for overflow;
+valid indices into a live tensor with intact metadata therefore produce a
+representable offset. Fill relies on the same validated dimensions for its loop.
+
+Get checks only the requested element, keeping reads constant-time. It reads
+into a local variable, checks finiteness, and only then assigns `*out_value`.
+Set is also constant-time. Fill visits all `rows * cols` elements and checks
+its supplied value before starting the loop. Finite negative values, signed
+zero, subnormal values, and the largest finite floats are accepted.
 
 Output and error objects must be valid writable storage that does not overlap
 the tensor, its element array, or each other. Apart from documented NULL
@@ -151,7 +168,24 @@ On October 9, 2026, all three CTest tests passed locally on macOS in Debug,
 Release, and combined ASan/UBSan builds. The core library and test translation
 units receive the same warning and sanitizer settings. Native macOS leak
 checks reported zero leaks for both tensor test executables. A build with
-`BUILD_TESTING=OFF` also passed. Hosted CI verification of the new tests awaits
-the next push.
+`BUILD_TESTING=OFF` also passed. These are the local results from that step.
 
-Next: implement fill/get/set and their bounds/finite-value tests.
+## Access verification
+
+`tensor_access` checks fill over `1 x 1`, rectangular, row-vector, and
+column-vector shapes. Get reads known flat-array fixtures, while set is
+checked against raw storage and unchanged neighboring elements; correctness
+does not depend solely on a set/get round trip. Tests cover boundary and huge
+indices, NULL pointers, NaN, both infinities, validation order, unchanged
+outputs/data on failure, signed zero, finite extremes, and optional error
+details. Successful calls must clear previous error details.
+
+The allocation-failure test also arms the next allocation to fail and checks
+that successful and rejected access calls leave allocation counts unchanged.
+
+On October 15, 2026, all four CTest tests passed locally on macOS in Debug,
+Release, and combined ASan/UBSan builds. The new access executable reported
+zero leaks under native macOS `leaks`. A build with `BUILD_TESTING=OFF` also
+succeeded. Hosted CI verification of access awaits the next push.
+
+Next: implement matrix-vector multiplication and its tests.

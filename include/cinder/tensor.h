@@ -6,7 +6,7 @@
 #include "cinder/error.h"
 
 /*
- * Creation and cleanup are implemented; fill/get/set are declarations only.
+ * Creation, cleanup, and checked fill/get/set are implemented.
  * See docs/TENSOR.md for ownership, failure behavior, and examples.
  *
  * A live tensor owns rows * cols contiguous float32 elements. Both dimensions
@@ -17,6 +17,9 @@
  * data pointer as read-only metadata; do not copy this struct by value or
  * replace/free its data pointer. Element values may be changed, but must be
  * finite. Borrowed pointers remain valid only until the owner frees it.
+ * Access functions require a live tensor with intact metadata. Output/error
+ * storage must not overlap the tensor, its array, or each other. Validation
+ * order is required pointers, indices (when present), then finite values.
  */
 typedef struct {
     size_t rows;
