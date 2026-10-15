@@ -10,7 +10,7 @@ Training happens outside the runtime.
 ## Current status
 
 **Phase 1: tensor allocation, cleanup, basic access, matrix-vector
-multiplication, and bias addition are implemented and tested.** Phase 0 is
+multiplication, bias addition, and ReLU are implemented and tested.** Phase 0 is
 complete, including the MIT license and verified development setup. The project
 currently contains a CMake build and a CLI that supports `--version`.
 The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
@@ -22,7 +22,8 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
   CMake 4.4.4. GitHub Actions also verified builds and tests on macOS 15 and
   Ubuntu 24.04.
 - CTest provides the version-command smoke test, two tensor allocation tests,
-  the tensor-access test, the matrix-vector test, and the bias-addition test.
+  and tests for tensor access, matrix-vector multiplication, bias addition,
+  and ReLU.
 - Opt-in AddressSanitizer and UndefinedBehaviorSanitizer builds passed the
   smoke test on macOS, both separately and together.
 - The public GitHub repository is [farukumarx64/cinder](https://github.com/farukumarx64/cinder).
@@ -43,10 +44,13 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
 - `cinder_tensor_add_bias` adds one bias per output in place, completing
   `y = Wx + b` after matvec. It checks equal, nonzero vector lengths, finite
   sources and results, and does not allocate memory.
-- All six tests passed locally on macOS in Debug, Release, and combined
-  ASan/UBSan builds on October 15, 2026. The access, matrix-vector, and bias tests
-  reported zero native leaks; the allocation tests also passed native leak
-  checks on October 9. ReLU is next; hosted CI verification of bias addition
+- `cinder_tensor_relu` replaces negative finite values with zero in place.
+  It preserves positive values and existing zeros, validates the full vector
+  before writing, and leaves it unchanged on any failure.
+- All seven tests passed locally on macOS in Debug, Release, and combined
+  ASan/UBSan builds on October 15, 2026. Access, matrix-vector, bias, and ReLU
+  tests reported zero native leaks; the allocation tests also passed native
+  leak checks on October 9. Softmax is next; hosted CI verification of ReLU
   awaits a future push.
 - Model loading, inference, and the `info`, `run`, and `bench` commands are
   planned features; they are not implemented yet.
@@ -106,15 +110,15 @@ exactly `Cinder 0.1.0-dev` followed by a newline on standard output, and empty
 standard error. The expected version follows the CMake project version.
 Failures show diagnostics; the test has a ten-second timeout.
 
-Five more CTest tests exercise tensor memory management, access, and math:
+Six more CTest tests exercise tensor memory management, access, and math:
 
 - `tensor_allocation` checks dimensions, zero initialization, writable storage,
   independent tensors, invalid arguments, both size-overflow cases, repeated
   creation/cleanup, and optional error details against the `cinder_core` library.
 - `tensor_allocation_failures` forces the first and second allocations to fail,
   checks partial cleanup and NULL outputs, and confirms validation happens
-  before allocation. It also checks that access, matvec, and bias addition do
-  not allocate.
+  before allocation. It also checks that access, matvec, bias addition, and
+  ReLU do not allocate.
   It compiles the same implementation with allocator
   substitutions confined to the test; production has no failure switches.
 - `tensor_access` checks fills across several shapes, reads and writes against
@@ -130,6 +134,11 @@ Five more CTest tests exercise tensor memory management, access, and math:
   arithmetic overflow, unchanged bias and spare output storage, and error
   details. Integration cases verify `Wx + b` and a zero input whose result is
   exactly the bias. It uses the same numerical tolerance rule as matvec.
+- `tensor_relu` checks negative/zero/positive values, finite extremes, signed
+  zeros, subnormal values, invalid counts and pointers, non-finite values,
+  unchanged data on failure, and untouched spare capacity. It also checks
+  repeated application and the full `ReLU(Wx + b)` sequence. Expected values
+  are compared exactly because ReLU introduces no rounding arithmetic.
 
 All tensor tests have ten-second timeouts. Their checks stay active in Release
 builds, where ordinary C `assert` checks could be disabled by `NDEBUG`.
@@ -170,9 +179,9 @@ to `OFF` when disabling it in an existing build directory. Benchmark with
 sanitizers disabled because their checks add runtime overhead.
 
 The current tests exercise the version command, tensor allocation/cleanup,
-basic access, matrix-vector multiplication, and bias addition. Additional tests
-will cover the remaining math and inference features as they arrive. Passing the current
-tests is not evidence that future code is free of memory errors.
+basic access, matrix-vector multiplication, bias addition, and ReLU. Additional
+tests will cover the remaining math and inference features as they arrive.
+Passing the current tests is not evidence that future code is free of memory errors.
 
 See the upstream [AddressSanitizer documentation](https://clang.llvm.org/docs/AddressSanitizer.html)
 and [UndefinedBehaviorSanitizer documentation](https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html)
@@ -194,6 +203,7 @@ leaks --atExit -- ./build/test_tensor_alloc_failures
 leaks --atExit -- ./build/test_tensor_access
 leaks --atExit -- ./build/test_tensor_matvec
 leaks --atExit -- ./build/test_tensor_bias
+leaks --atExit -- ./build/test_tensor_relu
 ```
 
 These commands reported zero leaks for the version command and tensor test
@@ -209,7 +219,7 @@ when running the sanitizer build's tests:
 ```
 
 The Linux sanitizer CI job runs the full CTest suite with leak detection
-enabled. The new bias checks will run after these changes are pushed;
+enabled. The new ReLU checks will run after these changes are pushed;
 their hosted results are pending. See the
 [LeakSanitizer documentation](https://clang.llvm.org/docs/LeakSanitizer.html).
 
@@ -242,7 +252,7 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | --- | --- |
 | `CMakeLists.txt` | Core library and executable targets, shared compiler/sanitizer settings, and CTest registration. |
 | `src/cli.c` | Command-line argument handling and version output. |
-| `src/tensor.c` | Tensor allocation, cleanup, checked access, matrix-vector multiplication, bias addition, and error reporting. |
+| `src/tensor.c` | Tensor allocation, cleanup, checked access, matrix-vector multiplication, bias addition, ReLU, and error reporting. |
 | `include/cinder/tensor.h` | Tensor representation and function declarations. |
 | `include/cinder/error.h` | Status codes and caller-owned error details. |
 | `docs/TENSOR.md` | Tensor layout, ownership, validation, and failure contract. |
@@ -251,6 +261,7 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | `tests/test_tensor_access.c` | Tests row-major access, bounds, finite values, and failure behavior. |
 | `tests/test_tensor_matvec.c` | Tests matrix-vector products, dimensions, output capacity, and numeric failures. |
 | `tests/test_tensor_bias.c` | Tests bias addition, vector lengths, numeric failures, and composed `Wx + b` results. |
+| `tests/test_tensor_relu.c` | Tests ReLU values, validation, failure preservation, and composed `ReLU(Wx + b)` results. |
 | `tests/test_tensor_alloc_failures.c` | Forces allocation failures and tracks cleanup with test-only allocator substitutions. |
 | `.github/workflows/ci.yml` | macOS/Linux build jobs and the Linux sanitizer job. |
 | `ROADMAP.md` | Scope, implementation decisions, milestones, and progress. |

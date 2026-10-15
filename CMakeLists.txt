@@ -75,6 +75,11 @@ if(BUILD_TESTING)
     cinder_configure_target(test_tensor_bias)
     add_test(NAME tensor_bias COMMAND test_tensor_bias)
 
+    add_executable(test_tensor_relu tests/test_tensor_relu.c)
+    target_link_libraries(test_tensor_relu PRIVATE cinder_core)
+    cinder_configure_target(test_tensor_relu)
+    add_test(NAME tensor_relu COMMAND test_tensor_relu)
+
     # This test compiles tensor.c with allocator substitutions confined to its
     # translation unit, so it must not also link the normal cinder_core copy.
     add_executable(test_tensor_alloc_failures tests/test_tensor_alloc_failures.c)
@@ -85,7 +90,8 @@ if(BUILD_TESTING)
     add_test(NAME tensor_allocation_failures COMMAND test_tensor_alloc_failures)
 
     set_tests_properties(
-        tensor_allocation tensor_access tensor_matvec tensor_bias tensor_allocation_failures
+        tensor_allocation tensor_access tensor_matvec tensor_bias tensor_relu
+        tensor_allocation_failures
         PROPERTIES TIMEOUT 10
     )
 endif()

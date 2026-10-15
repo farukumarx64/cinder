@@ -6,8 +6,8 @@
 #include "cinder/error.h"
 
 /*
- * Creation, cleanup, checked fill/get/set, matrix-vector multiplication, and
- * bias addition are implemented.
+ * Creation, cleanup, checked fill/get/set, matrix-vector multiplication,
+ * bias addition, and ReLU are implemented.
  * See docs/TENSOR.md for ownership, failure behavior, and examples.
  *
  * A live tensor owns rows * cols contiguous float32 elements. Both dimensions
@@ -142,6 +142,26 @@ cinder_status_t cinder_tensor_add_bias(
     size_t output_count,
     const float *bias,
     size_t bias_count,
+    cinder_error_t *error
+);
+
+/*
+ * Apply ReLU in place: replace values below zero with +0.0f. Positive values
+ * and existing zeros (including -0.0f) stay unchanged. No memory is allocated.
+ * count is the vector length in floats, not spare capacity; after matvec use
+ * weights->rows. The caller supplies at least count initialized, readable and
+ * writable floats. Optional error storage must not overlap the vector.
+ *
+ * Validation order and statuses:
+ * INVALID_ARGUMENT: NULL values or zero count.
+ * OVERFLOW: the vector byte count cannot fit in size_t.
+ * NONFINITE: any value is NaN or infinity, including negative infinity.
+ * The whole vector is validated before mutation, so every failure leaves it
+ * unchanged. Storage beyond count is neither read nor written.
+ */
+cinder_status_t cinder_tensor_relu(
+    float *values,
+    size_t count,
     cinder_error_t *error
 );
 

@@ -257,3 +257,33 @@ cinder_status_t cinder_tensor_add_bias(
     }
     return tensor_result(CINDER_OK, error, "");
 }
+
+cinder_status_t cinder_tensor_relu(
+    float *values,
+    size_t count,
+    cinder_error_t *error
+)
+{
+    if (values == NULL || count == 0) {
+        return tensor_result(CINDER_ERROR_INVALID_ARGUMENT, error,
+                             "ReLU requires a non-NULL, nonempty vector.");
+    }
+    if (count > SIZE_MAX / sizeof(*values)) {
+        return tensor_result(CINDER_ERROR_OVERFLOW, error,
+                             "ReLU vector byte count exceeds SIZE_MAX.");
+    }
+
+    /* Validate all values before clamping any earlier negative elements. */
+    for (size_t i = 0; i < count; ++i) {
+        if (!isfinite(values[i])) {
+            return tensor_result(CINDER_ERROR_NONFINITE, error,
+                                 "ReLU values must be finite.");
+        }
+    }
+    for (size_t i = 0; i < count; ++i) {
+        if (values[i] < 0.0f) {
+            values[i] = 0.0f;
+        }
+    }
+    return tensor_result(CINDER_OK, error, "");
+}

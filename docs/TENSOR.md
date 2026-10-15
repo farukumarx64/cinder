@@ -2,9 +2,9 @@
 
 This is the contract for the first Phase 1 implementation. Types and function
 declarations are in `include/cinder/tensor.h` and `include/cinder/error.h`.
-Creation, cleanup, fill/get/set, matrix-vector multiplication, and bias addition
-are implemented in `src/tensor.c`, built as the `cinder_core` static library
-shared by the CLI and ordinary tensor tests.
+Creation, cleanup, fill/get/set, matrix-vector multiplication, bias addition,
+and ReLU are implemented in `src/tensor.c`, built as the `cinder_core` static
+library shared by the CLI and ordinary tensor tests.
 The CLI still exposes only `--version`; the tensor API is exercised by C tests.
 
 ## Representation and layout
@@ -278,24 +278,96 @@ succeeds. Bias addition uses `O(M)` time, `O(1)` extra space, and no allocations
 Together these functions implement the arithmetic `y = Wx + b`; the layer
 abstraction and model execution remain future steps.
 
+## ReLU
+
+```c
+cinder_status_t cinder_tensor_relu(
+    float *values,
+    size_t count,
+    cinder_error_t *error
+);
+```
+
+ReLU (rectified linear unit) applies `max(0, value)` to each finite element.
+This implementation replaces values below zero with positive `0.0f` and leaves
+positive values and existing zeros unchanged. In particular, `-0.0f` compares
+equal to zero in C, so its sign is preserved; a negative nonzero value becomes
+positive zero. Negative and positive subnormal values follow the same rule.
+
+```text
+before: [-3.5, 0.0, 2.75]
+after:  [ 0.0, 0.0, 2.75]
+```
+
+The function updates the vector in place and allocates no memory. `count` is
+the number of initialized readable/writable floats to process, not spare
+capacity. After matvec and bias addition, use `weights->rows`. The caller must
+provide that much valid storage; the function cannot discover the allocation
+size from a pointer. The optional error object must not overlap the vector.
+Elements beyond `count` are neither read nor written.
+
+Validation runs before any mutation:
+
+1. Reject a NULL pointer or zero count with `INVALID_ARGUMENT`.
+2. Reject `count > SIZE_MAX / sizeof(float)` with `OVERFLOW`.
+3. Reject NaN or either infinity anywhere in the vector with `NONFINITE`.
+
+Negative infinity is rejected under the same finite-value policy as the other
+math operations. A full validation pass precedes the replacement loop, so a
+non-finite value at the end cannot leave earlier negative elements changed.
+Every failure preserves the entire vector. After validation, comparisons and
+zero assignments cannot overflow, so there is no arithmetic failure path.
+
+The replacement loop visits each element once:
+
+```c
+for (size_t i = 0; i < count; ++i) {
+    if (values[i] < 0.0f) {
+        values[i] = 0.0f;
+    }
+}
+```
+
+The validation and replacement passes together take `O(count)` time with
+`O(1)` extra space. Applying ReLU a second time leaves the result unchanged.
+
+ReLU composes after successful matvec and bias calls. Using the same matrix
+and input as the matvec example, with bias `[0.5, -9.5]`:
+
+```text
+Wx              = [5.5,  7.5]
+Wx + b          = [6.0, -2.0]
+ReLU(Wx + b)    = [6.0,  0.0]
+```
+
+```c
+/* status is the result of the preceding bias-addition call. */
+if (status == CINDER_OK) {
+    status = cinder_tensor_relu(output, weights->rows, &error);
+}
+```
+
+Consume the result only when the final status is `CINDER_OK`. The layer
+abstraction and model execution remain separate future steps.
+
 ## Errors
 
 | Status | Meaning |
 | --- | --- |
 | `CINDER_OK` | The operation completed successfully. |
-| `CINDER_ERROR_INVALID_ARGUMENT` | A required pointer is NULL, a creation dimension is zero, or a bias-addition vector is empty. |
-| `CINDER_ERROR_OVERFLOW` | A tensor element count, allocation byte count, or bias-addition vector byte count cannot fit in `size_t`. |
+| `CINDER_ERROR_INVALID_ARGUMENT` | A required pointer is NULL, a creation dimension is zero, or a bias/ReLU vector is empty. |
+| `CINDER_ERROR_OVERFLOW` | A tensor element count, allocation byte count, or bias/ReLU vector byte count cannot fit in `size_t`. |
 | `CINDER_ERROR_ALLOCATION` | An allocation failed after dimensions and sizes were validated. |
 | `CINDER_ERROR_OUT_OF_BOUNDS` | A get/set index is outside the tensor's dimensions. |
-| `CINDER_ERROR_NONFINITE` | A supplied/read value or a matvec/bias-addition source value or sum is NaN or infinity. |
+| `CINDER_ERROR_NONFINITE` | A supplied/read value, math source value, or computed sum is NaN or infinity. |
 | `CINDER_ERROR_DIMENSION_MISMATCH` | The matvec input length differs from the weight columns, or the output/bias lengths differ. |
 | `CINDER_ERROR_BUFFER_TOO_SMALL` | The matvec output capacity is less than the number of weight rows. |
 
 Validation order is required pointers, dimensions or bounds, then numeric
 values or allocation sizes as applicable. An operation stops at the first
-failed check and returns its status. Only creation allocates memory; fill,
-get, set, matvec, and add_bias do not. `OVERFLOW` describes integer size
-calculations; floating-point overflow during math is reported as `NONFINITE`.
+failed check and returns its status. Only creation allocates memory; all current
+access and math operations use existing storage. `OVERFLOW` describes integer
+size calculations; floating-point overflow during math is reported as `NONFINITE`.
 
 Each fallible function takes an optional `cinder_error_t *error`. If provided,
 the caller owns this object and need not initialize it before the call. The
@@ -394,6 +466,28 @@ bias count must use the result length rather than the buffer capacity.
 On October 15, 2026, all six CTest tests passed locally on macOS in Debug,
 Release, and combined ASan/UBSan builds. Native macOS `leaks` reported zero leaks
 for the bias executable, and a build with `BUILD_TESTING=OFF` succeeded.
-Hosted CI verification of bias addition awaits a future push.
+These are the local results from the bias-addition step.
 
-Next: implement ReLU and test negative, zero, and positive values.
+## ReLU verification
+
+`tensor_relu` tests mixed, all-negative, all-positive, and single-element
+vectors, including both signed zeros, the smallest positive/negative subnormal
+values, and the largest finite floats. ReLU only compares values and stores
+zero, so results are checked exactly, including the sign of zero. A second
+application must leave the entire result unchanged.
+
+Tests cover NULL pointers, zero and unrepresentable counts, NaN and both
+infinities at every vector position, unchanged data on failure, validation
+order, optional error details, and clearing earlier errors on success. Guard
+elements and NaN in spare capacity verify the logical-length boundary. The
+allocator test confirms no allocation on success or failure.
+
+An integration test checks all three intermediate results in the non-square
+`ReLU(Wx + b)` example above and leaves spare output capacity untouched.
+
+On October 15, 2026, all seven CTest tests passed locally on macOS in Debug,
+Release, and combined ASan/UBSan builds. Native macOS `leaks` reported zero leaks
+for the ReLU executable, and a build with `BUILD_TESTING=OFF` succeeded.
+Hosted CI verification of ReLU awaits a future push.
+
+Next: implement stable Softmax and its empty/non-finite input handling.
