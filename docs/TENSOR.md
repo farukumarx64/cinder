@@ -2,8 +2,9 @@
 
 This is the contract for the first Phase 1 implementation. Types and function
 declarations are in `include/cinder/tensor.h` and `include/cinder/error.h`.
-Creation, cleanup, and fill/get/set are implemented in `src/tensor.c`, built as the
-`cinder_core` static library shared by the CLI and ordinary tensor tests.
+Creation, cleanup, fill/get/set, and matrix-vector multiplication are implemented
+in `src/tensor.c`, built as the `cinder_core` static library shared by the CLI
+and ordinary tensor tests.
 The CLI still exposes only `--version`; the tensor API is exercised by C tests.
 
 ## Representation and layout
@@ -120,6 +121,84 @@ checks, a non-NULL tensor argument must refer to a live object created by this
 API with its metadata intact. C cannot reliably diagnose dangling pointers or
 prove the capacity of an arbitrary pointer; those are caller obligations.
 
+## Matrix-vector multiplication
+
+```c
+cinder_status_t cinder_tensor_matvec(
+    const cinder_tensor_t *weights,
+    const float *input,
+    size_t input_count,
+    float *output,
+    size_t output_capacity,
+    cinder_error_t *error
+);
+```
+
+This computes `y = Wx`. For a weight matrix with `rows = M` and `cols = N`,
+the input must have exactly `N` elements, and the output buffer must have room
+for at least `M` elements. Both sizes count floats, not bytes. Vectors are
+passed as contiguous arrays with explicit lengths; no vector tensor allocation
+is required. An existing vector tensor's data can be used with the appropriate
+element count, provided it has separate storage from the output.
+
+`weights` must be a live tensor with intact metadata. The caller owns all
+buffers and must report their available sizes accurately. Output and optional
+error storage must not overlap the weight tensor, its array, the input, or each
+other. In-place multiplication is unsupported; buffer overlap is a caller
+precondition, not something this function detects. The read-only input and
+weight data may overlap one another.
+
+Validation happens before any output writes, in this order:
+
+1. Reject NULL weights, input, or output pointers with `INVALID_ARGUMENT`.
+2. Require `input_count == weights->cols`, otherwise `DIMENSION_MISMATCH`.
+3. Require `output_capacity >= weights->rows`, otherwise `BUFFER_TOO_SMALL`.
+4. Require every input value and weight to be finite, otherwise `NONFINITE`.
+
+The loop computes one dot product per row:
+
+```text
+y[row] = W[row, 0] * x[0] + W[row, 1] * x[1] + ... + W[row, N-1] * x[N-1]
+```
+
+The outer loop chooses the output row and resets a `float sum` to `0.0f`.
+The inner loop visits columns in increasing order. The weight at `(row, col)`
+is `weights->data[row * weights->cols + col]`. Each column contributes that
+weight multiplied by `input[col]`. A completed sum is assigned to `output[row]`,
+replacing any previous value there. No bias or activation is applied.
+
+For the hand-calculated non-square fixture:
+
+```text
+W = [ 1  -2   3 ]      x = [  2  ]
+    [ 4   0  -1 ]          [ -1  ]
+                           [ 0.5 ]
+
+y[0] = 1*2 + (-2)*(-1) + 3*0.5 = 2 + 2 + 1.5 = 5.5
+y[1] = 4*2 + 0*(-1) + (-1)*0.5 = 8 + 0 - 0.5 = 7.5
+```
+
+Inputs and weights remain unchanged. On success, exactly `M` output elements
+are written; any spare capacity is untouched. Pointer, size, and source-value
+validation failures leave the output unchanged. During computation, each
+updated sum is checked for finiteness. Arithmetic overflow can occur even with
+finite inputs and returns `CINDER_ERROR_NONFINITE`. Earlier rows may already
+have been written, so callers must discard the result after any failure.
+The failing row is not written; unused output capacity remains untouched.
+
+The accumulator is a `float`, matching the stored data. Underflow to a finite
+subnormal value or zero is allowed. Comparisons use the roadmap's tolerance
+rule, `abs(actual - reference) <= 1e-5 + 1e-5 * abs(reference)`, rather than
+requiring identical rounding across compilers or numerical libraries. A sum
+that becomes non-finite is rejected immediately, even if later terms would
+cancel an earlier large term in exact arithmetic.
+
+The operation allocates no memory and takes `O(M * N)` time with `O(1)` extra
+space. The validation pass adds a scan of the source arrays but preserves the
+output when any source value is invalid. Creation already proved that the
+weight element count and row offsets fit in `size_t`; matvec relies on the
+same intact-metadata requirement as get/set.
+
 ## Errors
 
 | Status | Meaning |
@@ -129,12 +208,15 @@ prove the capacity of an arbitrary pointer; those are caller obligations.
 | `CINDER_ERROR_OVERFLOW` | The element count or allocation byte count cannot fit in `size_t`. |
 | `CINDER_ERROR_ALLOCATION` | An allocation failed after dimensions and sizes were validated. |
 | `CINDER_ERROR_OUT_OF_BOUNDS` | A get/set index is outside the tensor's dimensions. |
-| `CINDER_ERROR_NONFINITE` | A supplied fill/set value, or the element read by get, is NaN or infinity. |
+| `CINDER_ERROR_NONFINITE` | A supplied/read value, matvec source value, or matvec running sum is NaN or infinity. |
+| `CINDER_ERROR_DIMENSION_MISMATCH` | The matvec input length does not equal the number of weight columns. |
+| `CINDER_ERROR_BUFFER_TOO_SMALL` | The matvec output capacity is less than the number of weight rows. |
 
 Validation order is required pointers, dimensions or bounds, then numeric
 values or allocation sizes as applicable. An operation stops at the first
 failed check and returns its status. Only creation allocates memory; fill,
-get, and set do not.
+get, set, and matvec do not. `OVERFLOW` describes integer size calculations;
+floating-point overflow during matvec is reported as `NONFINITE`.
 
 Each fallible function takes an optional `cinder_error_t *error`. If provided,
 the caller owns this object and need not initialize it before the call. The
@@ -188,4 +270,26 @@ Release, and combined ASan/UBSan builds. The new access executable reported
 zero leaks under native macOS `leaks`. A build with `BUILD_TESTING=OFF` also
 succeeded. Hosted CI verification of access awaits the next push.
 
-Next: implement matrix-vector multiplication and its tests.
+## Matrix-vector verification
+
+`tensor_matvec` checks the hand-calculated `2 x 3` fixture above, decimal values,
+identity and zero-input cases, a single row, a single column, and `1 x 1`
+matrices with extreme finite values. The comparison checks finiteness first and
+uses the tolerance rule above; zero and smallest-subnormal results also receive
+exact checks so that the absolute tolerance cannot hide those mistakes.
+
+Tests exercise exact and excess output capacity, guard elements, unchanged
+sources, NULL pointers, short/long input lengths, insufficient output space,
+validation order, and optional error details. NaN and both infinities are
+tested at every position in the non-square fixture's input and weights. Finite
+values that overflow a product or running sum verify the arithmetic error path,
+including a completed row before the failing row. The allocator test confirms
+that matvec does not allocate on success or validation failure.
+
+On October 15, 2026, all five CTest tests passed locally on macOS in Debug,
+Release, and combined ASan/UBSan builds. Native macOS `leaks` reported zero leaks
+for the matvec executable; a build with `BUILD_TESTING=OFF` also succeeded.
+Hosted CI verification awaits a future push. Deterministic NumPy fixtures for
+the full set of math operations remain a separate roadmap step.
+
+Next: implement bias addition and its vector-length checks.

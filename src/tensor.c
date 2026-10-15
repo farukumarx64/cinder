@@ -160,3 +160,56 @@ cinder_status_t cinder_tensor_set(
     tensor->data[row * tensor->cols + col] = value;
     return tensor_result(CINDER_OK, error, "");
 }
+
+cinder_status_t cinder_tensor_matvec(
+    const cinder_tensor_t *weights,
+    const float *input,
+    size_t input_count,
+    float *output,
+    size_t output_capacity,
+    cinder_error_t *error
+)
+{
+    if (weights == NULL || input == NULL || output == NULL) {
+        return tensor_result(CINDER_ERROR_INVALID_ARGUMENT, error,
+                             "Weights, input, and output pointers must not be NULL.");
+    }
+    if (input_count != weights->cols) {
+        return tensor_result(CINDER_ERROR_DIMENSION_MISMATCH, error,
+                             "Input length must equal the number of weight columns.");
+    }
+    if (output_capacity < weights->rows) {
+        return tensor_result(CINDER_ERROR_BUFFER_TOO_SMALL, error,
+                             "Output capacity must cover every weight row.");
+    }
+
+    /* Validate all source values before writing any output. */
+    for (size_t col = 0; col < input_count; ++col) {
+        if (!isfinite(input[col])) {
+            return tensor_result(CINDER_ERROR_NONFINITE, error,
+                                 "Matrix-vector input values must be finite.");
+        }
+    }
+    size_t count = weights->rows * weights->cols;
+    for (size_t i = 0; i < count; ++i) {
+        if (!isfinite(weights->data[i])) {
+            return tensor_result(CINDER_ERROR_NONFINITE, error,
+                                 "Matrix-vector weights must be finite.");
+        }
+    }
+
+    for (size_t row = 0; row < weights->rows; ++row) {
+        float sum = 0.0f;
+        size_t row_offset = row * weights->cols;
+        for (size_t col = 0; col < weights->cols; ++col) {
+            sum += weights->data[row_offset + col] * input[col];
+            if (!isfinite(sum)) {
+                return tensor_result(CINDER_ERROR_NONFINITE, error,
+                                     "Matrix-vector accumulation became non-finite.");
+            }
+        }
+        /* Commit one completed row; later arithmetic failures do not undo it. */
+        output[row] = sum;
+    }
+    return tensor_result(CINDER_OK, error, "");
+}

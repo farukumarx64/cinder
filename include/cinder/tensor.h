@@ -6,7 +6,8 @@
 #include "cinder/error.h"
 
 /*
- * Creation, cleanup, and checked fill/get/set are implemented.
+ * Creation, cleanup, checked fill/get/set, and matrix-vector multiplication
+ * are implemented.
  * See docs/TENSOR.md for ownership, failure behavior, and examples.
  *
  * A live tensor owns rows * cols contiguous float32 elements. Both dimensions
@@ -85,6 +86,34 @@ cinder_status_t cinder_tensor_set(
     size_t row,
     size_t col,
     float value,
+    cinder_error_t *error
+);
+
+/*
+ * Compute output = weights * input without allocating memory.
+ * weights must be a live tensor with intact metadata. Sizes count floats:
+ * input_count must equal weights->cols; output_capacity >= weights->rows.
+ * The caller must provide the actual readable/writable buffer sizes. Output
+ * and error storage must not overlap weights, its array, input, or each other.
+ *
+ * INVALID_ARGUMENT: a required pointer is NULL.
+ * DIMENSION_MISMATCH: input_count differs from the number of columns.
+ * BUFFER_TOO_SMALL: output_capacity is less than the number of rows.
+ * NONFINITE: an input/weight or an intermediate sum is NaN or infinity.
+ * Validation follows that order, with all inputs checked before computation.
+ *
+ * On success, writes exactly weights->rows results; any extra output elements
+ * stay unchanged. Validation failures leave output unchanged. Arithmetic
+ * failure can leave earlier rows written: discard the result on any failure.
+ * Weights and input are never modified; unused output capacity is untouched
+ * even on failure. Accumulation uses float in increasing column order.
+ */
+cinder_status_t cinder_tensor_matvec(
+    const cinder_tensor_t *weights,
+    const float *input,
+    size_t input_count,
+    float *output,
+    size_t output_capacity,
     cinder_error_t *error
 );
 

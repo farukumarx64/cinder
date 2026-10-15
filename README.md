@@ -9,8 +9,9 @@ Training happens outside the runtime.
 
 ## Current status
 
-**Phase 1: tensor allocation, cleanup, and basic access are implemented and tested.** Phase 0 is
-complete, including the MIT license and verified development setup. The project
+**Phase 1: tensor allocation, cleanup, basic access, and matrix-vector
+multiplication are implemented and tested.** Phase 0 is complete, including
+the MIT license and verified development setup. The project
 currently contains a CMake build and a CLI that supports `--version`.
 The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
 
@@ -21,7 +22,7 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
   CMake 4.4.4. GitHub Actions also verified builds and tests on macOS 15 and
   Ubuntu 24.04.
 - CTest provides the version-command smoke test, two tensor allocation tests,
-  and the tensor-access test.
+  the tensor-access test, and the matrix-vector test.
 - Opt-in AddressSanitizer and UndefinedBehaviorSanitizer builds passed the
   smoke test on macOS, both separately and together.
 - The public GitHub repository is [farukumarx64/cinder](https://github.com/farukumarx64/cinder).
@@ -36,11 +37,14 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
   size validation, zero initialization, and allocation failure handling.
 - Checked `fill`, `get`, and `set` support row-major indexing, reject invalid
   indices and non-finite values, and preserve data or outputs on failure.
-- All four tests passed locally on macOS in Debug, Release, and combined
-  ASan/UBSan builds on October 15, 2026. The new access test reported zero native
-  leaks; the allocation tests also passed native leak checks on October 9.
-  Math operations remain pending; hosted CI verification of access is pending
-  the next push.
+- `cinder_tensor_matvec` computes `y = Wx` with exact input-length and minimum
+  output-capacity checks. It rejects non-finite sources and running sums,
+  requires separate output storage, and allocates no memory.
+- All five tests passed locally on macOS in Debug, Release, and combined
+  ASan/UBSan builds on October 15, 2026. The access and matrix-vector tests
+  reported zero native leaks; the allocation tests also passed native leak
+  checks on October 9. Bias addition is next; hosted CI verification of access
+  and matrix-vector multiplication awaits a future push.
 - Model loading, inference, and the `info`, `run`, and `bench` commands are
   planned features; they are not implemented yet.
 
@@ -99,20 +103,24 @@ exactly `Cinder 0.1.0-dev` followed by a newline on standard output, and empty
 standard error. The expected version follows the CMake project version.
 Failures show diagnostics; the test has a ten-second timeout.
 
-Three more CTest tests exercise tensor memory management and access:
+Four more CTest tests exercise tensor memory management, access, and math:
 
 - `tensor_allocation` checks dimensions, zero initialization, writable storage,
   independent tensors, invalid arguments, both size-overflow cases, repeated
   creation/cleanup, and optional error details against the `cinder_core` library.
 - `tensor_allocation_failures` forces the first and second allocations to fail,
   checks partial cleanup and NULL outputs, and confirms validation happens
-  before allocation. It also checks that access functions do not allocate.
+  before allocation. It also checks that access and matvec do not allocate.
   It compiles the same implementation with allocator
   substitutions confined to the test; production has no failure switches.
 - `tensor_access` checks fills across several shapes, reads and writes against
   known row-major storage, NULL pointers, boundary and huge indices, NaN and
   infinities, unchanged data/outputs on error, and optional error details.
   Finite extremes, subnormal values, and signed zero are also exercised.
+- `tensor_matvec` checks a hand-calculated non-square product, decimal values,
+  identity/zero cases, single-row/column shapes, input lengths, output capacity,
+  unchanged sources and spare output elements, non-finite values, and arithmetic
+  overflow. It uses `atol = 1e-5` and `rtol = 1e-5` for numeric comparisons.
 
 All tensor tests have ten-second timeouts. Their checks stay active in Release
 builds, where ordinary C `assert` checks could be disabled by `NDEBUG`.
@@ -153,9 +161,9 @@ to `OFF` when disabling it in an existing build directory. Benchmark with
 sanitizers disabled because their checks add runtime overhead.
 
 The current tests exercise the version command, tensor allocation/cleanup,
-and basic access. Additional tests will cover math and inference as those features
-arrive. Passing the current tests is not evidence that future code is free of
-memory errors.
+basic access, and matrix-vector multiplication. Additional tests will cover
+the remaining math and inference features as they arrive. Passing the current
+tests is not evidence that future code is free of memory errors.
 
 See the upstream [AddressSanitizer documentation](https://clang.llvm.org/docs/AddressSanitizer.html)
 and [UndefinedBehaviorSanitizer documentation](https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html)
@@ -175,6 +183,7 @@ leaks --atExit -- ./build/cinder --version
 leaks --atExit -- ./build/test_tensor
 leaks --atExit -- ./build/test_tensor_alloc_failures
 leaks --atExit -- ./build/test_tensor_access
+leaks --atExit -- ./build/test_tensor_matvec
 ```
 
 These commands reported zero leaks for the version command and tensor test
@@ -190,8 +199,8 @@ when running the sanitizer build's tests:
 ```
 
 The Linux sanitizer CI job runs the full CTest suite with leak detection
-enabled. The new access checks will run after these changes are pushed;
-their hosted results are pending. See the
+enabled. The new access and matrix-vector checks will run after these changes
+are pushed; their hosted results are pending. See the
 [LeakSanitizer documentation](https://clang.llvm.org/docs/LeakSanitizer.html).
 
 ## Continuous integration
@@ -223,13 +232,14 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | --- | --- |
 | `CMakeLists.txt` | Core library and executable targets, shared compiler/sanitizer settings, and CTest registration. |
 | `src/cli.c` | Command-line argument handling and version output. |
-| `src/tensor.c` | Tensor allocation, cleanup, checked fill/get/set, and error reporting. |
+| `src/tensor.c` | Tensor allocation, cleanup, checked access, matrix-vector multiplication, and error reporting. |
 | `include/cinder/tensor.h` | Tensor representation and function declarations. |
 | `include/cinder/error.h` | Status codes and caller-owned error details. |
 | `docs/TENSOR.md` | Tensor layout, ownership, validation, and failure contract. |
 | `tests/check_version.cmake` | Checks the version command's exit status and output. |
 | `tests/test_tensor.c` | Tests the core library's allocation and cleanup API. |
 | `tests/test_tensor_access.c` | Tests row-major access, bounds, finite values, and failure behavior. |
+| `tests/test_tensor_matvec.c` | Tests matrix-vector products, dimensions, output capacity, and numeric failures. |
 | `tests/test_tensor_alloc_failures.c` | Forces allocation failures and tracks cleanup with test-only allocator substitutions. |
 | `.github/workflows/ci.yml` | macOS/Linux build jobs and the Linux sanitizer job. |
 | `ROADMAP.md` | Scope, implementation decisions, milestones, and progress. |

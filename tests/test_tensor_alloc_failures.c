@@ -150,6 +150,19 @@ int main(void)
     CHECK(allocation_calls == 2);
     CHECK(live_count == 2);
 
+    /* Matrix-vector multiplication also uses only caller-provided storage. */
+    const float input[] = {1.0f, 2.0f, 3.0f};
+    float output[] = {-1.0f, -1.0f};
+    CHECK(cinder_tensor_matvec(tensor, input, 3, output, 2, &error) == CINDER_OK);
+    CHECK(output[0] == 12.0f && output[1] == 15.0f);
+    CHECK(cinder_tensor_matvec(tensor, input, 2, output, 2, &error) == CINDER_ERROR_DIMENSION_MISMATCH);
+    CHECK(cinder_tensor_matvec(tensor, input, 3, output, 1, &error) == CINDER_ERROR_BUFFER_TOO_SMALL);
+    tensor->data[5] = NAN;
+    CHECK(cinder_tensor_matvec(tensor, input, 3, output, 2, &error) == CINDER_ERROR_NONFINITE);
+    CHECK(output[0] == 12.0f && output[1] == 15.0f);
+    CHECK(allocation_calls == 2);
+    CHECK(live_count == 2);
+
     cinder_tensor_free(tensor);
     CHECK(live_count == 0);
     cinder_tensor_free(NULL);

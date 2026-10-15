@@ -65,6 +65,11 @@ if(BUILD_TESTING)
     cinder_configure_target(test_tensor_access)
     add_test(NAME tensor_access COMMAND test_tensor_access)
 
+    add_executable(test_tensor_matvec tests/test_tensor_matvec.c)
+    target_link_libraries(test_tensor_matvec PRIVATE cinder_core)
+    cinder_configure_target(test_tensor_matvec)
+    add_test(NAME tensor_matvec COMMAND test_tensor_matvec)
+
     # This test compiles tensor.c with allocator substitutions confined to its
     # translation unit, so it must not also link the normal cinder_core copy.
     add_executable(test_tensor_alloc_failures tests/test_tensor_alloc_failures.c)
@@ -74,7 +79,7 @@ if(BUILD_TESTING)
     cinder_configure_target(test_tensor_alloc_failures)
     add_test(NAME tensor_allocation_failures COMMAND test_tensor_alloc_failures)
 
-    set_tests_properties(tensor_allocation tensor_access tensor_allocation_failures
+    set_tests_properties(tensor_allocation tensor_access tensor_matvec tensor_allocation_failures
         PROPERTIES TIMEOUT 10
     )
 endif()
