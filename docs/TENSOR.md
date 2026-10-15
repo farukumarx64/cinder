@@ -2,9 +2,9 @@
 
 This is the contract for the first Phase 1 implementation. Types and function
 declarations are in `include/cinder/tensor.h` and `include/cinder/error.h`.
-Creation, cleanup, fill/get/set, and matrix-vector multiplication are implemented
-in `src/tensor.c`, built as the `cinder_core` static library shared by the CLI
-and ordinary tensor tests.
+Creation, cleanup, fill/get/set, matrix-vector multiplication, and bias addition
+are implemented in `src/tensor.c`, built as the `cinder_core` static library
+shared by the CLI and ordinary tensor tests.
 The CLI still exposes only `--version`; the tensor API is exercised by C tests.
 
 ## Representation and layout
@@ -199,24 +199,103 @@ output when any source value is invalid. Creation already proved that the
 weight element count and row offsets fit in `size_t`; matvec relies on the
 same intact-metadata requirement as get/set.
 
+## Bias addition
+
+```c
+cinder_status_t cinder_tensor_add_bias(
+    float *output,
+    size_t output_count,
+    const float *bias,
+    size_t bias_count,
+    cinder_error_t *error
+);
+```
+
+This updates the multiplication result in place: `output[i] += bias[i]` for
+each element. Both counts are logical vector lengths measured in floats and
+must be equal and nonzero. There is one bias per output row, not per input
+column. No scalar broadcasting is performed. For a matrix with `M` rows,
+call matvec first and then pass `M` as `output_count` and `bias_count`.
+
+The caller owns the buffers and supplies at least `output_count` initialized
+readable/writable floats and `bias_count` initialized readable floats. The
+output range, bias range, and optional error object must not overlap; this is
+a caller precondition and is not checked at runtime. Output is updated in its
+existing storage, and bias is never modified. Memory beyond `output_count` is
+neither read nor written. A pointer cannot prove its buffer's actual capacity,
+so lengths must accurately describe accessible elements.
+
+Validation runs in this order:
+
+1. Reject NULL output or bias pointers with `INVALID_ARGUMENT`.
+2. Reject either zero count with `INVALID_ARGUMENT`.
+3. Reject unequal counts with `DIMENSION_MISMATCH`.
+4. Reject `output_count > SIZE_MAX / sizeof(float)` with `OVERFLOW`. This
+   ensures the vector's byte extent can fit in `size_t` without multiplying
+   an unchecked count. The equal-length bias has the same extent.
+5. Require every output and bias value to be finite, otherwise `NONFINITE`.
+
+Only after the full validation pass does a second loop calculate each
+`float sum = output[i] + bias[i]`. It checks that sum for finiteness before
+storing it back to `output[i]`. Pointer, size, and source-value failures leave
+the entire output unchanged. Arithmetic overflow reports `NONFINITE` and can
+leave earlier elements updated; the failing element and later elements are
+not written. As with matvec, discard the result on any failure.
+
+Using the matrix and input from the preceding example:
+
+```text
+Wx = [5.5, 7.5]
+b  = [0.5, -2.0]
+
+y[0] = 5.5 + 0.5  = 6.0
+y[1] = 7.5 + (-2) = 5.5
+```
+
+The two calls compose as follows, with `weights` already containing that
+`2 x 3` example:
+
+```c
+const float input[] = {2.0f, -1.0f, 0.5f};
+const float bias[] = {0.5f, -2.0f};
+float output[4];
+cinder_error_t error;
+
+cinder_status_t status =
+    cinder_tensor_matvec(weights, input, 3, output, 4, &error);
+if (status == CINDER_OK) {
+    status = cinder_tensor_add_bias(output, weights->rows, bias, 2, &error);
+}
+if (status == CINDER_OK) {
+    /* output[0] is 6.0f; output[1] is 5.5f. Only those two are results. */
+}
+```
+
+Matvec receives the output buffer capacity (`4`). Bias addition receives the
+number of results (`weights->rows`, which is `2`), so spare, uninitialized
+storage is not treated as part of the vector. Apply bias only after matvec
+succeeds. Bias addition uses `O(M)` time, `O(1)` extra space, and no allocations.
+Together these functions implement the arithmetic `y = Wx + b`; the layer
+abstraction and model execution remain future steps.
+
 ## Errors
 
 | Status | Meaning |
 | --- | --- |
 | `CINDER_OK` | The operation completed successfully. |
-| `CINDER_ERROR_INVALID_ARGUMENT` | A required pointer is NULL, or a creation dimension is zero. |
-| `CINDER_ERROR_OVERFLOW` | The element count or allocation byte count cannot fit in `size_t`. |
+| `CINDER_ERROR_INVALID_ARGUMENT` | A required pointer is NULL, a creation dimension is zero, or a bias-addition vector is empty. |
+| `CINDER_ERROR_OVERFLOW` | A tensor element count, allocation byte count, or bias-addition vector byte count cannot fit in `size_t`. |
 | `CINDER_ERROR_ALLOCATION` | An allocation failed after dimensions and sizes were validated. |
 | `CINDER_ERROR_OUT_OF_BOUNDS` | A get/set index is outside the tensor's dimensions. |
-| `CINDER_ERROR_NONFINITE` | A supplied/read value, matvec source value, or matvec running sum is NaN or infinity. |
-| `CINDER_ERROR_DIMENSION_MISMATCH` | The matvec input length does not equal the number of weight columns. |
+| `CINDER_ERROR_NONFINITE` | A supplied/read value or a matvec/bias-addition source value or sum is NaN or infinity. |
+| `CINDER_ERROR_DIMENSION_MISMATCH` | The matvec input length differs from the weight columns, or the output/bias lengths differ. |
 | `CINDER_ERROR_BUFFER_TOO_SMALL` | The matvec output capacity is less than the number of weight rows. |
 
 Validation order is required pointers, dimensions or bounds, then numeric
 values or allocation sizes as applicable. An operation stops at the first
 failed check and returns its status. Only creation allocates memory; fill,
-get, set, and matvec do not. `OVERFLOW` describes integer size calculations;
-floating-point overflow during matvec is reported as `NONFINITE`.
+get, set, matvec, and add_bias do not. `OVERFLOW` describes integer size
+calculations; floating-point overflow during math is reported as `NONFINITE`.
 
 Each fallible function takes an optional `cinder_error_t *error`. If provided,
 the caller owns this object and need not initialize it before the call. The
@@ -268,7 +347,7 @@ that successful and rejected access calls leave allocation counts unchanged.
 On October 15, 2026, all four CTest tests passed locally on macOS in Debug,
 Release, and combined ASan/UBSan builds. The new access executable reported
 zero leaks under native macOS `leaks`. A build with `BUILD_TESTING=OFF` also
-succeeded. Hosted CI verification of access awaits the next push.
+succeeded. These are the local results from the access step.
 
 ## Matrix-vector verification
 
@@ -289,7 +368,32 @@ that matvec does not allocate on success or validation failure.
 On October 15, 2026, all five CTest tests passed locally on macOS in Debug,
 Release, and combined ASan/UBSan builds. Native macOS `leaks` reported zero leaks
 for the matvec executable; a build with `BUILD_TESTING=OFF` also succeeded.
-Hosted CI verification awaits a future push. Deterministic NumPy fixtures for
-the full set of math operations remain a separate roadmap step.
+These are the local results from the matvec step. Deterministic NumPy fixtures
+for the full set of math operations remain a separate roadmap step.
 
-Next: implement bias addition and its vector-length checks.
+## Bias verification
+
+`tensor_bias` checks positive, negative, zero, fractional, and extreme finite
+values across vector lengths 1, 2, and 5. It uses the same absolute/relative
+tolerance rule as matvec, with exact checks for zero and subnormal results.
+Tests verify unchanged bias storage and guards around the output, zero-length
+and mismatched vectors, NULL pointers, unrepresentable byte counts, validation
+order, optional error details, and clearing previous errors on success.
+
+NaN and both infinities are tested at every position in both vectors. Positive
+and negative arithmetic overflow are exercised at the first, middle, and last
+elements to check the documented partial-update behavior. The allocator test
+also confirms no allocation on success, validation failure, or arithmetic
+failure.
+
+An integration test computes `Wx` and then adds `b` for the non-square example
+above. A second case uses a zero input and verifies that `Wx + b` equals `b`.
+Spare output capacity containing NaN remains untouched, demonstrating why the
+bias count must use the result length rather than the buffer capacity.
+
+On October 15, 2026, all six CTest tests passed locally on macOS in Debug,
+Release, and combined ASan/UBSan builds. Native macOS `leaks` reported zero leaks
+for the bias executable, and a build with `BUILD_TESTING=OFF` succeeded.
+Hosted CI verification of bias addition awaits a future push.
+
+Next: implement ReLU and test negative, zero, and positive values.

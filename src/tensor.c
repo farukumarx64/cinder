@@ -213,3 +213,47 @@ cinder_status_t cinder_tensor_matvec(
     }
     return tensor_result(CINDER_OK, error, "");
 }
+
+cinder_status_t cinder_tensor_add_bias(
+    float *output,
+    size_t output_count,
+    const float *bias,
+    size_t bias_count,
+    cinder_error_t *error
+)
+{
+    if (output == NULL || bias == NULL) {
+        return tensor_result(CINDER_ERROR_INVALID_ARGUMENT, error,
+                             "Output and bias pointers must not be NULL.");
+    }
+    if (output_count == 0 || bias_count == 0) {
+        return tensor_result(CINDER_ERROR_INVALID_ARGUMENT, error,
+                             "Output and bias vectors must not be empty.");
+    }
+    if (output_count != bias_count) {
+        return tensor_result(CINDER_ERROR_DIMENSION_MISMATCH, error,
+                             "Bias length must equal the output vector length.");
+    }
+    if (output_count > SIZE_MAX / sizeof(*output)) {
+        return tensor_result(CINDER_ERROR_OVERFLOW, error,
+                             "Bias addition vector byte count exceeds SIZE_MAX.");
+    }
+
+    /* Check both vectors completely before modifying the multiplication result. */
+    for (size_t i = 0; i < output_count; ++i) {
+        if (!isfinite(output[i]) || !isfinite(bias[i])) {
+            return tensor_result(CINDER_ERROR_NONFINITE, error,
+                                 "Output and bias values must be finite.");
+        }
+    }
+    for (size_t i = 0; i < output_count; ++i) {
+        float sum = output[i] + bias[i];
+        if (!isfinite(sum)) {
+            return tensor_result(CINDER_ERROR_NONFINITE, error,
+                                 "Bias addition produced a non-finite sum.");
+        }
+        /* Store only a valid sum; earlier updates remain if a later one fails. */
+        output[i] = sum;
+    }
+    return tensor_result(CINDER_OK, error, "");
+}

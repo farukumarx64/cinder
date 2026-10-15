@@ -1,5 +1,6 @@
 #include "cinder/tensor.h"
 
+#include <float.h>
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -160,6 +161,21 @@ int main(void)
     tensor->data[5] = NAN;
     CHECK(cinder_tensor_matvec(tensor, input, 3, output, 2, &error) == CINDER_ERROR_NONFINITE);
     CHECK(output[0] == 12.0f && output[1] == 15.0f);
+    CHECK(allocation_calls == 2);
+    CHECK(live_count == 2);
+
+    /* Bias uses the matvec result in place, including on its error paths. */
+    const float bias[] = {0.5f, -2.0f};
+    CHECK(cinder_tensor_add_bias(output, 2, bias, 2, &error) == CINDER_OK);
+    CHECK(output[0] == 12.5f && output[1] == 13.0f);
+    CHECK(cinder_tensor_add_bias(output, 2, bias, 1, &error) == CINDER_ERROR_DIMENSION_MISMATCH);
+    const float bad_bias[] = {0.0f, NAN};
+    CHECK(cinder_tensor_add_bias(output, 2, bad_bias, 2, &error) == CINDER_ERROR_NONFINITE);
+    CHECK(output[0] == 12.5f && output[1] == 13.0f);
+    output[1] = FLT_MAX;
+    const float overflowing_bias[] = {0.5f, FLT_MAX};
+    CHECK(cinder_tensor_add_bias(output, 2, overflowing_bias, 2, &error) == CINDER_ERROR_NONFINITE);
+    CHECK(output[0] == 13.0f && output[1] == FLT_MAX);
     CHECK(allocation_calls == 2);
     CHECK(live_count == 2);
 

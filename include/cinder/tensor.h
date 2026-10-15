@@ -6,8 +6,8 @@
 #include "cinder/error.h"
 
 /*
- * Creation, cleanup, checked fill/get/set, and matrix-vector multiplication
- * are implemented.
+ * Creation, cleanup, checked fill/get/set, matrix-vector multiplication, and
+ * bias addition are implemented.
  * See docs/TENSOR.md for ownership, failure behavior, and examples.
  *
  * A live tensor owns rows * cols contiguous float32 elements. Both dimensions
@@ -114,6 +114,34 @@ cinder_status_t cinder_tensor_matvec(
     size_t input_count,
     float *output,
     size_t output_capacity,
+    cinder_error_t *error
+);
+
+/*
+ * Add bias[i] to output[i] in place, without allocating memory.
+ * Counts describe vector lengths in floats, not spare buffer capacity. After
+ * matvec, pass weights->rows as output_count. Both counts must be nonzero and
+ * equal. The caller supplies at least that many initialized readable/writable
+ * output floats and readable bias floats. The two ranges and optional error
+ * storage must not overlap; overlap is a caller precondition, not checked.
+ *
+ * Validation order and statuses:
+ * INVALID_ARGUMENT: NULL output/bias or either count is zero.
+ * DIMENSION_MISMATCH: vector lengths differ.
+ * OVERFLOW: the vector byte count cannot fit in size_t.
+ * NONFINITE: an output/bias value or a computed sum is NaN or infinity.
+ * All source values are checked before any output is written.
+ *
+ * Success updates exactly output_count elements and leaves bias unchanged.
+ * Validation failures preserve output. Arithmetic failure can leave earlier
+ * elements updated; the failing element and later ones are not written.
+ * Discard the result on any failure. Storage beyond output_count is untouched.
+ */
+cinder_status_t cinder_tensor_add_bias(
+    float *output,
+    size_t output_count,
+    const float *bias,
+    size_t bias_count,
     cinder_error_t *error
 );
 
