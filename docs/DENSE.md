@@ -1,10 +1,10 @@
 # Dense-layer contract
 
-This is the first Phase 2 contract. The type and public function declarations
-are in [`include/cinder/dense.h`](../include/cinder/dense.h). **Creation, cleanup,
-and forward execution are specified but not implemented yet.** There is no
-`src/dense.c` or Dense build target at this step. Including the header is valid;
-calling these functions will require their implementations in subsequent steps.
+The type and public function declarations are in
+[`include/cinder/dense.h`](../include/cinder/dense.h). **Creation and cleanup are
+implemented** in [`src/dense.c`](../src/dense.c), part of `cinder_core`.
+Forward execution is specified and declared but not implemented yet; calling
+`cinder_dense_forward` will require the next implementation step.
 
 The layer packages the existing float32 math `y = Wx + b` for one input vector.
 It applies no activation. ReLU, Softmax, common layer dispatch, and sequential
@@ -129,6 +129,66 @@ remain unchanged on every outcome. A constructor never takes ownership of
 the caller's arrays, even temporarily. Creation uses time and owned storage
 proportional to `output_size * input_size + output_size`.
 
+## Creation and cleanup implementation
+
+The constructor validates pointers, dimensions, element/byte counts, exact
+parameter lengths, and all source values before allocating anything. It uses
+division guards before multiplication, so an overflowing shape cannot wrap
+into a smaller allocation. Source arrays are not read until shape and length
+checks pass. As with other C APIs, callers must actually provide the readable
+storage advertised by valid counts.
+
+After validation, the constructor allocates the layer struct and initializes
+its two owned tensor pointers to NULL. It calls `cinder_tensor_create` for the
+`output_size x input_size` weights and the `output_size x 1` bias. This reuses
+the tensor allocator's size checks, initialization, and allocation-failure
+cleanup. Once both tensors exist, `memcpy` copies the parameters into their
+arrays without changing the sources, including preserving signed zeros.
+Only then does the constructor assign the completed layer to `*out_layer`.
+
+There are five allocation attempts for a successful construction:
+
+| Attempt | Allocation | Cleanup if this attempt fails |
+| --- | --- | --- |
+| 1 | Dense layer struct | Nothing has been allocated. |
+| 2 | Weight tensor struct | Release the layer. |
+| 3 | Weight element array | Tensor creation releases its struct; Dense cleanup releases the layer. |
+| 4 | Bias tensor struct | Release both weight allocations and the layer. |
+| 5 | Bias element array | Tensor creation releases the bias struct; Dense cleanup releases both weight allocations and the layer. |
+
+`cinder_dense_free` calls `cinder_tensor_free` on bias and weights, then frees
+the layer struct. Both tensor owners start as NULL, and tensor cleanup accepts
+NULL, so this same destructor handles constructor failures as well as complete
+layers. Tensor creation publishes its own result only on success; a failing
+tensor never leaves a dangling owner in the layer. Dense propagates that
+tensor error, preserving its diagnostic message. Cleanup itself allocates no
+memory and does not change error details.
+
+A caller can use the implemented lifetime functions now:
+
+```c
+#include "cinder/dense.h"
+
+int dense_lifetime_example(void)
+{
+    float weights[] = {1.0f, 2.0f, -1.0f, 0.0f,
+                       0.5f, -0.5f, 3.0f, 1.0f};
+    float bias[] = {0.5f, -1.0f, 2.0f, 0.0f};
+    cinder_dense_t *layer = NULL;
+    cinder_error_t error;
+    cinder_status_t status =
+        cinder_dense_create(2, 4, weights, 8, bias, 4, &layer, &error);
+    if (status != CINDER_OK) {
+        return 1; /* layer is NULL; there is no partial object to release. */
+    }
+    weights[0] = 99.0f; /* The owned weight remains 1.0f. */
+    int result = layer->weights->data[0] == 1.0f ? 0 : 1;
+    cinder_dense_free(layer);
+    layer = NULL;
+    return result;
+}
+```
+
 ## Forward execution
 
 ```c
@@ -235,8 +295,8 @@ Wx      = [0.0, -2.0, 1.5, 5.0]
 Wx + b  = [0.5, -3.0, 3.5, 5.0]
 ```
 
-This example describes usage once creation, cleanup, and forward execution
-are implemented; it cannot link against the current library yet:
+This example describes usage once forward execution is implemented; it cannot
+link against the current library yet:
 
 ```c
 #include "cinder/dense.h"
@@ -271,20 +331,34 @@ output storage. They are separate quantities even when some values coincide.
 
 ## Completion and next implementation steps
 
-This contract step adds declarations and documentation only. On October 16,
-2026, the standalone header, repeated inclusion with the existing headers, and
-the complete example passed C11 syntax checks with `-Wall -Wextra -Wpedantic
--Werror`. The compiler used `-fsyntax-only`, so no object or executable was
-produced and the declarations were not linked or executed. The worked example's
-arithmetic was also checked. These checks do not establish runtime correctness;
-Dense runtime tests will accompany the implementations.
+The contract-only step passed C11 syntax checks on October 16, 2026. Creation
+and cleanup were subsequently implemented and verified on the same day.
 
-Next, implement creation and cleanup. Their tests must cover dimensions,
-overflow, exact parameter counts, finite-value validation, copying and source
-independence, NULL outputs on failure, optional errors, every allocation-failure
-point, partial cleanup, and independent layer ownership.
+- [`test_dense.c`](../tests/test_dense.c) links the production library and
+  checks shape/layout, exact counts, overflow boundaries, non-finite values at
+  every parameter position, source preservation, independent copies and
+  lifetimes, permitted source overlap, signed zeros/extremes/subnormals,
+  optional error details, NULL cleanup, and repeated construction/destruction.
+- [`test_dense_alloc_failures.c`](../tests/test_dense_alloc_failures.c)
+  compiles the real Dense and tensor implementations with test-only allocator
+  substitutions. It forces each of the five allocations to fail, both with
+  and without error details, tracks all allocated/freed blocks, and rejects
+  untracked or duplicate frees. Every failure leaves `*out_layer == NULL`
+  with zero outstanding allocations from that constructor. It also verifies
+  recovery after every failure, preservation of an already-live layer,
+  zero allocation attempts for invalid inputs, and allocation-free cleanup.
+- The full ordinary Debug suite passed 11/11 tests. Release and combined
+  ASan/UBSan builds, with generated NumPy references enabled, passed 12/12.
+  Both new Dense executables reported zero leaks with native macOS `leaks`.
+  A Release build with `BUILD_TESTING=OFF` passed and registered zero tests.
+  The documented lifetime example compiled, linked, and ran successfully.
 
-Then implement forward execution. Verify the worked example and NumPy
+These are local macOS results. Existing CI jobs will run the new CTest tests
+on macOS/Linux and under Linux sanitizers after publication; hosted results
+for this change have not been verified. No Dense forward pass has been tested
+because it is not implemented yet.
+
+Next, implement forward execution. Verify the worked example and NumPy
 references, input lengths, output capacity, validation before writes, arithmetic
 partial results, untouched sources/spare capacity, repeated calls after failure,
 and absence of allocations during inference. Overlap remains a caller

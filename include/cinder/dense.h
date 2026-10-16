@@ -6,7 +6,7 @@
 #include "cinder/tensor.h"
 
 /*
- * Contract and declarations only: Dense functions are not implemented yet.
+ * Creation and cleanup are implemented; forward execution is declared only.
  * See docs/DENSE.md for validation order, ownership, overlap, and examples.
  *
  * A Dense layer computes y = Wx + b for one float32 input vector.

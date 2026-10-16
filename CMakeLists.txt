@@ -42,7 +42,7 @@ function(cinder_configure_target target)
     endif()
 endfunction()
 
-add_library(cinder_core STATIC src/tensor.c)
+add_library(cinder_core STATIC src/tensor.c src/dense.c)
 target_include_directories(cinder_core PUBLIC "${PROJECT_SOURCE_DIR}/include")
 cinder_configure_target(cinder_core)
 # Unix toolchains provide exp through libm (part of the system library on macOS).
@@ -68,6 +68,11 @@ if(BUILD_TESTING)
     target_link_libraries(test_tensor PRIVATE cinder_core)
     cinder_configure_target(test_tensor)
     add_test(NAME tensor_allocation COMMAND test_tensor)
+
+    add_executable(test_dense tests/test_dense.c)
+    target_link_libraries(test_dense PRIVATE cinder_core)
+    cinder_configure_target(test_dense)
+    add_test(NAME dense_allocation COMMAND test_dense)
 
     add_executable(test_tensor_access tests/test_tensor_access.c)
     target_link_libraries(test_tensor_access PRIVATE cinder_core)
@@ -142,9 +147,22 @@ if(BUILD_TESTING)
     endif()
     add_test(NAME tensor_allocation_failures COMMAND test_tensor_alloc_failures)
 
+    # Substitute allocators in both Dense and tensor code to exercise the whole
+    # ownership chain. As above, do not link another copy from cinder_core.
+    add_executable(test_dense_alloc_failures tests/test_dense_alloc_failures.c)
+    target_include_directories(test_dense_alloc_failures PRIVATE
+        "${PROJECT_SOURCE_DIR}/include"
+    )
+    cinder_configure_target(test_dense_alloc_failures)
+    if(UNIX)
+        target_link_libraries(test_dense_alloc_failures PRIVATE m)
+    endif()
+    add_test(NAME dense_allocation_failures COMMAND test_dense_alloc_failures)
+
     set_tests_properties(
         tensor_allocation tensor_access tensor_matvec tensor_bias tensor_relu
         tensor_softmax tensor_numpy_fixtures tensor_allocation_failures
+        dense_allocation dense_allocation_failures
         PROPERTIES TIMEOUT 10
     )
 endif()
