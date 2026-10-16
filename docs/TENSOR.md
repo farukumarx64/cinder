@@ -552,8 +552,8 @@ that matvec does not allocate on success or validation failure.
 On October 15, 2026, all five CTest tests passed locally on macOS in Debug,
 Release, and combined ASan/UBSan builds. Native macOS `leaks` reported zero leaks
 for the matvec executable; a build with `BUILD_TESTING=OFF` also succeeded.
-These are the local results from the matvec step. Deterministic NumPy fixtures
-for the full set of math operations remain a separate roadmap step.
+These are the local results from the matvec step. Subsequent NumPy reference
+verification is recorded below.
 
 ## Bias verification
 
@@ -634,5 +634,23 @@ leaks for the Softmax executable. A build with `BUILD_TESTING=OFF` compiled,
 printed the version, and registered zero tests. Hosted CI verification of
 Softmax awaits a future push.
 
-Next: validate all math operations against deterministic float32 NumPy
-fixtures using the documented tolerance rule.
+## NumPy reference verification
+
+All four math operations are now compared with deterministic float32 NumPy
+references. The saved fixture header is tested in ordinary C builds; an opt-in
+build generates fresh references with NumPy and compiles the same comparison
+test against them. Every intermediate vector is checked, including logits
+before Softmax, with equal lengths and finite values required before applying
+`abs(actual - reference) <= 1e-5 + 1e-5 * abs(reference)`.
+
+On October 16, 2026, the Debug build passed all 9 tests. Release and combined
+ASan/UBSan builds with fresh NumPy generation each passed all 10 tests. Each
+reference run compared 79 vectors / 341 results across 11 matrix/bias and 12
+activation fixtures. The largest absolute error was `1.1920929e-7`; no tolerance
+change or math implementation change was needed. The saved references were
+generated with Python 3.12.14 and NumPy 2.3.5. Hosted CI results remain pending.
+
+See [NumPy reference verification](NUMPY_TESTS.md) for fixture coverage,
+regeneration, diagnostics, local results, and the limits of these comparisons.
+This completes local Phase 1 verification. Next: define the Dense-layer
+contract before implementing Phase 2's layer and model APIs.

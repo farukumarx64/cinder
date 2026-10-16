@@ -9,11 +9,12 @@ Training happens outside the runtime.
 
 ## Current status
 
-**Phase 1: tensor allocation, cleanup, basic access, matrix-vector
-multiplication, bias addition, ReLU, and stable Softmax are implemented and
-tested.** Phase 0 is complete, including the MIT license and verified
-development setup. The project
-currently contains a CMake build and a CLI that supports `--version`.
+**Phase 1 (M1) is complete locally:** tensor allocation, cleanup, basic access,
+matrix-vector multiplication, bias addition, ReLU, and stable Softmax are
+implemented and tested. The math operations match deterministic NumPy float32
+references within the documented tolerance.
+Phase 0 is complete, including the MIT license and verified development setup.
+The project contains a CMake build and a CLI that supports `--version`.
 The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
 
 - C11 compilation with `-Wall`, `-Wextra`, and `-Wpedantic` is configured.
@@ -24,7 +25,7 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
   Ubuntu 24.04.
 - CTest provides the version-command smoke test, two tensor allocation tests,
   and tests for tensor access, matrix-vector multiplication, bias addition,
-  ReLU, and Softmax.
+  ReLU, Softmax, and NumPy reference fixtures.
 - Opt-in AddressSanitizer and UndefinedBehaviorSanitizer builds passed the
   smoke test on macOS, both separately and together.
 - The public GitHub repository is [farukumarx64/cinder](https://github.com/farukumarx64/cinder).
@@ -52,11 +53,15 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
   normalizes in place without allocating. It uses double intermediates with
   float32 storage, accepts underflow to zero, and rejects empty/non-finite
   inputs before changing the vector.
-- All eight tests passed locally on macOS in Debug, Release, and combined
-  ASan/UBSan builds on October 16, 2026. The Softmax executable reported zero
-  native leaks, as did access, matrix-vector, bias, and ReLU tests on October 15
-  and the allocation tests on October 9. Deterministic NumPy reference fixtures
-  are next; hosted CI verification of Softmax awaits a future push.
+- On October 16, 2026, all 9 ordinary Debug tests passed locally. Release and
+  combined ASan/UBSan builds with fresh NumPy generation passed all 10 tests.
+  Reference tests compared 79 vectors / 341 results with the unchanged
+  `atol = rtol = 1e-5` rule. The largest absolute error was `1.1920929e-7`.
+  See [the reference test guide](docs/NUMPY_TESTS.md) for coverage and limits.
+- The Softmax and NumPy reference executables reported zero native leaks on
+  October 16, as did access, matrix-vector, bias, and ReLU tests on October 15 and the allocation
+  tests on October 9. Hosted CI verification of the NumPy changes is pending.
+- The next scoped task is defining the Dense-layer contract for Phase 2.
 - Model loading, inference, and the `info`, `run`, and `bench` commands are
   planned features; they are not implemented yet.
 
@@ -71,8 +76,9 @@ next scoped task.
   setup uses Make from the Xcode Command Line Tools.
 - Git for version control.
 
-Python and machine-learning packages are not required for the current C build.
-They will be introduced with the reference tests and exporter.
+Python and NumPy are optional for the C build and its saved reference tests.
+Regenerating references requires Python 3.11+ and NumPy; the tested dependency
+is pinned in `tests/requirements-numpy.txt`.
 Softmax requires `double` to have wider range and precision than `float`,
 checked at compile time. CMake links the system math library (`m`) on Unix
 for exponentiation; no extra third-party library is needed.
@@ -118,7 +124,7 @@ exactly `Cinder 0.1.0-dev` followed by a newline on standard output, and empty
 standard error. The expected version follows the CMake project version.
 Failures show diagnostics; the test has a ten-second timeout.
 
-Seven more CTest tests exercise tensor memory management, access, and math:
+Eight more CTest tests exercise tensor memory management, access, and math:
 
 - `tensor_allocation` checks dimensions, zero initialization, writable storage,
   independent tensors, invalid arguments, both size-overflow cases, repeated
@@ -153,11 +159,40 @@ Seven more CTest tests exercise tensor memory management, access, and math:
   input rejection, unchanged arrays on validation failure, optional errors,
   spare capacity, and composed `Softmax(ReLU(Wx + b))` results. Expected values
   use independent constants, with tighter checks for tiny probabilities.
+- `tensor_numpy_fixtures` compares each math operation and composed intermediate
+  results with saved NumPy float32 references. It checks shapes and finiteness
+  before applying `atol = rtol = 1e-5`, and reports the failing fixture, stage,
+  index, values, and error limit. Coverage includes 11 matrix/bias fixtures and
+  12 standalone activation fixtures, for 79 result vectors / 341 values.
 
 All tensor tests have ten-second timeouts. Their checks stay active in Release
 builds, where ordinary C `assert` checks could be disabled by `NDEBUG`.
 
 To configure a build without tests, pass `-DBUILD_TESTING=OFF` to CMake.
+
+### Generate fresh NumPy references
+
+The default build uses the saved fixture header without running Python. To
+also compare against newly generated references, use Python 3.11 or newer
+(for example, `python3.12`) and a local virtual environment:
+
+```sh
+python3.12 -m venv .venv
+.venv/bin/python -m pip install -r tests/requirements-numpy.txt
+cmake -S . -B build-numpy \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DBUILD_TESTING=ON \
+  -DCINDER_ENABLE_NUMPY_TESTS=ON \
+  -DPython3_EXECUTABLE="$PWD/.venv/bin/python"
+cmake --build build-numpy
+ctest --test-dir build-numpy --output-on-failure
+```
+
+This adds the tenth test, `tensor_numpy_generated`, using a generated header
+inside the build directory. The saved fixtures stay unchanged. CMake fails
+clearly if NumPy is missing or testing is disabled. See
+[NumPy reference verification](docs/NUMPY_TESTS.md) for the formulas, fixture
+generation command, reproducibility policy, and recorded results.
 
 ## Sanitizer builds
 
@@ -194,7 +229,7 @@ sanitizers disabled because their checks add runtime overhead.
 
 The current tests exercise the version command, tensor allocation/cleanup,
 basic access, matrix-vector multiplication, bias addition, ReLU, and Softmax.
-Deterministic NumPy comparison and inference tests remain future steps.
+NumPy reference comparisons are included; model inference tests remain future steps.
 Passing the current tests is not evidence that future code is free of memory errors.
 
 See the upstream [AddressSanitizer documentation](https://clang.llvm.org/docs/AddressSanitizer.html)
@@ -219,6 +254,7 @@ leaks --atExit -- ./build/test_tensor_matvec
 leaks --atExit -- ./build/test_tensor_bias
 leaks --atExit -- ./build/test_tensor_relu
 leaks --atExit -- ./build/test_tensor_softmax
+leaks --atExit -- ./build/test_tensor_numpy
 ```
 
 These commands reported zero leaks for the version command and tensor test
@@ -234,7 +270,7 @@ when running the sanitizer build's tests:
 ```
 
 The Linux sanitizer CI job runs the full CTest suite with leak detection
-enabled. The new Softmax checks will run after these changes are pushed;
+enabled. The new NumPy fixture checks will run after these changes are pushed;
 their hosted results are pending. See the
 [LeakSanitizer documentation](https://clang.llvm.org/docs/LeakSanitizer.html).
 
@@ -245,7 +281,7 @@ requests, and manual dispatch from the repository's Actions tab.
 
 | Job | Runner | Checks |
 | --- | --- | --- |
-| Linux build | Ubuntu 24.04 | Debug configuration, compilation, and CTest. |
+| Linux build | Ubuntu 24.04 | Debug configuration, compilation, and CTest, including freshly generated NumPy references. |
 | macOS build | macOS 15 | Debug configuration, compilation, and CTest. |
 | Linux sanitizers | Ubuntu 24.04 with Clang | Debug build with ASan and UBSan, then CTest with leak detection enabled. |
 
@@ -253,6 +289,11 @@ Each job starts from a fresh checkout, prints its toolchain versions, and fails
 if configuration, compilation, or testing fails. CTest also fails if no tests
 are registered. Jobs have a ten-minute limit, and newer runs replace older runs
 for the same branch or pull request.
+
+All jobs test the saved NumPy fixtures. The ordinary Linux job additionally
+creates a Python virtual environment, installs the pinned reference dependency,
+and enables `CINDER_ENABLE_NUMPY_TESTS`. Hosted results for this addition are
+pending a future push.
 
 The workflow uses read-only repository permissions and a pinned checkout action.
 Check results and failure logs in [GitHub Actions](https://github.com/farukumarx64/cinder/actions/workflows/ci.yml).
@@ -271,6 +312,7 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | `include/cinder/tensor.h` | Tensor representation and function declarations. |
 | `include/cinder/error.h` | Status codes and caller-owned error details. |
 | `docs/TENSOR.md` | Tensor layout, ownership, validation, and failure contract. |
+| `docs/NUMPY_TESTS.md` | Reference calculations, fixtures, tolerances, regeneration, and verification results. |
 | `tests/check_version.cmake` | Checks the version command's exit status and output. |
 | `tests/test_tensor.c` | Tests the core library's allocation and cleanup API. |
 | `tests/test_tensor_access.c` | Tests row-major access, bounds, finite values, and failure behavior. |
@@ -278,6 +320,10 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | `tests/test_tensor_bias.c` | Tests bias addition, vector lengths, numeric failures, and composed `Wx + b` results. |
 | `tests/test_tensor_relu.c` | Tests ReLU values, validation, failure preservation, and composed `ReLU(Wx + b)` results. |
 | `tests/test_tensor_softmax.c` | Tests stable probabilities, extreme/tiny values, validation, and composed math results. |
+| `tests/test_tensor_numpy.c` | Compares Cinder's math with saved or freshly generated NumPy fixtures. |
+| `tests/generate_numpy_fixtures.py` | Generates independent float32 NumPy references with fixed inputs and seed. |
+| `tests/fixtures/numpy_fixtures.h` | Saved input arrays and NumPy expected results, tracked in Git. |
+| `tests/requirements-numpy.txt` | Pinned optional NumPy dependency for reference generation. |
 | `tests/test_tensor_alloc_failures.c` | Forces allocation failures and tracks cleanup with test-only allocator substitutions. |
 | `.github/workflows/ci.yml` | macOS/Linux build jobs and the Linux sanitizer job. |
 | `ROADMAP.md` | Scope, implementation decisions, milestones, and progress. |
@@ -292,7 +338,8 @@ task. Record unresolved issues before moving on.
 
 The roadmap is the source of truth for progress. Its future command examples
 and benchmark numbers describe targets, not existing capabilities or measured
-performance. Phase 0 is complete; follow the Phase 1 checklist for the next steps.
+performance. Phases 0 and 1 are complete locally; Phase 2 begins with the
+Dense-layer contract.
 
 The v0.1.0 scope excludes training, GPU execution, convolutional layers,
 quantization, SIMD, multithreading, and arbitrary computation graphs.

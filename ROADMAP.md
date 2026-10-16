@@ -21,10 +21,12 @@ All predictions, accuracy percentages, and benchmark timings shown in this docum
 ## Current Progress
 
 Phase 0 (M0) is complete as of October 8, 2026, including the MIT license and
-verified development setup. Phase 1 now includes the tensor contract and tested
-allocation/cleanup, basic access, matrix-vector multiplication, bias addition,
-ReLU, and stable Softmax. Deterministic NumPy reference verification remains
-before completing M1.
+verified development setup. Phase 1 (M1) is complete locally as of October 16,
+2026: the tensor contract, allocation/cleanup, access, matrix-vector
+multiplication, bias addition, ReLU, and stable Softmax are implemented and
+tested. The math operations match deterministic NumPy float32 references
+within the documented tolerance. Hosted CI results for the latest changes
+are pending a future push.
 Implement and verify one scoped step at a time.
 
 ### Phase 0 checklist
@@ -69,7 +71,11 @@ checklist item and closing M0.
 - [x] Implement bias addition and validate vector lengths. The in-place API checks equal nonzero lengths, byte-count overflow, finite sources, and sums without allocating. Integration tests verify `Wx + b`, a zero input, and untouched spare output capacity. On October 15, 2026, all 6 tests passed locally in Debug, Release, and combined ASan/UBSan builds; the bias executable reported zero native leaks, and a build without tests passed. See [the bias contract and worked example](docs/TENSOR.md#bias-addition).
 - [x] Implement ReLU and test negative, zero, and positive values. The in-place API validates pointers, count, byte extent, and finite values before replacing negatives with positive zero. Tests cover signed zeros, extremes, subnormals, full preservation on failure, repeated application, no allocation, and `ReLU(Wx + b)`. On October 15, 2026, all 7 tests passed locally in Debug, Release, and combined ASan/UBSan builds; the ReLU executable reported zero native leaks, and a build without tests passed. See [the ReLU contract and worked example](docs/TENSOR.md#relu).
 - [x] Implement stable Softmax and its empty/non-finite input handling. The in-place API subtracts the maximum before exponentiation, uses double intermediates with float32 storage, and allocates no memory. Tests cover known probabilities, offsets, equal/extreme scores, tiny probabilities, long-vector normalization, input rejection without mutation, and composed math. On October 16, 2026, all 8 tests passed locally in Debug, Release, and combined ASan/UBSan builds; the Softmax executable reported zero native leaks, and a build without tests passed. Hosted CI awaits a future push. See [the Softmax contract and worked example](docs/TENSOR.md#softmax).
-- [ ] Validate the math operations against deterministic float32 NumPy fixtures using the documented tolerance rule. **Next scoped task.**
+- [x] Validate the math operations against deterministic float32 NumPy fixtures using the documented tolerance rule. The saved and freshly generated references cover 11 matrix/bias fixtures and 12 activation fixtures, comparing 79 vectors / 341 results including intermediate outputs. Shapes and finiteness are checked first; `atol = rtol = 1e-5` is unchanged. On October 16, 2026, the ordinary Debug suite passed 9/9 tests; Release and ASan/UBSan builds with fresh generation passed 10/10. The largest absolute error was `1.1920929e-7`. Repeated generation was identical locally, missing-dependency/configuration guards passed, and the reference executable reported zero native leaks. See [NumPy reference verification](docs/NUMPY_TESTS.md). M1 is complete locally; hosted CI remains pending.
+
+**Next scoped task (Phase 2):** define the Dense-layer contract: input/output
+dimensions, ownership of weights and biases, output buffer requirements, and
+error behavior. Implement the layer only after that contract is established.
 
 ---
 
@@ -521,8 +527,8 @@ M0 — Cinder builds, prints its version, and passes a smoke test with CI and sa
 The minimal representation and API contract are now defined in
 [`docs/TENSOR.md`](docs/TENSOR.md) and the public headers. Creation, cleanup,
 checked fill/get/set, matrix-vector multiplication, bias addition, ReLU, and
-Softmax are implemented and tested; follow the scoped checklist in Current Progress for
-deterministic NumPy reference verification.
+Softmax are implemented and tested against deterministic NumPy references.
+M1 is complete locally; see Current Progress and the reference verification guide.
 
 For `v0.1.0`, two-dimensional tensors are enough.
 
@@ -695,6 +701,13 @@ Verify equal shapes and finite values before numerical comparison. Exercise nega
 For networks, compare each layer's output, including logits before Softmax, as well as final probabilities. A matching top prediction alone is insufficient.
 
 NumPy documents this tolerance rule in [numpy.allclose](https://numpy.org/doc/stable/reference/generated/numpy.allclose.html).
+
+Implemented and verified locally on October 16, 2026. The independent NumPy
+generator uses float32 operations, explicit examples, and PCG64 seed `20261016`.
+Saved references run without Python; `CINDER_ENABLE_NUMPY_TESTS=ON` additionally
+generates references inside the build directory. See
+[the reference guide](docs/NUMPY_TESTS.md) for the fixtures, intermediate-output
+checks, measured errors, regeneration commands, and remaining model-level work.
 
 ### Milestone
 
@@ -1605,7 +1618,7 @@ Documentation + release
 CINDER v0.1.0
 ```
 
-Follow these milestones in order even if individual daily targets shift. M0 is complete: CMake, a version command, a smoke test, CI, sanitizer configuration, setup verification, and the MIT license are in place. Phase 1 now has tensor allocation, basic access, matrix-vector multiplication, bias addition, ReLU, and stable Softmax. Continue with deterministic NumPy reference verification, with the core loops understood before moving on.
+Follow these milestones in order even if individual daily targets shift. M0 and M1 are complete locally: the development setup and tensor math are implemented and verified, including deterministic NumPy comparisons. Continue with the Phase 2 Dense-layer contract, with the core math loops understood before moving on. Hosted CI verification of the latest changes remains pending a future push.
 
 The **October 25 deadline is the internal deadline**.
 

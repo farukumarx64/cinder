@@ -6,6 +6,11 @@ include(CTest)
 
 option(CINDER_ENABLE_ASAN "Enable AddressSanitizer for development" OFF)
 option(CINDER_ENABLE_UBSAN "Enable UndefinedBehaviorSanitizer for development" OFF)
+option(CINDER_ENABLE_NUMPY_TESTS "Also test freshly generated NumPy references" OFF)
+
+if(CINDER_ENABLE_NUMPY_TESTS AND NOT BUILD_TESTING)
+    message(FATAL_ERROR "CINDER_ENABLE_NUMPY_TESTS requires BUILD_TESTING=ON.")
+endif()
 
 if(CINDER_ENABLE_ASAN OR CINDER_ENABLE_UBSAN)
     if(NOT CMAKE_C_COMPILER_ID MATCHES "^(GNU|Clang|AppleClang)$")
@@ -89,6 +94,42 @@ if(BUILD_TESTING)
     cinder_configure_target(test_tensor_softmax)
     add_test(NAME tensor_softmax COMMAND test_tensor_softmax)
 
+    add_executable(test_tensor_numpy tests/test_tensor_numpy.c)
+    target_include_directories(test_tensor_numpy PRIVATE "${PROJECT_SOURCE_DIR}/tests/fixtures")
+    target_link_libraries(test_tensor_numpy PRIVATE cinder_core)
+    cinder_configure_target(test_tensor_numpy)
+    add_test(NAME tensor_numpy_fixtures COMMAND test_tensor_numpy)
+
+    if(CINDER_ENABLE_NUMPY_TESTS)
+        find_package(Python3 3.11 REQUIRED COMPONENTS Interpreter)
+        execute_process(
+            COMMAND "${Python3_EXECUTABLE}" -c "import numpy; print(numpy.__version__)"
+            RESULT_VARIABLE cinder_numpy_status
+            OUTPUT_VARIABLE cinder_numpy_version
+            ERROR_VARIABLE cinder_numpy_error
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+        )
+        if(NOT cinder_numpy_status EQUAL 0)
+            message(FATAL_ERROR "NumPy is required for reference generation. Install tests/requirements-numpy.txt with ${Python3_EXECUTABLE}. ${cinder_numpy_error}")
+        endif()
+        message(STATUS "Generating reference fixtures with NumPy ${cinder_numpy_version}")
+        set(cinder_numpy_header "${PROJECT_BINARY_DIR}/numpy-fixtures/numpy_fixtures.h")
+        add_custom_command(
+            OUTPUT "${cinder_numpy_header}"
+            COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/generate_numpy_fixtures.py"
+                --output "${cinder_numpy_header}"
+            DEPENDS tests/generate_numpy_fixtures.py tests/requirements-numpy.txt
+            COMMENT "Generating independent float32 NumPy references"
+            VERBATIM
+        )
+        add_executable(test_tensor_numpy_generated tests/test_tensor_numpy.c "${cinder_numpy_header}")
+        target_include_directories(test_tensor_numpy_generated PRIVATE "${PROJECT_BINARY_DIR}/numpy-fixtures")
+        target_link_libraries(test_tensor_numpy_generated PRIVATE cinder_core)
+        cinder_configure_target(test_tensor_numpy_generated)
+        add_test(NAME tensor_numpy_generated COMMAND test_tensor_numpy_generated)
+        set_tests_properties(tensor_numpy_generated PROPERTIES TIMEOUT 10)
+    endif()
+
     # This test compiles tensor.c with allocator substitutions confined to its
     # translation unit, so it must not also link the normal cinder_core copy.
     add_executable(test_tensor_alloc_failures tests/test_tensor_alloc_failures.c)
@@ -103,7 +144,7 @@ if(BUILD_TESTING)
 
     set_tests_properties(
         tensor_allocation tensor_access tensor_matvec tensor_bias tensor_relu
-        tensor_softmax tensor_allocation_failures
+        tensor_softmax tensor_numpy_fixtures tensor_allocation_failures
         PROPERTIES TIMEOUT 10
     )
 endif()

@@ -15,5 +15,10 @@ compile_commands.json
 *.o
 *.obj
 
+# Local NumPy fixture-generation environment and Python bytecode.
+/.venv/
+__pycache__/
+*.pyc
+
 # macOS metadata.
 .DS_Store
