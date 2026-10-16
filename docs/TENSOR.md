@@ -3,8 +3,8 @@
 This is the contract for the first Phase 1 implementation. Types and function
 declarations are in `include/cinder/tensor.h` and `include/cinder/error.h`.
 Creation, cleanup, fill/get/set, matrix-vector multiplication, bias addition,
-and ReLU are implemented in `src/tensor.c`, built as the `cinder_core` static
-library shared by the CLI and ordinary tensor tests.
+ReLU, and Softmax are implemented in `src/tensor.c`, built as the `cinder_core`
+static library shared by the CLI and ordinary tensor tests.
 The CLI still exposes only `--version`; the tensor API is exercised by C tests.
 
 ## Representation and layout
@@ -28,6 +28,11 @@ elements, not bytes. The supported platform must represent C `float` as
 IEEE 754 binary32 (32 bits, four 8-bit bytes). The allocation implementation
 checks byte size, float size, radix, precision, exponent range, and subnormal
 support at compile time.
+
+Softmax also requires `double` to have more precision and a wider exponent
+range than `float`, enforced at compile time. It uses these wider intermediates
+for subtraction, exponentiation, summation, and division; stored tensors and
+vectors remain float32. The supported macOS/Linux toolchains satisfy this.
 
 Storage is row-major: all elements of the first row appear before those of the
 second row. With zero-based indices:
@@ -350,16 +355,123 @@ if (status == CINDER_OK) {
 Consume the result only when the final status is `CINDER_OK`. The layer
 abstraction and model execution remain separate future steps.
 
+## Softmax
+
+```c
+cinder_status_t cinder_tensor_softmax(
+    float *values,
+    size_t count,
+    cinder_error_t *error
+);
+```
+
+Softmax turns a vector of finite scores into probabilities. It preserves the
+vector length and ordering: larger scores receive larger probabilities, except
+where rounding makes them equal. Outputs are finite, lie in `[0, 1]`, and sum
+approximately to one. Floating-point rounding means an exact sum of one is not
+required, and sufficiently small probabilities may become zero.
+
+The stable formula subtracts the largest input before exponentiation:
+
+```text
+m = max(values)
+probability[i] = exp(values[i] - m) / sum(exp(values[j] - m))
+```
+
+In exact arithmetic, subtracting the same value multiplies every exponential
+by the same factor, which cancels between numerator and denominator. The
+probabilities are unchanged, but every exponent is now nonpositive, so each
+exponential is at most one. At least one maximum contributes `exp(0) = 1`,
+preventing the normalization sum from being zero even if other terms underflow.
+
+For example, directly exponentiating the scores below would overflow float32:
+
+```text
+scores:           [1001,       1002,       1003]
+subtract 1003:    [  -2,         -1,          0]
+exponentials:     [0.1353353,  0.3678794,  1.0000000]
+sum:              1.5032147
+probabilities:   [0.09003057, 0.24472847, 0.66524096]
+```
+
+The function makes three passes:
+
+1. Validate every input and find the maximum, starting from the first element.
+2. Compute each shifted exponential, store it in the same array as a float,
+   and add that stored term to a `double` total.
+3. Divide each stored exponential by the total using `double` arithmetic,
+   then store the resulting float32 probability in place.
+
+The subtraction converts both operands before doing arithmetic:
+
+```c
+double shifted = (double)values[i] - (double)maximum;
+```
+
+This accepts opposite finite extremes: `-FLT_MAX - FLT_MAX` would overflow if
+performed in float, but fits in the wider double range. `exp` evaluates the
+shifted value as a double. The sum also uses double so small terms are less
+likely to disappear when added to a larger running total. It sums the rounded
+float terms actually stored in the array, which are also the numerators used
+in the final division. These choices improve range and precision without
+changing the public float32 storage contract or promising exact arithmetic.
+
+Finite underflow is accepted. `[0, -90]` retains a tiny subnormal probability;
+`[0, -104]` produces `[1, 0]` after rounding to float32. Equal scores produce a
+uniform distribution, a single score produces `[1]`, and
+`[-FLT_MAX, FLT_MAX]` produces `[0, 1]`. NaN and either infinity are unsupported
+inputs, including vectors containing only infinities; no special probability
+distribution is invented for them.
+
+Validation runs before modifying the vector:
+
+1. A NULL pointer or zero count returns `INVALID_ARGUMENT`.
+2. `count > SIZE_MAX / sizeof(float)` returns `OVERFLOW` before reading data.
+3. Any NaN or infinity returns `NONFINITE` after checking the relevant element.
+
+Pointer, size, and input-value failures leave the entire array unchanged.
+Defensive checks also reject a non-finite exponential, a nonpositive or
+non-finite normalization sum, or a non-finite probability as `NONFINITE`.
+A numeric failure after computation begins may leave scratch exponentials or
+partially normalized values in the array. Discard the result on any failure.
+For valid finite inputs under the supported floating-point behavior, the
+maximum shift and wider intermediates keep these calculations finite with a
+positive denominator.
+
+`count` is the logical vector length, not spare capacity. The caller supplies
+at least `count` initialized, readable/writable floats and keeps optional error
+storage separate. Elements beyond `count` are neither read nor written. As
+with ReLU, after matvec pass `weights->rows`, not the output buffer capacity.
+The array is overwritten, so preserve a separate copy if original scores are
+needed. Softmax takes `O(count)` time, `O(1)` extra space, and no allocations.
+
+The math operations can be composed by checking each returned status:
+
+```text
+Wx                      = [5.5,        7.5]
+Wx + [0.5, -9.5]        = [6.0,       -2.0]
+ReLU(Wx + b)            = [6.0,        0.0]
+Softmax(ReLU(Wx + b))   = [0.99752738, 0.00247262]
+```
+
+This is a composition test, not a requirement to place ReLU before Softmax;
+a model's layer order determines which activation is used. Apply Softmax only
+after the preceding operation succeeds and consume it only on `CINDER_OK`.
+
+`exp` introduces a system math-library dependency. CMake links `m` on Unix and
+propagates it from the static core library to consumers. The allocation-failure
+test compiles the implementation directly, so it links `m` separately.
+
 ## Errors
 
 | Status | Meaning |
 | --- | --- |
 | `CINDER_OK` | The operation completed successfully. |
-| `CINDER_ERROR_INVALID_ARGUMENT` | A required pointer is NULL, a creation dimension is zero, or a bias/ReLU vector is empty. |
-| `CINDER_ERROR_OVERFLOW` | A tensor element count, allocation byte count, or bias/ReLU vector byte count cannot fit in `size_t`. |
+| `CINDER_ERROR_INVALID_ARGUMENT` | A required pointer is NULL, a creation dimension is zero, or a bias/ReLU/Softmax vector is empty. |
+| `CINDER_ERROR_OVERFLOW` | A tensor element count, allocation byte count, or bias/ReLU/Softmax vector byte count cannot fit in `size_t`. |
 | `CINDER_ERROR_ALLOCATION` | An allocation failed after dimensions and sizes were validated. |
 | `CINDER_ERROR_OUT_OF_BOUNDS` | A get/set index is outside the tensor's dimensions. |
-| `CINDER_ERROR_NONFINITE` | A supplied/read value, math source value, or computed sum is NaN or infinity. |
+| `CINDER_ERROR_NONFINITE` | A supplied/read value, math source value, or computed result is NaN or infinity, or a Softmax normalization sum is nonpositive. |
 | `CINDER_ERROR_DIMENSION_MISMATCH` | The matvec input length differs from the weight columns, or the output/bias lengths differ. |
 | `CINDER_ERROR_BUFFER_TOO_SMALL` | The matvec output capacity is less than the number of weight rows. |
 
@@ -488,6 +600,39 @@ An integration test checks all three intermediate results in the non-square
 On October 15, 2026, all seven CTest tests passed locally on macOS in Debug,
 Release, and combined ASan/UBSan builds. Native macOS `leaks` reported zero leaks
 for the ReLU executable, and a build with `BUILD_TESTING=OFF` succeeded.
-Hosted CI verification of ReLU awaits a future push.
+These are the local results from the ReLU step.
 
-Next: implement stable Softmax and its empty/non-finite input handling.
+## Softmax verification
+
+`tensor_softmax` checks known probabilities, large positive and negative score
+offsets, permutations, equal scores, single-element vectors, signed zeros,
+opposite finite extremes, and tied extreme maxima. Reference constants were
+evaluated independently with Python's Decimal at 60-digit precision; the test
+executable has no Python dependency. Ordinary comparisons use the established
+`atol = rtol = 1e-5` rule. Every valid fixture also checks finite outputs in
+`[0, 1]` with a double-accumulated probability sum within `1e-6` of one.
+
+Tiny-probability cases use a tighter absolute bound of `FLT_TRUE_MIN`, plus
+explicit checks that representable subnormal probabilities stay positive and
+unrepresentable probabilities round to zero. A 10,001-element vector contains
+one score of zero and 10,000 scores of `-18`; it verifies that the many small
+exponentials contribute to normalization instead of disappearing in a float
+sum. Those small results receive relative-error checks without the ordinary
+absolute tolerance.
+
+Validation tests cover NULL pointers, zero/overflow counts, NaN and both
+infinities at every position, all-non-finite vectors, unchanged array bytes on
+rejection, validation order, optional error details, and cleared errors on
+success. Guard elements and NaN in spare capacity check the length boundary.
+The integration case verifies the intermediate results of
+`Softmax(ReLU(Wx + b))`. The allocation-failure executable confirms that
+successful and rejected Softmax calls make no allocations.
+
+On October 16, 2026, all eight CTest tests passed locally on macOS in Debug,
+Release, and combined ASan/UBSan builds. Native macOS `leaks` reported zero
+leaks for the Softmax executable. A build with `BUILD_TESTING=OFF` compiled,
+printed the version, and registered zero tests. Hosted CI verification of
+Softmax awaits a future push.
+
+Next: validate all math operations against deterministic float32 NumPy
+fixtures using the documented tolerance rule.

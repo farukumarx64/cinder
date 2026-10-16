@@ -192,6 +192,20 @@ int main(void)
     CHECK(allocation_calls == 2);
     CHECK(live_count == 2);
 
+    /* Softmax reuses the vector for exponentials; no scratch allocation. */
+    output[0] = FLT_MAX;
+    output[1] = FLT_MAX;
+    CHECK(cinder_tensor_softmax(output, 2, &error) == CINDER_OK);
+    CHECK(output[0] == 0.5f && output[1] == 0.5f);
+    CHECK(cinder_tensor_softmax(output, 0, &error) == CINDER_ERROR_INVALID_ARGUMENT);
+    CHECK(cinder_tensor_softmax(output, SIZE_MAX, &error) == CINDER_ERROR_OVERFLOW);
+    output[0] = -3.0f;
+    output[1] = NAN;
+    CHECK(cinder_tensor_softmax(output, 2, &error) == CINDER_ERROR_NONFINITE);
+    CHECK(output[0] == -3.0f && isnan(output[1]));
+    CHECK(allocation_calls == 2);
+    CHECK(live_count == 2);
+
     cinder_tensor_free(tensor);
     CHECK(live_count == 0);
     cinder_tensor_free(NULL);

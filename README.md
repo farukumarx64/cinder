@@ -10,8 +10,9 @@ Training happens outside the runtime.
 ## Current status
 
 **Phase 1: tensor allocation, cleanup, basic access, matrix-vector
-multiplication, bias addition, and ReLU are implemented and tested.** Phase 0 is
-complete, including the MIT license and verified development setup. The project
+multiplication, bias addition, ReLU, and stable Softmax are implemented and
+tested.** Phase 0 is complete, including the MIT license and verified
+development setup. The project
 currently contains a CMake build and a CLI that supports `--version`.
 The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
 
@@ -23,7 +24,7 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
   Ubuntu 24.04.
 - CTest provides the version-command smoke test, two tensor allocation tests,
   and tests for tensor access, matrix-vector multiplication, bias addition,
-  and ReLU.
+  ReLU, and Softmax.
 - Opt-in AddressSanitizer and UndefinedBehaviorSanitizer builds passed the
   smoke test on macOS, both separately and together.
 - The public GitHub repository is [farukumarx64/cinder](https://github.com/farukumarx64/cinder).
@@ -47,11 +48,15 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
 - `cinder_tensor_relu` replaces negative finite values with zero in place.
   It preserves positive values and existing zeros, validates the full vector
   before writing, and leaves it unchanged on any failure.
-- All seven tests passed locally on macOS in Debug, Release, and combined
-  ASan/UBSan builds on October 15, 2026. Access, matrix-vector, bias, and ReLU
-  tests reported zero native leaks; the allocation tests also passed native
-  leak checks on October 9. Softmax is next; hosted CI verification of ReLU
-  awaits a future push.
+- `cinder_tensor_softmax` subtracts the maximum score, exponentiates, and
+  normalizes in place without allocating. It uses double intermediates with
+  float32 storage, accepts underflow to zero, and rejects empty/non-finite
+  inputs before changing the vector.
+- All eight tests passed locally on macOS in Debug, Release, and combined
+  ASan/UBSan builds on October 16, 2026. The Softmax executable reported zero
+  native leaks, as did access, matrix-vector, bias, and ReLU tests on October 15
+  and the allocation tests on October 9. Deterministic NumPy reference fixtures
+  are next; hosted CI verification of Softmax awaits a future push.
 - Model loading, inference, and the `info`, `run`, and `bench` commands are
   planned features; they are not implemented yet.
 
@@ -68,6 +73,9 @@ next scoped task.
 
 Python and machine-learning packages are not required for the current C build.
 They will be introduced with the reference tests and exporter.
+Softmax requires `double` to have wider range and precision than `float`,
+checked at compile time. CMake links the system math library (`m`) on Unix
+for exponentiation; no extra third-party library is needed.
 
 ## Build and run
 
@@ -110,15 +118,15 @@ exactly `Cinder 0.1.0-dev` followed by a newline on standard output, and empty
 standard error. The expected version follows the CMake project version.
 Failures show diagnostics; the test has a ten-second timeout.
 
-Six more CTest tests exercise tensor memory management, access, and math:
+Seven more CTest tests exercise tensor memory management, access, and math:
 
 - `tensor_allocation` checks dimensions, zero initialization, writable storage,
   independent tensors, invalid arguments, both size-overflow cases, repeated
   creation/cleanup, and optional error details against the `cinder_core` library.
 - `tensor_allocation_failures` forces the first and second allocations to fail,
   checks partial cleanup and NULL outputs, and confirms validation happens
-  before allocation. It also checks that access, matvec, bias addition, and
-  ReLU do not allocate.
+  before allocation. It also checks that access, matvec, bias addition, ReLU,
+  and Softmax do not allocate.
   It compiles the same implementation with allocator
   substitutions confined to the test; production has no failure switches.
 - `tensor_access` checks fills across several shapes, reads and writes against
@@ -139,6 +147,12 @@ Six more CTest tests exercise tensor memory management, access, and math:
   unchanged data on failure, and untouched spare capacity. It also checks
   repeated application and the full `ReLU(Wx + b)` sequence. Expected values
   are compared exactly because ReLU introduces no rounding arithmetic.
+- `tensor_softmax` checks known probabilities, large score offsets, equal and
+  extreme values, tiny probabilities and allowed underflow, and a long vector
+  with many small contributions to its sum. It also checks empty/non-finite
+  input rejection, unchanged arrays on validation failure, optional errors,
+  spare capacity, and composed `Softmax(ReLU(Wx + b))` results. Expected values
+  use independent constants, with tighter checks for tiny probabilities.
 
 All tensor tests have ten-second timeouts. Their checks stay active in Release
 builds, where ordinary C `assert` checks could be disabled by `NDEBUG`.
@@ -179,8 +193,8 @@ to `OFF` when disabling it in an existing build directory. Benchmark with
 sanitizers disabled because their checks add runtime overhead.
 
 The current tests exercise the version command, tensor allocation/cleanup,
-basic access, matrix-vector multiplication, bias addition, and ReLU. Additional
-tests will cover the remaining math and inference features as they arrive.
+basic access, matrix-vector multiplication, bias addition, ReLU, and Softmax.
+Deterministic NumPy comparison and inference tests remain future steps.
 Passing the current tests is not evidence that future code is free of memory errors.
 
 See the upstream [AddressSanitizer documentation](https://clang.llvm.org/docs/AddressSanitizer.html)
@@ -204,6 +218,7 @@ leaks --atExit -- ./build/test_tensor_access
 leaks --atExit -- ./build/test_tensor_matvec
 leaks --atExit -- ./build/test_tensor_bias
 leaks --atExit -- ./build/test_tensor_relu
+leaks --atExit -- ./build/test_tensor_softmax
 ```
 
 These commands reported zero leaks for the version command and tensor test
@@ -219,7 +234,7 @@ when running the sanitizer build's tests:
 ```
 
 The Linux sanitizer CI job runs the full CTest suite with leak detection
-enabled. The new ReLU checks will run after these changes are pushed;
+enabled. The new Softmax checks will run after these changes are pushed;
 their hosted results are pending. See the
 [LeakSanitizer documentation](https://clang.llvm.org/docs/LeakSanitizer.html).
 
@@ -252,7 +267,7 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | --- | --- |
 | `CMakeLists.txt` | Core library and executable targets, shared compiler/sanitizer settings, and CTest registration. |
 | `src/cli.c` | Command-line argument handling and version output. |
-| `src/tensor.c` | Tensor allocation, cleanup, checked access, matrix-vector multiplication, bias addition, ReLU, and error reporting. |
+| `src/tensor.c` | Tensor allocation, cleanup, checked access, matrix-vector multiplication, bias addition, ReLU, Softmax, and error reporting. |
 | `include/cinder/tensor.h` | Tensor representation and function declarations. |
 | `include/cinder/error.h` | Status codes and caller-owned error details. |
 | `docs/TENSOR.md` | Tensor layout, ownership, validation, and failure contract. |
@@ -262,6 +277,7 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | `tests/test_tensor_matvec.c` | Tests matrix-vector products, dimensions, output capacity, and numeric failures. |
 | `tests/test_tensor_bias.c` | Tests bias addition, vector lengths, numeric failures, and composed `Wx + b` results. |
 | `tests/test_tensor_relu.c` | Tests ReLU values, validation, failure preservation, and composed `ReLU(Wx + b)` results. |
+| `tests/test_tensor_softmax.c` | Tests stable probabilities, extreme/tiny values, validation, and composed math results. |
 | `tests/test_tensor_alloc_failures.c` | Forces allocation failures and tracks cleanup with test-only allocator substitutions. |
 | `.github/workflows/ci.yml` | macOS/Linux build jobs and the Linux sanitizer job. |
 | `ROADMAP.md` | Scope, implementation decisions, milestones, and progress. |

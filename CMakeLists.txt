@@ -40,6 +40,10 @@ endfunction()
 add_library(cinder_core STATIC src/tensor.c)
 target_include_directories(cinder_core PUBLIC "${PROJECT_SOURCE_DIR}/include")
 cinder_configure_target(cinder_core)
+# Unix toolchains provide exp through libm (part of the system library on macOS).
+if(UNIX)
+    target_link_libraries(cinder_core PUBLIC m)
+endif()
 
 add_executable(cinder src/cli.c)
 target_link_libraries(cinder PRIVATE cinder_core)
@@ -80,6 +84,11 @@ if(BUILD_TESTING)
     cinder_configure_target(test_tensor_relu)
     add_test(NAME tensor_relu COMMAND test_tensor_relu)
 
+    add_executable(test_tensor_softmax tests/test_tensor_softmax.c)
+    target_link_libraries(test_tensor_softmax PRIVATE cinder_core)
+    cinder_configure_target(test_tensor_softmax)
+    add_test(NAME tensor_softmax COMMAND test_tensor_softmax)
+
     # This test compiles tensor.c with allocator substitutions confined to its
     # translation unit, so it must not also link the normal cinder_core copy.
     add_executable(test_tensor_alloc_failures tests/test_tensor_alloc_failures.c)
@@ -87,11 +96,14 @@ if(BUILD_TESTING)
         "${PROJECT_SOURCE_DIR}/include"
     )
     cinder_configure_target(test_tensor_alloc_failures)
+    if(UNIX)
+        target_link_libraries(test_tensor_alloc_failures PRIVATE m)
+    endif()
     add_test(NAME tensor_allocation_failures COMMAND test_tensor_alloc_failures)
 
     set_tests_properties(
         tensor_allocation tensor_access tensor_matvec tensor_bias tensor_relu
-        tensor_allocation_failures
+        tensor_softmax tensor_allocation_failures
         PROPERTIES TIMEOUT 10
     )
 endif()

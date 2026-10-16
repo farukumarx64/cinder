@@ -23,7 +23,8 @@ All predictions, accuracy percentages, and benchmark timings shown in this docum
 Phase 0 (M0) is complete as of October 8, 2026, including the MIT license and
 verified development setup. Phase 1 now includes the tensor contract and tested
 allocation/cleanup, basic access, matrix-vector multiplication, bias addition,
-and ReLU.
+ReLU, and stable Softmax. Deterministic NumPy reference verification remains
+before completing M1.
 Implement and verify one scoped step at a time.
 
 ### Phase 0 checklist
@@ -66,9 +67,9 @@ checklist item and closing M0.
 - [x] Implement checked tensor fill/get/set and their tests. On October 15, 2026, all 4 tests passed locally on macOS in Debug, Release, and combined ASan/UBSan builds. Access tests cover row-major indexing, bounds, non-finite values, failure preservation, and optional error details; allocator tracking confirms no access allocations. The new test executable reported zero native leaks, and a build without tests passed.
 - [x] Implement matrix-vector multiplication; explain the loops and verify a non-square example calculated by hand. The API checks input length, output capacity, finite sources, and arithmetic results without allocating. Its contract documents separate output storage and partial output on arithmetic failure. On October 15, 2026, all 5 tests passed locally in Debug, Release, and combined ASan/UBSan builds; the matvec executable reported zero native leaks, and a build without tests passed. See [the worked example and contract](docs/TENSOR.md#matrix-vector-multiplication).
 - [x] Implement bias addition and validate vector lengths. The in-place API checks equal nonzero lengths, byte-count overflow, finite sources, and sums without allocating. Integration tests verify `Wx + b`, a zero input, and untouched spare output capacity. On October 15, 2026, all 6 tests passed locally in Debug, Release, and combined ASan/UBSan builds; the bias executable reported zero native leaks, and a build without tests passed. See [the bias contract and worked example](docs/TENSOR.md#bias-addition).
-- [x] Implement ReLU and test negative, zero, and positive values. The in-place API validates pointers, count, byte extent, and finite values before replacing negatives with positive zero. Tests cover signed zeros, extremes, subnormals, full preservation on failure, repeated application, no allocation, and `ReLU(Wx + b)`. On October 15, 2026, all 7 tests passed locally in Debug, Release, and combined ASan/UBSan builds; the ReLU executable reported zero native leaks, and a build without tests passed. Hosted CI awaits a future push. See [the ReLU contract and worked example](docs/TENSOR.md#relu).
-- [ ] Implement stable Softmax and its empty/non-finite input handling. **Next scoped task.**
-- [ ] Validate the math operations against deterministic float32 NumPy fixtures using the documented tolerance rule.
+- [x] Implement ReLU and test negative, zero, and positive values. The in-place API validates pointers, count, byte extent, and finite values before replacing negatives with positive zero. Tests cover signed zeros, extremes, subnormals, full preservation on failure, repeated application, no allocation, and `ReLU(Wx + b)`. On October 15, 2026, all 7 tests passed locally in Debug, Release, and combined ASan/UBSan builds; the ReLU executable reported zero native leaks, and a build without tests passed. See [the ReLU contract and worked example](docs/TENSOR.md#relu).
+- [x] Implement stable Softmax and its empty/non-finite input handling. The in-place API subtracts the maximum before exponentiation, uses double intermediates with float32 storage, and allocates no memory. Tests cover known probabilities, offsets, equal/extreme scores, tiny probabilities, long-vector normalization, input rejection without mutation, and composed math. On October 16, 2026, all 8 tests passed locally in Debug, Release, and combined ASan/UBSan builds; the Softmax executable reported zero native leaks, and a build without tests passed. Hosted CI awaits a future push. See [the Softmax contract and worked example](docs/TENSOR.md#softmax).
+- [ ] Validate the math operations against deterministic float32 NumPy fixtures using the documented tolerance rule. **Next scoped task.**
 
 ---
 
@@ -141,7 +142,7 @@ That is enough for a strong `v0.1.0`.
 - [ ] `float32` tensors
 - [ ] Dense / fully connected layers
 - [x] ReLU activation
-- [ ] Softmax activation
+- [x] Softmax activation
 - [ ] Sequential neural networks
 - [ ] Model loading from disk
 - [ ] Custom Cinder model format
@@ -519,9 +520,9 @@ M0 — Cinder builds, prints its version, and passes a smoke test with CI and sa
 
 The minimal representation and API contract are now defined in
 [`docs/TENSOR.md`](docs/TENSOR.md) and the public headers. Creation, cleanup,
-checked fill/get/set, matrix-vector multiplication, bias addition, and ReLU are
-implemented and tested; follow the scoped checklist in Current Progress for
-the remaining math operations.
+checked fill/get/set, matrix-vector multiplication, bias addition, ReLU, and
+Softmax are implemented and tested; follow the scoped checklist in Current Progress for
+deterministic NumPy reference verification.
 
 For `v0.1.0`, two-dimensional tensors are enough.
 
@@ -546,6 +547,7 @@ cinder_tensor_set
 cinder_tensor_matvec
 cinder_tensor_add_bias
 cinder_tensor_relu
+cinder_tensor_softmax
 ```
 
 Then implement the operations needed for inference:
@@ -637,6 +639,15 @@ f(x) = max(0, x)
 ```
 
 For Softmax, use a numerically stable implementation. Reject empty vectors. Define non-finite values as unsupported in v0.1.0 and report an error if computation produces a non-finite result.
+
+Implemented in `cinder_tensor_softmax`: subtract and exponentiate in double,
+store exponentials in the float32 array, accumulate those stored terms in
+double, and divide in double before storing float32 probabilities. This avoids
+overflow when subtracting opposite finite float extremes and improves the
+normalization sum's precision without allocating scratch storage. Finite
+underflow to zero is accepted; pointer, size, and input-value validation
+failures preserve the entire array. See the contract for numeric-failure
+behavior and caller storage requirements.
 
 Instead of simply:
 
@@ -1339,7 +1350,7 @@ Cinder `v0.1.0` is finished when:
 - [x] Matrix-vector multiplication works
 - [ ] Dense layers work
 - [x] ReLU works
-- [ ] Softmax works
+- [x] Softmax works
 - [ ] `.cnd` models load from disk
 - [ ] Python exporter works
 - [ ] MNIST model executes successfully
@@ -1594,7 +1605,7 @@ Documentation + release
 CINDER v0.1.0
 ```
 
-Follow these milestones in order even if individual daily targets shift. M0 is complete: CMake, a version command, a smoke test, CI, sanitizer configuration, setup verification, and the MIT license are in place. Phase 1 now has tensor allocation, basic access, matrix-vector multiplication, bias addition, and ReLU. Continue with Softmax and reference verification, with the core loops understood before moving on.
+Follow these milestones in order even if individual daily targets shift. M0 is complete: CMake, a version command, a smoke test, CI, sanitizer configuration, setup verification, and the MIT license are in place. Phase 1 now has tensor allocation, basic access, matrix-vector multiplication, bias addition, ReLU, and stable Softmax. Continue with deterministic NumPy reference verification, with the core loops understood before moving on.
 
 The **October 25 deadline is the internal deadline**.
 

@@ -12,6 +12,8 @@ _Static_assert(FLT_RADIX == 2 && FLT_MANT_DIG == 24 &&
                FLT_MIN_EXP == -125 && FLT_MAX_EXP == 128 &&
                FLT_HAS_SUBNORM == 1,
                "Cinder requires the precision and range of IEEE 754 binary32.");
+_Static_assert(DBL_MAX_EXP > FLT_MAX_EXP && DBL_MANT_DIG > FLT_MANT_DIG,
+               "Softmax requires double to have wider range and precision than float.");
 
 static cinder_status_t tensor_result(
     cinder_status_t status,
@@ -284,6 +286,61 @@ cinder_status_t cinder_tensor_relu(
         if (values[i] < 0.0f) {
             values[i] = 0.0f;
         }
+    }
+    return tensor_result(CINDER_OK, error, "");
+}
+
+cinder_status_t cinder_tensor_softmax(
+    float *values,
+    size_t count,
+    cinder_error_t *error
+)
+{
+    if (values == NULL || count == 0) {
+        return tensor_result(CINDER_ERROR_INVALID_ARGUMENT, error,
+                             "Softmax requires a non-NULL, nonempty vector.");
+    }
+    if (count > SIZE_MAX / sizeof(*values)) {
+        return tensor_result(CINDER_ERROR_OVERFLOW, error,
+                             "Softmax vector byte count exceeds SIZE_MAX.");
+    }
+
+    float maximum = values[0];
+    for (size_t i = 0; i < count; ++i) {
+        if (!isfinite(values[i])) {
+            return tensor_result(CINDER_ERROR_NONFINITE, error,
+                                 "Softmax inputs must be finite.");
+        }
+        if (values[i] > maximum) {
+            maximum = values[i];
+        }
+    }
+
+    double total = 0.0;
+    for (size_t i = 0; i < count; ++i) {
+        /* Widen before subtracting: -FLT_MAX - FLT_MAX cannot fit in float. */
+        double shifted = (double)values[i] - (double)maximum;
+        double exponential = exp(shifted);
+        if (!isfinite(exponential)) {
+            return tensor_result(CINDER_ERROR_NONFINITE, error,
+                                 "Softmax exponentiation produced a non-finite value.");
+        }
+        /* Reuse the array as scratch; sum the same rounded terms we will divide. */
+        values[i] = (float)exponential;
+        total += (double)values[i];
+    }
+    /* A maximum contributes exp(0) = 1, so a valid total cannot be zero. */
+    if (!isfinite(total) || total <= 0.0) {
+        return tensor_result(CINDER_ERROR_NONFINITE, error,
+                             "Softmax normalization sum must be positive and finite.");
+    }
+    for (size_t i = 0; i < count; ++i) {
+        float probability = (float)((double)values[i] / total);
+        if (!isfinite(probability)) {
+            return tensor_result(CINDER_ERROR_NONFINITE, error,
+                                 "Softmax normalization produced a non-finite value.");
+        }
+        values[i] = probability;
     }
     return tensor_result(CINDER_OK, error, "");
 }

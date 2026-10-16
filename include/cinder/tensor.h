@@ -7,7 +7,7 @@
 
 /*
  * Creation, cleanup, checked fill/get/set, matrix-vector multiplication,
- * bias addition, and ReLU are implemented.
+ * bias addition, ReLU, and Softmax are implemented.
  * See docs/TENSOR.md for ownership, failure behavior, and examples.
  *
  * A live tensor owns rows * cols contiguous float32 elements. Both dimensions
@@ -160,6 +160,31 @@ cinder_status_t cinder_tensor_add_bias(
  * unchanged. Storage beyond count is neither read nor written.
  */
 cinder_status_t cinder_tensor_relu(
+    float *values,
+    size_t count,
+    cinder_error_t *error
+);
+
+/*
+ * Apply stable Softmax in place without allocating memory. Subtract the largest
+ * input before exponentiation, then normalize. Stored values remain float32;
+ * subtraction, exp, and the normalization sum use double for numerical range
+ * and precision. Very small probabilities may round or underflow to zero.
+ * On success, values are finite, in [0, 1], and sum approximately to one.
+ *
+ * count is the vector length in floats, not spare capacity. The caller supplies
+ * at least count initialized, readable/writable floats. Optional error storage
+ * must not overlap the vector. Storage beyond count is never read or written.
+ *
+ * Validation order and statuses:
+ * INVALID_ARGUMENT: NULL values or zero count.
+ * OVERFLOW: the vector byte count cannot fit in size_t.
+ * NONFINITE: any input is NaN or infinity, or a numeric result is invalid.
+ * Pointer, size, and input-value failures leave the vector unchanged. Numeric
+ * failure during computation may leave exponentials or partial probabilities
+ * in the array: discard the result on any failure.
+ */
+cinder_status_t cinder_tensor_softmax(
     float *values,
     size_t count,
     cinder_error_t *error
