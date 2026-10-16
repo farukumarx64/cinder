@@ -205,6 +205,6 @@ dependency in a virtual environment and generates fresh references. Hosted
 results for these changes remain pending a future push.
 
 This completes the local Phase 1 math verification. It does not yet verify a
-layer/model API, serialized models, an exporter, or MNIST. Phase 2 starts with
-the Dense-layer contract and will add per-layer reference tests as those APIs
-are implemented.
+layer/model API, serialized models, an exporter, or MNIST. Phase 2's
+[Dense-layer contract](DENSE.md) is now defined. Per-layer reference tests will
+be added as those APIs are implemented.

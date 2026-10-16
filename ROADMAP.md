@@ -27,6 +27,8 @@ multiplication, bias addition, ReLU, and stable Softmax are implemented and
 tested. The math operations match deterministic NumPy float32 references
 within the documented tolerance. Hosted CI results for the latest changes
 are pending a future push.
+Phase 2 now has a documented Dense-layer contract and public declarations;
+Dense creation, cleanup, and execution remain unimplemented.
 Implement and verify one scoped step at a time.
 
 ### Phase 0 checklist
@@ -73,9 +75,18 @@ checklist item and closing M0.
 - [x] Implement stable Softmax and its empty/non-finite input handling. The in-place API subtracts the maximum before exponentiation, uses double intermediates with float32 storage, and allocates no memory. Tests cover known probabilities, offsets, equal/extreme scores, tiny probabilities, long-vector normalization, input rejection without mutation, and composed math. On October 16, 2026, all 8 tests passed locally in Debug, Release, and combined ASan/UBSan builds; the Softmax executable reported zero native leaks, and a build without tests passed. Hosted CI awaits a future push. See [the Softmax contract and worked example](docs/TENSOR.md#softmax).
 - [x] Validate the math operations against deterministic float32 NumPy fixtures using the documented tolerance rule. The saved and freshly generated references cover 11 matrix/bias fixtures and 12 activation fixtures, comparing 79 vectors / 341 results including intermediate outputs. Shapes and finiteness are checked first; `atol = rtol = 1e-5` is unchanged. On October 16, 2026, the ordinary Debug suite passed 9/9 tests; Release and ASan/UBSan builds with fresh generation passed 10/10. The largest absolute error was `1.1920929e-7`. Repeated generation was identical locally, missing-dependency/configuration guards passed, and the reference executable reported zero native leaks. See [NumPy reference verification](docs/NUMPY_TESTS.md). M1 is complete locally; hosted CI remains pending.
 
-**Next scoped task (Phase 2):** define the Dense-layer contract: input/output
-dimensions, ownership of weights and biases, output buffer requirements, and
-error behavior. Implement the layer only after that contract is established.
+### Phase 2 checklist
+
+- [x] Define the Dense-layer contract: positive input/output sizes, row-major `[output_size][input_size]` weights, an `[output_size][1]` bias tensor, owned copies of finite source parameters, create/free/forward declarations, exact input length, minimum output capacity, overlap preconditions, and validation versus arithmetic failure behavior. See [the contract](docs/DENSE.md) and [public declarations](include/cinder/dense.h). The header and worked example passed C11 syntax checks on October 16, 2026; these are declarations only, and implementation is pending.
+- [ ] Implement Dense-layer creation and cleanup, including independent parameter copies, validation, allocation-failure cleanup, and tests. **Next scoped task.**
+- [ ] Implement the Dense forward pass using the existing matvec and bias kernels, with no allocation during execution and tests for valid results and failure behavior.
+- [ ] Define the common layer interface and the Dense/ReLU/Softmax representation and execution contracts.
+- [ ] Integrate ReLU and Softmax through that interface, reusing the existing kernels and verifying dispatch and preserved vector lengths.
+- [ ] Define the sequential-model contract: ordered layers, ownership, valid connections, input/output sizes, and inference/failure behavior.
+- [ ] Implement model creation, connection validation, cleanup, and two reusable buffers sized for the largest required vector.
+- [ ] Implement sequential inference with reusable buffers and no allocation during a normal call.
+- [ ] Compare every intermediate output and final probabilities of a deterministic `2 -> 4 -> 2` network against NumPy; preserve the fixtures for Phase 3.
+- [ ] Verify repeated calls, failure recovery, allocation counts, cleanup, sanitizers, supported leak checks, and macOS/Linux CI before closing M2.
 
 ---
 
@@ -720,6 +731,13 @@ M1 — Cinder can perform the mathematics required for neural inference
 # 9. Phase 2 — October 10–14
 
 ## Layers and Runtime
+
+The Dense-specific contract is defined in [docs/DENSE.md](docs/DENSE.md), with
+the representation and create/free/forward declarations in
+[include/cinder/dense.h](include/cinder/dense.h). Dense implementations and the
+common layer/model interfaces remain future scoped steps. Follow the Phase 2
+checklist in Current Progress; the dated sections below retain the planned
+milestone order.
 
 Create basic layer types:
 
@@ -1618,7 +1636,7 @@ Documentation + release
 CINDER v0.1.0
 ```
 
-Follow these milestones in order even if individual daily targets shift. M0 and M1 are complete locally: the development setup and tensor math are implemented and verified, including deterministic NumPy comparisons. Continue with the Phase 2 Dense-layer contract, with the core math loops understood before moving on. Hosted CI verification of the latest changes remains pending a future push.
+Follow these milestones in order even if individual daily targets shift. M0 and M1 are complete locally: the development setup and tensor math are implemented and verified, including deterministic NumPy comparisons. Phase 2's Dense-layer contract is defined; continue with creation and cleanup before implementing the forward pass. Hosted CI verification of the latest changes remains pending.
 
 The **October 25 deadline is the internal deadline**.
 

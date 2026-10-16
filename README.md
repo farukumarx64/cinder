@@ -14,6 +14,8 @@ matrix-vector multiplication, bias addition, ReLU, and stable Softmax are
 implemented and tested. The math operations match deterministic NumPy float32
 references within the documented tolerance.
 Phase 0 is complete, including the MIT license and verified development setup.
+Phase 2 has started with the Dense-layer contract; its functions are declared
+but not implemented yet.
 The project contains a CMake build and a CLI that supports `--version`.
 The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
 
@@ -61,7 +63,10 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
 - The Softmax and NumPy reference executables reported zero native leaks on
   October 16, as did access, matrix-vector, bias, and ReLU tests on October 15 and the allocation
   tests on October 9. Hosted CI verification of the NumPy changes is pending.
-- The next scoped task is defining the Dense-layer contract for Phase 2.
+- The [Dense-layer contract](docs/DENSE.md) specifies dimensions, row-major
+  weights, a bias vector, owned parameter copies, public functions, buffer
+  overlap rules, and validation versus arithmetic failure behavior.
+- The next scoped task is implementing Dense-layer creation and cleanup.
 - Model loading, inference, and the `info`, `run`, and `bench` commands are
   planned features; they are not implemented yet.
 
@@ -310,8 +315,10 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | `src/cli.c` | Command-line argument handling and version output. |
 | `src/tensor.c` | Tensor allocation, cleanup, checked access, matrix-vector multiplication, bias addition, ReLU, Softmax, and error reporting. |
 | `include/cinder/tensor.h` | Tensor representation and function declarations. |
+| `include/cinder/dense.h` | Dense representation and create/free/forward declarations; implementation pending. |
 | `include/cinder/error.h` | Status codes and caller-owned error details. |
 | `docs/TENSOR.md` | Tensor layout, ownership, validation, and failure contract. |
+| `docs/DENSE.md` | Dense parameter shapes, ownership, public API, overlap, failures, and worked example. |
 | `docs/NUMPY_TESTS.md` | Reference calculations, fixtures, tolerances, regeneration, and verification results. |
 | `tests/check_version.cmake` | Checks the version command's exit status and output. |
 | `tests/test_tensor.c` | Tests the core library's allocation and cleanup API. |
@@ -338,8 +345,8 @@ task. Record unresolved issues before moving on.
 
 The roadmap is the source of truth for progress. Its future command examples
 and benchmark numbers describe targets, not existing capabilities or measured
-performance. Phases 0 and 1 are complete locally; Phase 2 begins with the
-Dense-layer contract.
+performance. Phases 0 and 1 are complete locally. Phase 2's Dense-layer contract
+is defined; creation and cleanup are next.
 
 The v0.1.0 scope excludes training, GPU execution, convolutional layers,
 quantization, SIMD, multithreading, and arbitrary computation graphs.
