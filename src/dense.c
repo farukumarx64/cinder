@@ -112,3 +112,43 @@ void cinder_dense_free(cinder_dense_t *layer)
     cinder_tensor_free(layer->weights);
     free(layer);
 }
+
+cinder_status_t cinder_dense_forward(
+    const cinder_dense_t *layer,
+    const float *input,
+    size_t input_count,
+    float *output,
+    size_t output_capacity,
+    cinder_error_t *error
+)
+{
+    if (layer == NULL || input == NULL || output == NULL) {
+        return dense_result(CINDER_ERROR_INVALID_ARGUMENT, error,
+                            "Dense layer, input, and output must not be NULL.");
+    }
+    if (input_count != layer->input_size) {
+        return dense_result(CINDER_ERROR_DIMENSION_MISMATCH, error,
+                            "Dense input length must equal the layer input size.");
+    }
+    if (output_capacity < layer->output_size) {
+        return dense_result(CINDER_ERROR_BUFFER_TOO_SMALL, error,
+                            "Dense output capacity must cover the layer output size.");
+    }
+
+    /* Matvec checks input and weights before writing. Check bias here so all
+     * sources are validated before even the first multiplication result. */
+    for (size_t i = 0; i < layer->output_size; ++i) {
+        if (!isfinite(layer->bias->data[i])) {
+            return dense_result(CINDER_ERROR_NONFINITE, error,
+                                "Dense biases must be finite.");
+        }
+    }
+    cinder_status_t status = cinder_tensor_matvec(
+        layer->weights, input, input_count, output, output_capacity, error);
+    if (status != CINDER_OK) {
+        return status; /* Preserve the kernel's error and any partial output. */
+    }
+    /* Only the logical output participates in bias addition, not spare space. */
+    return cinder_tensor_add_bias(output, layer->output_size,
+                                  layer->bias->data, layer->output_size, error);
+}

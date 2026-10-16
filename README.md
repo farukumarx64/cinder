@@ -14,8 +14,8 @@ matrix-vector multiplication, bias addition, ReLU, and stable Softmax are
 implemented and tested. The math operations match deterministic NumPy float32
 references within the documented tolerance.
 Phase 0 is complete, including the MIT license and verified development setup.
-Phase 2 includes the Dense-layer contract and implemented creation/cleanup
-with owned parameter copies. The Dense forward pass is the next scoped task.
+Phase 2 includes Dense creation/cleanup with owned parameter copies and a
+tested, allocation-free forward pass. The common layer interface is next.
 The project contains a CMake build and a CLI that supports `--version`.
 The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
 
@@ -27,7 +27,7 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
   Ubuntu 24.04.
 - CTest provides the version-command smoke test, two tensor allocation tests,
   and tests for tensor access, matrix-vector multiplication, bias addition,
-  ReLU, Softmax, and NumPy reference fixtures, plus two Dense allocation tests.
+  ReLU, Softmax, and NumPy reference fixtures, plus Dense allocation and forward tests.
 - Opt-in AddressSanitizer and UndefinedBehaviorSanitizer builds passed the
   smoke test on macOS, both separately and together.
 - The public GitHub repository is [farukumarx64/cinder](https://github.com/farukumarx64/cinder).
@@ -75,8 +75,18 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
   tests passed. Release and ASan/UBSan builds with generated NumPy references
   enabled passed 12/12. Both new Dense executables reported zero native leaks;
   a build without tests also passed. Hosted verification of this change is pending.
-- The next scoped task is implementing the Dense forward pass.
-- Model loading, inference, and the `info`, `run`, and `bench` commands are
+- `cinder_dense_forward` computes `y = Wx + b` through the existing matvec and
+  bias functions. It validates lengths/capacity and all sources before writes,
+  preserves input/parameters, and leaves spare output capacity untouched.
+  Validation failures preserve the output; arithmetic failures can leave partial
+  results that must be discarded. No allocation or free occurs during execution.
+- After adding Dense forward execution on October 16, Debug passed 12/12 tests;
+  Release and ASan/UBSan with generated tensor NumPy references enabled passed
+  13/13. Dense matches all 11 saved NumPy matrix/bias fixtures. The forward and
+  extended allocation-failure executables reported zero native leaks; a build
+  without tests passed. Hosted CI verification of this change remains pending.
+- The next scoped task is defining the common Dense/ReLU/Softmax layer interface.
+- Model loading, sequential model inference, and the `info`, `run`, and `bench` commands are
   planned features; they are not implemented yet.
 
 See [the roadmap](ROADMAP.md#current-progress) for the current checklist and
@@ -178,8 +188,16 @@ Eight more CTest tests exercise tensor memory management, access, and math:
   before applying `atol = rtol = 1e-5`, and reports the failing fixture, stage,
   index, values, and error limit. Coverage includes 11 matrix/bias fixtures and
   12 standalone activation fixtures, for 79 result vectors / 341 values.
+- `dense_allocation` checks shape/count validation, owned parameter copies,
+  source independence, and cleanup. `dense_allocation_failures` forces each of
+  five constructor allocations to fail, tracks partial cleanup, and verifies
+  zero allocations/frees during successful and failing forward calls.
+- `dense_forward` checks the `2 -> 4` worked example, repeated inputs, source
+  preservation, exact/spare capacity, validation and arithmetic failures,
+  recovery, and permitted storage arrangements. It also compares the layer's
+  output against all 11 saved NumPy matrix/bias fixtures (41 output values).
 
-All tensor tests have ten-second timeouts. Their checks stay active in Release
+All tensor and Dense tests have ten-second timeouts. Their checks stay active in Release
 builds, where ordinary C `assert` checks could be disabled by `NDEBUG`.
 
 To configure a build without tests, pass `-DBUILD_TESTING=OFF` to CMake.
@@ -323,9 +341,9 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | `CMakeLists.txt` | Core library and executable targets, shared compiler/sanitizer settings, and CTest registration. |
 | `src/cli.c` | Command-line argument handling and version output. |
 | `src/tensor.c` | Tensor allocation, cleanup, checked access, matrix-vector multiplication, bias addition, ReLU, Softmax, and error reporting. |
-| `src/dense.c` | Dense creation, parameter copying, validation, and cleanup through the tensor allocator. |
+| `src/dense.c` | Dense creation, parameter copying, cleanup, and forward execution through tensor kernels. |
 | `include/cinder/tensor.h` | Tensor representation and function declarations. |
-| `include/cinder/dense.h` | Dense representation and create/free/forward declarations; forward implementation pending. |
+| `include/cinder/dense.h` | Dense representation and implemented create/free/forward API declarations. |
 | `include/cinder/error.h` | Status codes and caller-owned error details. |
 | `docs/TENSOR.md` | Tensor layout, ownership, validation, and failure contract. |
 | `docs/DENSE.md` | Dense parameter shapes, ownership, public API, overlap, failures, and worked example. |
@@ -333,7 +351,8 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | `tests/check_version.cmake` | Checks the version command's exit status and output. |
 | `tests/test_tensor.c` | Tests the core library's allocation and cleanup API. |
 | `tests/test_dense.c` | Tests Dense shapes, validation, copied parameters, and independent ownership/lifetimes. |
-| `tests/test_dense_alloc_failures.c` | Forces all five Dense allocation failures and tracks partial cleanup and recovery. |
+| `tests/test_dense_alloc_failures.c` | Forces all five Dense allocation failures and checks cleanup, recovery, and allocation-free forward calls. |
+| `tests/test_dense_forward.c` | Tests Dense results, saved NumPy references, validation, partial failures, and repeated execution. |
 | `tests/test_tensor_access.c` | Tests row-major access, bounds, finite values, and failure behavior. |
 | `tests/test_tensor_matvec.c` | Tests matrix-vector products, dimensions, output capacity, and numeric failures. |
 | `tests/test_tensor_bias.c` | Tests bias addition, vector lengths, numeric failures, and composed `Wx + b` results. |
@@ -358,7 +377,7 @@ task. Record unresolved issues before moving on.
 The roadmap is the source of truth for progress. Its future command examples
 and benchmark numbers describe targets, not existing capabilities or measured
 performance. Phases 0 and 1 are complete locally. Phase 2's Dense-layer contract,
-creation, and cleanup are complete; the Dense forward pass is next.
+creation, cleanup, and forward pass are complete; the common layer interface is next.
 
 The v0.1.0 scope excludes training, GPU execution, convolutional layers,
 quantization, SIMD, multithreading, and arbitrary computation graphs.

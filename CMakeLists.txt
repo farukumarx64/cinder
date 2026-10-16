@@ -74,6 +74,12 @@ if(BUILD_TESTING)
     cinder_configure_target(test_dense)
     add_test(NAME dense_allocation COMMAND test_dense)
 
+    add_executable(test_dense_forward tests/test_dense_forward.c)
+    target_include_directories(test_dense_forward PRIVATE "${PROJECT_SOURCE_DIR}/tests/fixtures")
+    target_link_libraries(test_dense_forward PRIVATE cinder_core)
+    cinder_configure_target(test_dense_forward)
+    add_test(NAME dense_forward COMMAND test_dense_forward)
+
     add_executable(test_tensor_access tests/test_tensor_access.c)
     target_link_libraries(test_tensor_access PRIVATE cinder_core)
     cinder_configure_target(test_tensor_access)
@@ -162,7 +168,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         tensor_allocation tensor_access tensor_matvec tensor_bias tensor_relu
         tensor_softmax tensor_numpy_fixtures tensor_allocation_failures
-        dense_allocation dense_allocation_failures
+        dense_allocation dense_allocation_failures dense_forward
         PROPERTIES TIMEOUT 10
     )
 endif()

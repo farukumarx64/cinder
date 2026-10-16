@@ -5,6 +5,12 @@ checks matrix-vector multiplication, bias addition, ReLU, and stable Softmax,
 including intermediate outputs of composed operations. The runtime's source
 and public API did not need changes to pass these comparisons.
 
+Phase 2 also reuses the saved matrix/bias fixtures in the `dense_forward` test,
+comparing `cinder_dense_forward` directly against all 11 `Wx + b` reference
+vectors (41 values). This test always uses the saved header, including when
+`CINDER_ENABLE_NUMPY_TESTS` is enabled; that option adds fresh comparisons for
+the tensor math. See [Dense verification](DENSE.md#completion-and-next-implementation-steps).
+
 ## Two ways to run the same comparison
 
 The ordinary C build runs `tensor_numpy_fixtures` using the saved
@@ -124,7 +130,7 @@ There are also 12 standalone activation fixtures, each checked against both
 ReLU and Softmax: a singleton, zeros, signed zeros, mixed signs, all-negative
 scores, all-positive scores, large positive offsets, large negative offsets,
 tied maxima, equal maximum finite floats, underflow, and a 33-element spread
-from `-20` to `20`. In total, each reference test compares **79 vectors and
+from `-20` to `20`. In total, each tensor reference test compares **79 vectors and
 341 individual results**.
 
 Output arrays begin as NaN so missing writes fail the finiteness check. A spare
@@ -204,7 +210,7 @@ ASan/UBSan/leak detection. The ordinary Linux job also installs the pinned NumPy
 dependency in a virtual environment and generates fresh references. Hosted
 results for these changes remain pending a future push.
 
-This completes the local Phase 1 math verification. It does not yet verify a
-layer/model API, serialized models, an exporter, or MNIST. Phase 2's
-[Dense-layer contract](DENSE.md) is now defined. Per-layer reference tests will
-be added as those APIs are implemented.
+This completes the local Phase 1 math verification. Phase 2's standalone
+[Dense API](DENSE.md) is now also verified against the saved `Wx + b` results.
+Sequential models, serialized models, an exporter, and MNIST remain future
+verification steps.

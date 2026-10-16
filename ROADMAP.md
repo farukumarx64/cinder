@@ -27,9 +27,10 @@ multiplication, bias addition, ReLU, and stable Softmax are implemented and
 tested. The math operations match deterministic NumPy float32 references
 within the documented tolerance. Hosted CI results for the latest changes
 are pending a future push.
-Phase 2 has a documented Dense-layer contract and implemented creation/cleanup
-with owned parameter copies and allocation-failure coverage. Dense forward
-execution remains unimplemented and is the next scoped task.
+Phase 2 has a documented Dense-layer contract and implemented creation, cleanup,
+and allocation-free forward execution. Dense owns independent parameter copies
+and matches the saved NumPy matrix/bias references. The common layer interface
+is the next scoped task.
 Implement and verify one scoped step at a time.
 
 ### Phase 0 checklist
@@ -80,8 +81,8 @@ checklist item and closing M0.
 
 - [x] Define the Dense-layer contract: positive input/output sizes, row-major `[output_size][input_size]` weights, an `[output_size][1]` bias tensor, owned copies of finite source parameters, create/free/forward declarations, exact input length, minimum output capacity, overlap preconditions, and validation versus arithmetic failure behavior. See [the contract](docs/DENSE.md) and [public declarations](include/cinder/dense.h). The header and worked example passed C11 syntax checks on October 16, 2026, before implementation began.
 - [x] Implement Dense-layer creation and cleanup using tensor allocation, with validation before allocation and independently owned parameter copies. Tests cover invalid dimensions/counts, overflow, non-finite sources, source independence and permitted overlap, all five allocation-failure points, partial cleanup, optional errors, and recovery. On October 16, 2026, Debug passed 11/11 tests; Release and combined ASan/UBSan builds with generated NumPy references enabled passed 12/12. Both Dense executables reported zero native leaks, and a build without tests passed. Hosted CI for this change remains pending. See [implementation and verification](docs/DENSE.md#creation-and-cleanup-implementation).
-- [ ] Implement the Dense forward pass using the existing matvec and bias kernels, with no allocation during execution and tests for valid results and failure behavior. **Next scoped task.**
-- [ ] Define the common layer interface and the Dense/ReLU/Softmax representation and execution contracts.
+- [x] Implement the Dense forward pass using the existing matvec and bias kernels. It checks input length, output capacity, and finite sources before writes, propagates kernel failures, and preserves input/parameters and spare capacity. Tests cover non-square shapes, known results, 11 saved NumPy fixtures (41 outputs), repeated inputs, validation preservation, arithmetic partial results/recovery, and zero allocation/free calls. On October 16, 2026, Debug passed 12/12 tests; Release and combined ASan/UBSan builds with generated tensor NumPy references enabled passed 13/13. Forward and extended allocation-failure executables reported zero native leaks; a build without tests passed. Hosted CI remains pending. See [forward behavior](docs/DENSE.md#forward-execution).
+- [ ] Define the common layer interface and the Dense/ReLU/Softmax representation and execution contracts. **Next scoped task.**
 - [ ] Integrate ReLU and Softmax through that interface, reusing the existing kernels and verifying dispatch and preserved vector lengths.
 - [ ] Define the sequential-model contract: ordered layers, ownership, valid connections, input/output sizes, and inference/failure behavior.
 - [ ] Implement model creation, connection validation, cleanup, and two reusable buffers sized for the largest required vector.
@@ -158,7 +159,7 @@ That is enough for a strong `v0.1.0`.
 - [ ] Pure C runtime
 - [ ] CPU inference
 - [ ] `float32` tensors
-- [ ] Dense / fully connected layers
+- [x] Dense / fully connected layers (single-vector create/free/forward API)
 - [x] ReLU activation
 - [x] Softmax activation
 - [ ] Sequential neural networks
@@ -735,9 +736,9 @@ M1 — Cinder can perform the mathematics required for neural inference
 
 The Dense-specific contract is defined in [docs/DENSE.md](docs/DENSE.md), with
 the representation and create/free/forward declarations in
-[include/cinder/dense.h](include/cinder/dense.h). Creation and cleanup are
-implemented in [src/dense.c](src/dense.c). Dense forward execution and the
-common layer/model interfaces remain future scoped steps. Follow the Phase 2
+[include/cinder/dense.h](include/cinder/dense.h). Creation, cleanup, and forward
+execution are implemented in [src/dense.c](src/dense.c). The common layer/model
+interfaces remain future scoped steps. Follow the Phase 2
 checklist in Current Progress; the dated sections below retain the planned
 milestone order.
 
@@ -1381,7 +1382,7 @@ Cinder `v0.1.0` is finished when:
 - [ ] Builds on Linux
 - [ ] Tensor representation works
 - [x] Matrix-vector multiplication works
-- [ ] Dense layers work
+- [x] Dense layers work locally; common dispatch and sequential integration remain pending
 - [x] ReLU works
 - [x] Softmax works
 - [ ] `.cnd` models load from disk
@@ -1638,7 +1639,7 @@ Documentation + release
 CINDER v0.1.0
 ```
 
-Follow these milestones in order even if individual daily targets shift. M0 and M1 are complete locally: the development setup and tensor math are implemented and verified, including deterministic NumPy comparisons. Phase 2's Dense-layer contract, creation, and cleanup are complete; continue with the Dense forward pass. Hosted CI verification of the latest changes remains pending.
+Follow these milestones in order even if individual daily targets shift. M0 and M1 are complete locally: the development setup and tensor math are implemented and verified, including deterministic NumPy comparisons. Phase 2's Dense-layer contract, creation, cleanup, and forward pass are complete; continue with the common layer interface. Hosted CI verification of the latest changes remains pending.
 
 The **October 25 deadline is the internal deadline**.
 

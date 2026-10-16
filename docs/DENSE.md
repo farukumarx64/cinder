@@ -1,10 +1,9 @@
 # Dense-layer contract
 
 The type and public function declarations are in
-[`include/cinder/dense.h`](../include/cinder/dense.h). **Creation and cleanup are
-implemented** in [`src/dense.c`](../src/dense.c), part of `cinder_core`.
-Forward execution is specified and declared but not implemented yet; calling
-`cinder_dense_forward` will require the next implementation step.
+[`include/cinder/dense.h`](../include/cinder/dense.h). **Creation, cleanup, and
+single-vector forward execution are implemented** in
+[`src/dense.c`](../src/dense.c), part of `cinder_core`.
 
 The layer packages the existing float32 math `y = Wx + b` for one input vector.
 It applies no activation. ReLU, Softmax, common layer dispatch, and sequential
@@ -223,9 +222,18 @@ invalid bias. Pointer, length, capacity, and source-value validation failures
 preserve the entire output buffer, assuming the caller's storage and overlap
 preconditions hold.
 
-After validation, use `cinder_tensor_matvec` and then
-`cinder_tensor_add_bias`. Pass `output_size` as the bias operation's logical
-output length, even when the caller supplied extra capacity. The numerical
+The implementation checks pointers, input length, and output capacity, then
+scans the owned bias for non-finite values. It calls `cinder_tensor_matvec`,
+which already validates the input and weights before writing any output.
+Together these checks validate all three sources before computation, without
+adding a second scan of the entire weight matrix in Dense.
+
+If matvec returns an error, Dense returns that status immediately with the
+kernel's diagnostic and partial output unchanged. It does not attempt bias
+addition after a failed multiplication. On success it calls
+`cinder_tensor_add_bias` and returns that function's status and error details.
+It passes `output_size` as the bias operation's logical output length, even
+when the caller supplied extra capacity. The numerical
 contract follows those operations: accumulate each row in increasing column
 order using float, then add bias using float. Finite underflow to a subnormal
 or zero is accepted; exact rounding across toolchains is not required.
@@ -283,7 +291,7 @@ its code is `CINDER_OK` and its message is empty. On failure, its code matches
 the return status and its message is bounded and null-terminated. Functions
 do not allocate error messages, print diagnostics, or terminate the process.
 
-## Worked example and future usage
+## Worked example and usage
 
 ```text
 W = [ 1.0   2.0 ]     x = [ 2.0 ]     b = [ 0.5 ]
@@ -295,8 +303,7 @@ Wx      = [0.0, -2.0, 1.5, 5.0]
 Wx + b  = [0.5, -3.0, 3.5, 5.0]
 ```
 
-This example describes usage once forward execution is implemented; it cannot
-link against the current library yet:
+This example uses the implemented API and can link against `cinder_core`:
 
 ```c
 #include "cinder/dense.h"
@@ -331,8 +338,8 @@ output storage. They are separate quantities even when some values coincide.
 
 ## Completion and next implementation steps
 
-The contract-only step passed C11 syntax checks on October 16, 2026. Creation
-and cleanup were subsequently implemented and verified on the same day.
+The contract, creation/cleanup, and forward pass were implemented and verified
+in separate scoped steps on October 16, 2026.
 
 - [`test_dense.c`](../tests/test_dense.c) links the production library and
   checks shape/layout, exact counts, overflow boundaries, non-finite values at
@@ -347,19 +354,40 @@ and cleanup were subsequently implemented and verified on the same day.
   with zero outstanding allocations from that constructor. It also verifies
   recovery after every failure, preservation of an already-live layer,
   zero allocation attempts for invalid inputs, and allocation-free cleanup.
-- The full ordinary Debug suite passed 11/11 tests. Release and combined
-  ASan/UBSan builds, with generated NumPy references enabled, passed 12/12.
-  Both new Dense executables reported zero leaks with native macOS `leaks`.
-  A Release build with `BUILD_TESTING=OFF` passed and registered zero tests.
-  The documented lifetime example compiled, linked, and ran successfully.
+  After creation it arms the next allocation to fail and checks unchanged
+  allocation/free counters after every forward call: valid input, invalid
+  arguments, non-finite sources, matvec overflow, bias overflow, and repeated
+  recovery calls with different inputs. These checks run with and without
+  optional error details.
+- [`test_dense_forward.c`](../tests/test_dense_forward.c) links the production
+  library and checks the worked `2 -> 4` example, 100 repeated executions with
+  alternating inputs, exact/spare capacity, null pointers, invalid lengths,
+  validation order, and unchanged outputs on validation failure. It also
+  checks parameter and input preservation, permitted disjoint slices and
+  read-only parameter/input overlap, and finite underflow. Deliberate test-only
+  parameter-value corruption probes the non-finite guards; applications still
+  must treat owned parameters as read-only.
+  Arithmetic-overflow cases cover every output position in a `2 -> 3` layer,
+  both multiplication and accumulation overflow, bias overflow, exact partial
+  output behavior, error propagation, and subsequent successful calls.
+- The forward test also compares the Dense API directly with the 11 saved
+  NumPy matrix/bias fixtures (41 output values), covering non-square, identity,
+  zero, scalar, single-row/column, decimal, and seeded cases. It uses the same
+  `atol = rtol = 1e-5` rule, with shape and finiteness checks first. These
+  references are independent of Cinder. Python is not needed for this test;
+  the optional generated-reference target continues to test the tensor math.
+- With the forward pass included, the full ordinary Debug suite passed 12/12
+  tests. Release and combined ASan/UBSan builds, with generated tensor NumPy
+  references enabled, passed 13/13. The forward and extended allocation-failure
+  executables reported zero native macOS leaks. A Release build with
+  `BUILD_TESTING=OFF` passed and registered zero tests. The documented lifetime
+  and forward examples compiled, linked, and ran successfully.
 
 These are local macOS results. Existing CI jobs will run the new CTest tests
 on macOS/Linux and under Linux sanitizers after publication; hosted results
-for this change have not been verified. No Dense forward pass has been tested
-because it is not implemented yet.
+for this change have not been verified.
 
-Next, implement forward execution. Verify the worked example and NumPy
-references, input lengths, output capacity, validation before writes, arithmetic
-partial results, untouched sources/spare capacity, repeated calls after failure,
-and absence of allocations during inference. Overlap remains a caller
-precondition, so tests must not expect invalid aliasing to return a status.
+Next, define the common layer interface and its Dense/ReLU/Softmax contracts
+before integrating activation dispatch and sequential models. Dense applies no
+activation and does not yet participate in a model execution API. Buffer
+overlap remains a caller precondition, not a runtime-diagnosed error.

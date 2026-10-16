@@ -182,6 +182,83 @@ static void check_existing_layer_survives(size_t failure)
     CHECK(allocation_calls == failure);
 }
 
+static void check_forward_result(cinder_status_t actual, cinder_status_t expected,
+                                  const cinder_error_t *error)
+{
+    CHECK(actual == expected);
+    if (error != NULL) {
+        CHECK(error->code == expected);
+        CHECK(memchr(error->message, '\0', sizeof(error->message)) != NULL);
+        CHECK((error->message[0] == '\0') == (expected == CINDER_OK));
+    }
+    CHECK(allocation_calls == DENSE_ALLOCATION_COUNT);
+    CHECK(live_count == DENSE_ALLOCATION_COUNT);
+    CHECK(free_calls == 0);
+}
+
+static void check_forward_without_allocations(cinder_error_t *error)
+{
+    const float weights[] = {1.0f, 0.0f, FLT_MAX, 0.0f, 0.0f, 1.0f};
+    const float bias[] = {0.5f, FLT_MAX, -1.0f};
+    const float input[] = {-1.0f, 2.0f};
+    float output[] = {NAN, NAN, NAN, NAN};
+    cinder_dense_t *layer = NULL;
+    reset_allocator(0);
+    CHECK(cinder_dense_create(2, 3, weights, 6, bias, 3, &layer, error) == CINDER_OK);
+    CHECK(allocation_calls == DENSE_ALLOCATION_COUNT);
+    /* Any allocation during inference would now fail; even attempted calls
+     * and frees are detected by the counters after every forward call. */
+    fail_on_call = allocation_calls + 1;
+    check_forward_result(cinder_dense_forward(layer, input, 2, output, 4, error),
+                         CINDER_OK, error);
+    CHECK(output[0] == -0.5f && output[1] == 0.0f && output[2] == 1.0f);
+    check_forward_result(cinder_dense_forward(NULL, input, 2, output, 4, error),
+                         CINDER_ERROR_INVALID_ARGUMENT, error);
+    check_forward_result(cinder_dense_forward(layer, NULL, 2, output, 4, error),
+                         CINDER_ERROR_INVALID_ARGUMENT, error);
+    check_forward_result(cinder_dense_forward(layer, input, 2, NULL, 4, error),
+                         CINDER_ERROR_INVALID_ARGUMENT, error);
+    check_forward_result(cinder_dense_forward(layer, input, 1, output, 4, error),
+                         CINDER_ERROR_DIMENSION_MISMATCH, error);
+    check_forward_result(cinder_dense_forward(layer, input, 2, output, 2, error),
+                         CINDER_ERROR_BUFFER_TOO_SMALL, error);
+    const float bad_input[] = {-1.0f, NAN};
+    check_forward_result(cinder_dense_forward(layer, bad_input, 2, output, 4, error),
+                         CINDER_ERROR_NONFINITE, error);
+    /* Test-only parameter faults exercise both preflight rejection paths. */
+    layer->weights->data[5] = NAN;
+    check_forward_result(cinder_dense_forward(layer, input, 2, output, 4, error),
+                         CINDER_ERROR_NONFINITE, error);
+    layer->weights->data[5] = weights[5];
+    layer->bias->data[2] = INFINITY;
+    check_forward_result(cinder_dense_forward(layer, input, 2, output, 4, error),
+                         CINDER_ERROR_NONFINITE, error);
+    layer->bias->data[2] = bias[2];
+    const float matvec_overflow[] = {2.0f, 2.0f};
+    check_forward_result(cinder_dense_forward(layer, matvec_overflow, 2, output, 4, error),
+                         CINDER_ERROR_NONFINITE, error);
+    const float bias_overflow[] = {1.0f, 2.0f};
+    check_forward_result(cinder_dense_forward(layer, bias_overflow, 2, output, 4, error),
+                         CINDER_ERROR_NONFINITE, error);
+    const float other_input[] = {0.0f, 3.0f};
+    for (size_t call = 0; call < 100; ++call) {
+        const float *current = call % 2 == 0 ? input : other_input;
+        check_forward_result(cinder_dense_forward(layer, current, 2, output, 4, error),
+                             CINDER_OK, error);
+        if (call % 2 == 0) {
+            CHECK(output[0] == -0.5f && output[1] == 0.0f && output[2] == 1.0f);
+        } else {
+            CHECK(output[0] == 0.5f && output[1] == FLT_MAX && output[2] == 2.0f);
+        }
+        CHECK(isnan(output[3]));
+        CHECK(memcmp(layer->weights->data, weights, sizeof(weights)) == 0);
+        CHECK(memcmp(layer->bias->data, bias, sizeof(bias)) == 0);
+    }
+    cinder_dense_free(layer);
+    CHECK(allocation_calls == DENSE_ALLOCATION_COUNT);
+    CHECK(free_calls == DENSE_ALLOCATION_COUNT && live_count == 0);
+}
+
 int main(void)
 {
     cinder_error_t error;
@@ -222,6 +299,8 @@ int main(void)
     check_no_allocation(2, 4, bad_weights, 8, bias, 4, CINDER_ERROR_NONFINITE);
     check_no_allocation(2, 4, weights, 8, bad_bias, 4, CINDER_ERROR_NONFINITE);
 
-    puts("Dense allocation failure tests passed (all five allocation points).");
+    check_forward_without_allocations(&error);
+    check_forward_without_allocations(NULL);
+    puts("Dense allocation tests passed: all five failures and allocation-free forward calls.");
     return EXIT_SUCCESS;
 }

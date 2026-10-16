@@ -6,7 +6,7 @@
 #include "cinder/tensor.h"
 
 /*
- * Creation and cleanup are implemented; forward execution is declared only.
+ * Creation, cleanup, and single-vector forward execution are implemented.
  * See docs/DENSE.md for validation order, ownership, overlap, and examples.
  *
  * A Dense layer computes y = Wx + b for one float32 input vector.
