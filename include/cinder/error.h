@@ -1,7 +1,7 @@
 #ifndef CINDER_ERROR_H
 #define CINDER_ERROR_H
 
-/* Status codes shared by the tensor and Dense-layer APIs. */
+/* Status codes shared by tensor/Dense APIs and the common layer contract. */
 typedef enum {
     CINDER_OK = 0,
     CINDER_ERROR_INVALID_ARGUMENT,

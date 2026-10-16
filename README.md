@@ -15,7 +15,8 @@ implemented and tested. The math operations match deterministic NumPy float32
 references within the documented tolerance.
 Phase 0 is complete, including the MIT license and verified development setup.
 Phase 2 includes Dense creation/cleanup with owned parameter copies and a
-tested, allocation-free forward pass. The common layer interface is next.
+tested, allocation-free forward pass. The common Dense/ReLU/Softmax layer
+interface is defined; its wrappers, validator, and dispatch are not implemented yet.
 The project contains a CMake build and a CLI that supports `--version`.
 The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
 
@@ -85,7 +86,12 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
   13/13. Dense matches all 11 saved NumPy matrix/bias fixtures. The forward and
   extended allocation-failure executables reported zero native leaks; a build
   without tests passed. Hosted CI verification of this change remains pending.
-- The next scoped task is defining the common Dense/ReLU/Softmax layer interface.
+- The [common layer contract](docs/LAYER.md) defines a type tag, shared
+  input/output dimensions, an owned Dense-only payload, constructors, metadata
+  validation, cleanup, and separate-buffer forward execution. Activations must
+  preserve vector length. These are declarations only at this step.
+- The next scoped task is implementing the common wrappers and switch dispatch
+  for Dense, ReLU, and Softmax using the existing kernels.
 - Model loading, sequential model inference, and the `info`, `run`, and `bench` commands are
   planned features; they are not implemented yet.
 
@@ -344,9 +350,11 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | `src/dense.c` | Dense creation, parameter copying, cleanup, and forward execution through tensor kernels. |
 | `include/cinder/tensor.h` | Tensor representation and function declarations. |
 | `include/cinder/dense.h` | Dense representation and implemented create/free/forward API declarations. |
+| `include/cinder/layer.h` | Common layer tags, dimensions, payload, and API declarations; implementation pending. |
 | `include/cinder/error.h` | Status codes and caller-owned error details. |
 | `docs/TENSOR.md` | Tensor layout, ownership, validation, and failure contract. |
 | `docs/DENSE.md` | Dense parameter shapes, ownership, public API, overlap, failures, and worked example. |
+| `docs/LAYER.md` | Common layer representation, ownership, dimension validation, dispatch, and buffer/failure contract. |
 | `docs/NUMPY_TESTS.md` | Reference calculations, fixtures, tolerances, regeneration, and verification results. |
 | `tests/check_version.cmake` | Checks the version command's exit status and output. |
 | `tests/test_tensor.c` | Tests the core library's allocation and cleanup API. |
@@ -377,7 +385,8 @@ task. Record unresolved issues before moving on.
 The roadmap is the source of truth for progress. Its future command examples
 and benchmark numbers describe targets, not existing capabilities or measured
 performance. Phases 0 and 1 are complete locally. Phase 2's Dense-layer contract,
-creation, cleanup, and forward pass are complete; the common layer interface is next.
+creation, cleanup, and forward pass are complete. The common layer interface
+is defined; its constructors, validator, cleanup, and dispatch are next.
 
 The v0.1.0 scope excludes training, GPU execution, convolutional layers,
 quantization, SIMD, multithreading, and arbitrary computation graphs.
