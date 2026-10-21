@@ -11,6 +11,14 @@ vectors (41 values). This test always uses the saved header, including when
 `CINDER_ENABLE_NUMPY_TESTS` is enabled; that option adds fresh comparisons for
 the tensor math. See [Dense verification](DENSE.md#completion-and-next-implementation-steps).
 
+The `layer_interface` test also uses the saved header. It compares common
+dispatch against both activation references for all 12 activation fixtures,
+and against `Wx + b` for all 11 Dense fixtures: 35 result vectors. It compares
+ReLU exactly, uses the existing absolute-plus-relative tolerance for Dense and
+Softmax, and checks Softmax's probability range and normalization separately.
+These layer comparisons remain saved-reference tests even when fresh tensor
+generation is enabled. See [layer verification](LAYER.md#verification-and-next-step).
+
 ## Two ways to run the same comparison
 
 The ordinary C build runs `tensor_numpy_fixtures` using the saved
@@ -211,6 +219,7 @@ dependency in a virtual environment and generates fresh references. Hosted
 results for these changes remain pending a future push.
 
 This completes the local Phase 1 math verification. Phase 2's standalone
-[Dense API](DENSE.md) is now also verified against the saved `Wx + b` results.
+[Dense API](DENSE.md) and [common layer dispatch](LAYER.md) are now also verified
+against the saved references.
 Sequential models, serialized models, an exporter, and MNIST remain future
 verification steps.

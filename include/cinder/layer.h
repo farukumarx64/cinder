@@ -5,8 +5,7 @@
 
 #include "cinder/dense.h"
 
-/* Contract and declarations only; common layer functions are not implemented.
- * These tags describe runtime objects, not serialized model-format IDs. */
+/* These tags describe runtime objects, not serialized model-format IDs. */
 typedef enum {
     CINDER_LAYER_INVALID = 0,
     CINDER_LAYER_DENSE,
@@ -34,9 +33,9 @@ typedef struct {
 } cinder_layer_t;
 
 /*
- * Create an owning Dense layer from caller-owned parameter arrays. Set a
- * non-NULL *out_layer to NULL before other validation; NULL out_layer returns
- * INVALID_ARGUMENT. The slot must not already own a live object.
+ * Create an owning Dense layer from caller-owned parameter arrays. When
+ * out_layer is non-NULL, clear *out_layer before other validation; NULL out_layer
+ * returns INVALID_ARGUMENT. The slot must not already own a live object.
  * Delegate parameter validation/copying to cinder_dense_create, preserving its
  * validation order and statuses, then allocate the common layer wrapper. If
  * wrapper allocation fails, free the new Dense and return ALLOCATION.

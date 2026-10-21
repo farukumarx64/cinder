@@ -16,7 +16,8 @@ references within the documented tolerance.
 Phase 0 is complete, including the MIT license and verified development setup.
 Phase 2 includes Dense creation/cleanup with owned parameter copies and a
 tested, allocation-free forward pass. The common Dense/ReLU/Softmax layer
-interface is defined; its wrappers, validator, and dispatch are not implemented yet.
+interface now has implemented constructors, metadata validation, cleanup, and
+allocation-free dispatch. The sequential-model contract is the next scoped task.
 The project contains a CMake build and a CLI that supports `--version`.
 The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
 
@@ -28,7 +29,7 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
   Ubuntu 24.04.
 - CTest provides the version-command smoke test, two tensor allocation tests,
   and tests for tensor access, matrix-vector multiplication, bias addition,
-  ReLU, Softmax, and NumPy reference fixtures, plus Dense allocation and forward tests.
+  ReLU, Softmax, and NumPy reference fixtures, plus Dense and common layer tests.
 - Opt-in AddressSanitizer and UndefinedBehaviorSanitizer builds passed the
   smoke test on macOS, both separately and together.
 - The public GitHub repository is [farukumarx64/cinder](https://github.com/farukumarx64/cinder).
@@ -89,9 +90,19 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
 - The [common layer contract](docs/LAYER.md) defines a type tag, shared
   input/output dimensions, an owned Dense-only payload, constructors, metadata
   validation, cleanup, and separate-buffer forward execution. Activations must
-  preserve vector length. These are declarations only at this step.
-- The next scoped task is implementing the common wrappers and switch dispatch
-  for Dense, ReLU, and Softmax using the existing kernels.
+  preserve vector length. These functions are implemented in `src/layer.c`.
+- Common dispatch reuses the existing Dense, ReLU, and Softmax functions.
+  Activations validate all input values before copying into the output, preserve
+  sources and dimensions, and leave spare capacity untouched. Each activation
+  owns one wrapper and no parameters or working buffers.
+- After adding common layer execution on October 21, Debug passed 14/14 tests;
+  Release and combined ASan/UBSan with generated tensor NumPy references enabled
+  passed 15/15. Layer dispatch matches 35 saved NumPy reference vectors. Tests
+  force every constructor allocation failure and verify allocation-free calls.
+  Both new executables reported zero native leaks; a build without tests and
+  the linked documentation example passed. Hosted CI remains unverified for this change.
+- The next scoped task is defining the sequential-model contract: ordered
+  layers, ownership, valid connections, dimensions, and inference/failure behavior.
 - Model loading, sequential model inference, and the `info`, `run`, and `bench` commands are
   planned features; they are not implemented yet.
 
@@ -154,7 +165,7 @@ exactly `Cinder 0.1.0-dev` followed by a newline on standard output, and empty
 standard error. The expected version follows the CMake project version.
 Failures show diagnostics; the test has a ten-second timeout.
 
-Eight more CTest tests exercise tensor memory management, access, and math:
+The runtime tests cover tensor memory management, math, Dense, and common layers:
 
 - `tensor_allocation` checks dimensions, zero initialization, writable storage,
   independent tensors, invalid arguments, both size-overflow cases, repeated
@@ -202,8 +213,15 @@ Eight more CTest tests exercise tensor memory management, access, and math:
   preservation, exact/spare capacity, validation and arithmetic failures,
   recovery, and permitted storage arrangements. It also compares the layer's
   output against all 11 saved NumPy matrix/bias fixtures (41 output values).
+- `layer_interface` checks Dense/ReLU/Softmax dispatch, constructor ownership,
+  metadata validation, unchanged activation dimensions and sources, exact/spare
+  capacity, rejection before writes, diagnostics, recovery, and repeated calls.
+  It compares 12 saved NumPy fixtures through each activation and 11 through
+  Dense. `layer_allocation_failures` forces all six Dense-wrapper allocation
+  failures and each activation's one allocation failure, tracks cleanup, and
+  verifies that validation and forward execution allocate/free nothing.
 
-All tensor and Dense tests have ten-second timeouts. Their checks stay active in Release
+All runtime tests have ten-second timeouts. Their checks stay active in Release
 builds, where ordinary C `assert` checks could be disabled by `NDEBUG`.
 
 To configure a build without tests, pass `-DBUILD_TESTING=OFF` to CMake.
@@ -226,7 +244,7 @@ cmake --build build-numpy
 ctest --test-dir build-numpy --output-on-failure
 ```
 
-This adds the tenth test, `tensor_numpy_generated`, using a generated header
+This adds one test, `tensor_numpy_generated`, using a generated header
 inside the build directory. The saved fixtures stay unchanged. CMake fails
 clearly if NumPy is missing or testing is disabled. See
 [NumPy reference verification](docs/NUMPY_TESTS.md) for the formulas, fixture
@@ -348,9 +366,10 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | `src/cli.c` | Command-line argument handling and version output. |
 | `src/tensor.c` | Tensor allocation, cleanup, checked access, matrix-vector multiplication, bias addition, ReLU, Softmax, and error reporting. |
 | `src/dense.c` | Dense creation, parameter copying, cleanup, and forward execution through tensor kernels. |
+| `src/layer.c` | Common constructors, metadata validation, cleanup, and Dense/ReLU/Softmax dispatch. |
 | `include/cinder/tensor.h` | Tensor representation and function declarations. |
 | `include/cinder/dense.h` | Dense representation and implemented create/free/forward API declarations. |
-| `include/cinder/layer.h` | Common layer tags, dimensions, payload, and API declarations; implementation pending. |
+| `include/cinder/layer.h` | Common layer tags, dimensions, payload, and implemented API declarations. |
 | `include/cinder/error.h` | Status codes and caller-owned error details. |
 | `docs/TENSOR.md` | Tensor layout, ownership, validation, and failure contract. |
 | `docs/DENSE.md` | Dense parameter shapes, ownership, public API, overlap, failures, and worked example. |
@@ -361,6 +380,8 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | `tests/test_dense.c` | Tests Dense shapes, validation, copied parameters, and independent ownership/lifetimes. |
 | `tests/test_dense_alloc_failures.c` | Forces all five Dense allocation failures and checks cleanup, recovery, and allocation-free forward calls. |
 | `tests/test_dense_forward.c` | Tests Dense results, saved NumPy references, validation, partial failures, and repeated execution. |
+| `tests/test_layer.c` | Tests common dispatch, metadata, ownership, source/output preservation, errors, and saved NumPy references. |
+| `tests/test_layer_alloc_failures.c` | Forces wrapper/owned-data allocation failures and checks cleanup, recovery, and allocation-free execution. |
 | `tests/test_tensor_access.c` | Tests row-major access, bounds, finite values, and failure behavior. |
 | `tests/test_tensor_matvec.c` | Tests matrix-vector products, dimensions, output capacity, and numeric failures. |
 | `tests/test_tensor_bias.c` | Tests bias addition, vector lengths, numeric failures, and composed `Wx + b` results. |
@@ -386,7 +407,8 @@ The roadmap is the source of truth for progress. Its future command examples
 and benchmark numbers describe targets, not existing capabilities or measured
 performance. Phases 0 and 1 are complete locally. Phase 2's Dense-layer contract,
 creation, cleanup, and forward pass are complete. The common layer interface
-is defined; its constructors, validator, cleanup, and dispatch are next.
+and its constructors, validator, cleanup, and dispatch are implemented. Define
+the sequential-model contract next.
 
 The v0.1.0 scope excludes training, GPU execution, convolutional layers,
 quantization, SIMD, multithreading, and arbitrary computation graphs.

@@ -387,9 +387,9 @@ These are local macOS results. Existing CI jobs will run the new CTest tests
 on macOS/Linux and under Linux sanitizers after publication; hosted results
 for this change have not been verified.
 
-The [common layer interface](LAYER.md) now defines how a tagged wrapper will
-own this Dense object, expose its dimensions, and delegate forward execution.
-Common wrappers and activation dispatch are the next implementation step;
-sequential models follow later. Dense applies no activation and does not yet
+The [common layer interface](LAYER.md) now implements a tagged wrapper that
+owns this Dense object, exposes its dimensions, and delegates forward execution.
+Common constructors, validation, cleanup, and activation dispatch are implemented;
+the sequential-model contract is next. Dense applies no activation and does not yet
 participate in a model execution API. Buffer overlap remains a caller
 precondition, not a runtime-diagnosed error.

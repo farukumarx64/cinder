@@ -1,10 +1,10 @@
 # Common layer interface contract
 
 The types and declarations are in [`include/cinder/layer.h`](../include/cinder/layer.h).
-**This step defines the interface only.** The common constructors, validator,
-destructor, and dispatcher are not implemented or linked yet. Existing Dense,
-ReLU, and Softmax kernels remain implemented and tested. Implementing their
-common wrappers and dispatch is the next scoped step.
+The constructors, metadata validator, destructor, and forward dispatcher are
+implemented in [`src/layer.c`](../src/layer.c) and linked into `cinder_core`.
+Dense, ReLU, and Softmax share this API and reuse their existing tested kernels.
+The next scoped step is defining the sequential-model contract.
 
 ## Type tag, dimensions, and payload
 
@@ -200,7 +200,7 @@ reject insufficient output capacity with `BUFFER_TOO_SMALL`; validate sources.
 Zero input count is a length mismatch for a valid layer; zero output capacity
 is insufficient space. Unknown tags must fail before any output write.
 
-The implementation will use a `switch (layer->type)` with these paths:
+The implementation uses a `switch (layer->type)` with these paths:
 
 | Case | Execution path |
 | --- | --- |
@@ -216,6 +216,18 @@ The existing tensor activation functions remain available for direct in-place
 use. Activation input validation must happen before the copy: copying a bad
 input and then relying only on the kernel's rejection would violate output
 preservation on validation failure.
+
+For example, a three-value layer receiving `{-1, 0, 1}` produces `{0, 0, 1}`
+for ReLU or approximately `{0.09003057, 0.24472847, 0.66524096}` for Softmax.
+Both report `3 -> 3`; neither owns weights or bias. With an output capacity of
+five, only indices 0 through 2 participate. Indices 3 and 4 are never read or
+written, even if they contain NaN. A NaN in the input, including its last
+element, is rejected before any output element changes.
+
+The copy and activation each take linear time, so activation forward execution
+is `O(size)` time and `O(1)` extra space. The kernel still performs its own
+validation, preserving its standalone API guarantees. The wrapper's earlier
+scan is necessary to preserve the separate output on validation failure.
 
 ## Overlap, failures, and error details
 
@@ -243,10 +255,11 @@ details, matching status codes, an empty message on success, and a bounded,
 null-terminated failure message. No new error code, diagnostic allocation,
 printing, or process termination is needed.
 
-## Future usage example
+## Usage example
 
-This example shows the declared API. It cannot link until the common layer
-functions are implemented:
+This example manually executes Dense, ReLU, and Softmax using caller-owned
+buffers. A sequential model will automate connection checks and buffer reuse
+in a later step:
 
 ```c
 #include "cinder/layer.h"
@@ -258,9 +271,11 @@ int layer_example(void)
     const float bias[] = {0.5f, -1.0f, 2.0f, 0.0f};
     const float input[] = {2.0f, -1.0f};
     float hidden[4];
-    float output[4];
+    float activated[4];
+    float output[6] = {0, 0, 0, 0, 99, 100};
     cinder_layer_t *dense = NULL;
     cinder_layer_t *relu = NULL;
+    cinder_layer_t *softmax = NULL;
     cinder_error_t error;
     cinder_status_t status =
         cinder_layer_create_dense(2, 4, weights, 8, bias, 4, &dense, &error);
@@ -268,13 +283,21 @@ int layer_example(void)
         status = cinder_layer_create_activation(CINDER_LAYER_RELU, 4, &relu, &error);
     }
     if (status == CINDER_OK) {
+        status = cinder_layer_create_activation(CINDER_LAYER_SOFTMAX, 4, &softmax, &error);
+    }
+    if (status == CINDER_OK) {
         status = cinder_layer_validate(dense, &error);
     }
     if (status == CINDER_OK) {
         status = cinder_layer_validate(relu, &error);
     }
-    if (status == CINDER_OK && dense->output_size != relu->input_size) {
+    if (status == CINDER_OK) {
+        status = cinder_layer_validate(softmax, &error);
+    }
+    if (status == CINDER_OK && (dense->output_size != relu->input_size ||
+                               relu->output_size != softmax->input_size)) {
         /* A future model constructor will report connection mismatches. */
+        cinder_layer_free(softmax);
         cinder_layer_free(relu);
         cinder_layer_free(dense);
         return 1;
@@ -283,9 +306,14 @@ int layer_example(void)
         status = cinder_layer_forward(dense, input, 2, hidden, 4, &error);
     }
     if (status == CINDER_OK) {
-        status = cinder_layer_forward(relu, hidden, 4, output, 4, &error);
-        /* On success: output = {0.5f, 0.0f, 3.5f, 5.0f}; hidden is unchanged. */
+        status = cinder_layer_forward(relu, hidden, 4, activated, 4, &error);
+        /* On success: activated = {0.5f, 0.0f, 3.5f, 5.0f}; hidden is unchanged. */
     }
+    if (status == CINDER_OK) {
+        status = cinder_layer_forward(softmax, activated, 4, output, 6, &error);
+        /* First four values are probabilities; output[4..5] stay 99 and 100. */
+    }
+    cinder_layer_free(softmax);
     cinder_layer_free(relu);
     cinder_layer_free(dense);
     return status == CINDER_OK ? 0 : 1;
@@ -294,18 +322,50 @@ int layer_example(void)
 
 ## Verification and next step
 
-This change adds declarations and documentation only. On October 16, 2026,
-the standalone header, repeated inclusion with existing headers, and every C
-block in this document (including the complete future usage example) passed
-C11 syntax checks with `-Wall -Wextra -Wpedantic -Werror`. The compiler used
-`-fsyntax-only`, producing no object or executable and performing no linking
-or execution. This does not establish runtime behavior for unimplemented
-functions. Runtime sources, build targets, and CTest tests are unchanged.
+The interface was first defined and syntax-checked on October 16, 2026.
+The runtime implementation was verified locally on macOS on October 21, 2026:
 
-Next, implement common construction/cleanup, metadata validation, and switch
-dispatch for Dense, ReLU, and Softmax. Test valid and invalid tags, payload and
-dimension consistency, preserved activation lengths, caller-buffer bounds,
-validation before copying, kernel error propagation, source preservation,
-saved NumPy references, and repeated execution without allocation. Force every
-constructor allocation failure, including the wrapper allocation after Dense
-succeeds, and check cleanup with sanitizers and supported leak detection.
+- `layer_interface` links the production library. It checks supported and
+  invalid tags, positive/byte-representable sizes, payload/dimension consistency,
+  constructor ownership, correct dispatch, and repeated execution with different
+  inputs. Metadata faults in tests are restored before cleanup; applications
+  must keep constructed objects intact.
+- For both activations, tests reject NULL pointers, wrong input counts, small
+  output buffers, and NaN/positive infinity/negative infinity at every position.
+  They verify the entire output is unchanged on validation failure, sources and
+  dimensions remain unchanged, guards and spare capacity are untouched, and
+  disjoint slices of one allocation are accepted. Signed zero and subnormal
+  ReLU values retain the tensor behavior.
+- Saved NumPy references check 12 activation fixtures through each activation
+  type plus 11 Dense fixtures: 35 result vectors. ReLU comparisons are exact;
+  Dense and Softmax use the existing `atol = rtol = 1e-5` rule. Softmax outputs
+  must also be probabilities with a sum within `1e-6` of one. The standalone
+  tensor tests retain tighter tiny-probability and extreme-input checks.
+- A Dense arithmetic-overflow case checks that dispatch returns the underlying
+  error message and partial-output behavior, leaves spare capacity alone, and
+  permits a successful subsequent call. Success clears prior diagnostics;
+  the API is also tested with NULL optional error storage.
+- `layer_allocation_failures` compiles the real layer/Dense/tensor sources with
+  allocator substitutions confined to the test. It forces all six Dense
+  wrapper allocation failures and the single allocation failure for each
+  activation, tracks every allocation/free, and verifies complete cleanup and
+  recovery. Invalid construction attempts allocate nothing. A failed Dense
+  construction leaves an already-live activation usable.
+- After construction, allocation tracking verifies that validation, successful
+  and failing forward calls, repeated calls, and destruction make no new
+  allocations. Forward and validation make no frees either. No allocator hooks
+  were added to production code.
+- Debug passed all 14 CTest tests. Release and combined ASan/UBSan builds with
+  generated tensor NumPy references enabled each passed all 15 tests. The two
+  new test executables reported zero leaks with native macOS `leaks`.
+- The build with tests disabled succeeded and registered zero tests. The
+  usage example compiled with C11 warnings as errors, linked against that
+  library, and ran successfully.
+
+These are local results; hosted macOS/Linux CI for this change has not been
+verified. Existing CI jobs automatically include the new CTest registrations.
+
+Next, define the sequential-model contract: ordered layers, ownership, valid
+connections, external dimensions, and inference/failure behavior. Model
+construction, reusable working buffers, and sequential inference follow as
+separate scoped steps.
