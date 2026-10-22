@@ -4,7 +4,8 @@ The types and declarations are in [`include/cinder/layer.h`](../include/cinder/l
 The constructors, metadata validator, destructor, and forward dispatcher are
 implemented in [`src/layer.c`](../src/layer.c) and linked into `cinder_core`.
 Dense, ReLU, and Softmax share this API and reuse their existing tested kernels.
-The next scoped step is defining the sequential-model contract.
+The [sequential-model contract](MODEL.md) defines how models will adopt and
+connect these layers. Model creation, validation, buffers, and cleanup are next.
 
 ## Type tag, dimensions, and payload
 
@@ -117,9 +118,12 @@ wrapper. It allocates nothing and does not reset the caller's pointer. Free
 each layer exactly once; a stack descriptor used for metadata inspection is
 not an owning layer that can be passed to free or forward.
 
-How a future model acquires, copies, or transfers ownership of layers will be
-decided in the sequential-model contract. This interface does not silently
-transfer ownership when a layer is inspected or executed.
+The [model contract](MODEL.md#ownership-transfer-and-construction) specifies
+transfer only when model construction succeeds: the model adopts the layers
+and clears the caller's array slots. Failure leaves the layers caller-owned.
+The model constructor is not implemented yet. Layer inspection and execution
+do not transfer ownership; after adoption, the model manages layer execution
+and releases the layers during its own cleanup.
 
 ## Validation visible to the model
 
@@ -365,7 +369,8 @@ The runtime implementation was verified locally on macOS on October 21, 2026:
 These are local results; hosted macOS/Linux CI for this change has not been
 verified. Existing CI jobs automatically include the new CTest registrations.
 
-Next, define the sequential-model contract: ordered layers, ownership, valid
-connections, external dimensions, and inference/failure behavior. Model
-construction, reusable working buffers, and sequential inference follow as
-separate scoped steps.
+The [sequential-model contract](MODEL.md) is now defined, including ownership,
+connection checks, external dimensions, output preservation on failure, and
+serialized access to shared working buffers. Next, implement model construction,
+connection validation, size accessors, cleanup, and the two reusable buffers.
+Sequential inference follows as a separate scoped step.

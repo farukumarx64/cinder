@@ -17,7 +17,9 @@ Phase 0 is complete, including the MIT license and verified development setup.
 Phase 2 includes Dense creation/cleanup with owned parameter copies and a
 tested, allocation-free forward pass. The common Dense/ReLU/Softmax layer
 interface now has implemented constructors, metadata validation, cleanup, and
-allocation-free dispatch. The sequential-model contract is the next scoped task.
+allocation-free dispatch. The sequential-model contract is defined; model
+construction, connection validation, size accessors, cleanup, and reusable
+buffers are the next scoped task. Model functions are not implemented yet.
 The project contains a CMake build and a CLI that supports `--version`.
 The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
 
@@ -101,8 +103,15 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
   force every constructor allocation failure and verify allocation-free calls.
   Both new executables reported zero native leaks; a build without tests and
   the linked documentation example passed. Hosted CI remains unverified for this change.
-- The next scoped task is defining the sequential-model contract: ordered
-  layers, ownership, valid connections, dimensions, and inference/failure behavior.
+- The [sequential-model contract](docs/MODEL.md) and [public declarations](include/cinder/model.h)
+  define an opaque, nonempty, ordered model. Creation validates connections and
+  transfers layer ownership only on success, clearing the supplied array slots.
+  Two model-owned buffers support inference with unchanged caller output on
+  every returned failure; runs on the same instance must be serialized.
+  Headers and examples passed C11 syntax checks on October 22, 2026. Model
+  functions are declarations only; runtime behavior has not been tested yet.
+- The next scoped task is implementing model construction, connection validation,
+  size accessors, cleanup, and the two reusable working buffers.
 - Model loading, sequential model inference, and the `info`, `run`, and `bench` commands are
   planned features; they are not implemented yet.
 
@@ -370,10 +379,12 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | `include/cinder/tensor.h` | Tensor representation and function declarations. |
 | `include/cinder/dense.h` | Dense representation and implemented create/free/forward API declarations. |
 | `include/cinder/layer.h` | Common layer tags, dimensions, payload, and implemented API declarations. |
+| `include/cinder/model.h` | Opaque sequential model and create/size/run/free declarations; implementation pending. |
 | `include/cinder/error.h` | Status codes and caller-owned error details. |
 | `docs/TENSOR.md` | Tensor layout, ownership, validation, and failure contract. |
 | `docs/DENSE.md` | Dense parameter shapes, ownership, public API, overlap, failures, and worked example. |
 | `docs/LAYER.md` | Common layer representation, ownership, dimension validation, dispatch, and buffer/failure contract. |
+| `docs/MODEL.md` | Model ownership transfer, connections, dimensions, buffers, inference failures, and concurrency contract. |
 | `docs/NUMPY_TESTS.md` | Reference calculations, fixtures, tolerances, regeneration, and verification results. |
 | `tests/check_version.cmake` | Checks the version command's exit status and output. |
 | `tests/test_tensor.c` | Tests the core library's allocation and cleanup API. |
@@ -407,8 +418,9 @@ The roadmap is the source of truth for progress. Its future command examples
 and benchmark numbers describe targets, not existing capabilities or measured
 performance. Phases 0 and 1 are complete locally. Phase 2's Dense-layer contract,
 creation, cleanup, and forward pass are complete. The common layer interface
-and its constructors, validator, cleanup, and dispatch are implemented. Define
-the sequential-model contract next.
+and its constructors, validator, cleanup, and dispatch are implemented. The
+sequential-model contract is defined; implement model construction, connection
+validation, size accessors, cleanup, and reusable buffers next.
 
 The v0.1.0 scope excludes training, GPU execution, convolutional layers,
 quantization, SIMD, multithreading, and arbitrary computation graphs.

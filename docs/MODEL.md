@@ -1,0 +1,363 @@
+# Sequential-model contract
+
+The public declarations are in [`include/cinder/model.h`](../include/cinder/model.h).
+**This step defines the contract only.** Model construction, cleanup, accessors,
+and inference are not implemented or linked yet. The existing tensor, Dense,
+and common layer implementations remain the operations the model will compose.
+
+## Representation and public API
+
+A model executes a fixed, ordered, nonempty collection of layers on a single
+float32 vector. It calls each layer once, in the order supplied at construction.
+It does not train, reorder layers, add activations, batch samples, or support
+branches. A model may contain one layer, only activations, or a mixture of Dense,
+ReLU, and Softmax. It need not end with Softmax; the last layer determines what
+the output means.
+
+```c
+#include "cinder/layer.h"
+
+typedef struct cinder_model cinder_model_t;
+
+cinder_status_t cinder_model_create(
+    cinder_layer_t **layers,
+    size_t layer_count,
+    cinder_model_t **out_model,
+    cinder_error_t *error
+);
+
+size_t cinder_model_input_size(const cinder_model_t *model);
+size_t cinder_model_output_size(const cinder_model_t *model);
+
+cinder_status_t cinder_model_run(
+    cinder_model_t *model,
+    const float *input,
+    size_t input_count,
+    float *output,
+    size_t output_capacity,
+    cinder_error_t *error
+);
+
+void cinder_model_free(cinder_model_t *model);
+```
+
+`cinder_model_t` is an opaque type: callers can hold a pointer but cannot inspect
+its layout, allocate it by value, or change its fields. The implementation will
+store the ordered layer pointers, layer count, external input/output sizes,
+working-buffer capacity, and two working-buffer pointers. Keeping those fields
+private prevents callers from invalidating connections or replacing buffers
+after construction. No public append/remove/reorder or workspace access API is
+included in this contract.
+
+The two size accessors return counts of floats, not bytes. A valid model's input
+size is the first layer's input size; its output size is the last layer's output
+size. Both are positive and fixed. A NULL model returns zero from either
+accessor, so zero is an invalid-model sentinel, not a valid empty model. Other
+non-NULL pointers must identify live models; getters cannot diagnose dangling
+or invented pointers. Accessors allocate nothing and do not use error storage.
+
+File loading and serialized model-format rules belong to Phase 3. There is no
+`cinder_model_load` declaration in this step. Its future implementation can
+construct layers and use this same validated construction path.
+
+## Ownership transfer and construction
+
+The caller first creates layers using the [common layer constructors](LAYER.md).
+It passes them in a writable array in execution order. Each entry must be a live,
+intact, independently owned layer. Stack descriptors and layers already owned
+by another model cannot be transferred. Distinct wrappers must not share owned
+Dense payloads or parameter allocations. Construction rejects duplicate layer
+pointers, but cannot prove general pointer validity or exclusive ownership.
+Those remain caller preconditions.
+
+The model **takes ownership only on successful construction**. It allocates its
+own pointer array and copies the pointers in order. It takes the existing layer
+objects and their already-owned parameters; it does not copy their parameter
+arrays again. This avoids a second set of Dense parameter copies.
+
+| Outcome | Caller array | Layers and their parameters | Model output slot |
+| --- | --- | --- | --- |
+| Success | Every supplied slot becomes NULL; array storage stays caller-owned. | Exclusively owned by the new model. | Points to the complete model. |
+| Any failure | Every slot is unchanged. | Still caller-owned and unchanged; none are freed. | NULL, if an output slot was supplied. |
+
+The source array itself may be a stack array or a caller allocation. The model
+never retains its address. On success, the caller may reuse or release that
+array immediately. Other aliases to adopted layers are borrowed, read-only
+references: do not independently execute, mutate, free, or transfer those
+layers again. All such aliases expire when the model is freed. Clearing the
+supplied slots does not find or clear aliases elsewhere in the program.
+
+The `out_model` slot must not already own a live model. The source pointer array,
+output slot, optional error object, and layer-owned storage must be disjoint.
+The caller must not change or free layers or the array during construction.
+
+Construction follows this order:
+
+1. If `out_model == NULL`, return `CINDER_ERROR_INVALID_ARGUMENT`. Otherwise set
+   `*out_model = NULL` before any other validation.
+2. Reject `layers == NULL` or `layer_count == 0` with `INVALID_ARGUMENT`.
+3. Reject `layer_count > SIZE_MAX / sizeof(cinder_layer_t *)` with `OVERFLOW`
+   before traversing the array or calculating its allocation size.
+4. Visit indices from zero upward. At each index, call `cinder_layer_validate`
+   and return its first failure unchanged. Then compare that pointer with earlier
+   entries and reject a duplicate with `INVALID_ARGUMENT`. NULL entries fail
+   validation. Metadata checks do not rescan all Dense parameter values; their
+   validity and immutability come from the layer constructors and ownership rules.
+5. Once every entry passes, check adjacent connections in order. Return
+   `DIMENSION_MISMATCH` at the first unequal output/input pair.
+6. Derive external dimensions and the largest input or output size among all
+   layers. Layer validation has already proved that each vector's byte extent
+   fits in `size_t`. Never multiply unchecked sizes.
+7. Allocate, in order, the model descriptor, private pointer array, working
+   buffer A, and working buffer B. Each buffer is a separate allocation of
+   `capacity * sizeof(float)` bytes. Any allocation failure returns `ALLOCATION`
+   and releases only these new allocations; all supplied layers remain owned
+   by the caller.
+8. After every allocation succeeds, copy the pointer list, clear the source
+   slots, and publish the model. Nothing that can fail remains during this
+   ownership transfer.
+
+No allocation occurs until validation finishes. Duplicate detection may use a
+simple pairwise scan: quadratic in the layer count, without a temporary set.
+The small sequential runtime does not need a more complex ownership registry.
+Do not call a destructor that frees adopted layers on a partially constructed
+model before ownership has transferred.
+
+An empty list is an error, not an identity operation. This gives every valid
+model well-defined positive external dimensions. It also rejects accidentally
+omitted layers instead of producing an apparently successful empty network.
+
+## Connections and dimensions
+
+Every adjacent pair must satisfy:
+
+```text
+layers[i - 1].output_size == layers[i].input_size
+```
+
+For the planned tiny network:
+
+| Index | Layer | Input size | Output size |
+| --- | --- | --- | --- |
+| 0 | Dense | 2 | 4 |
+| 1 | ReLU | 4 | 4 |
+| 2 | Dense | 4 | 2 |
+| 3 | Softmax | 2 | 2 |
+
+The model exposes two inputs and two outputs. All three connections match.
+Replacing the ReLU with a valid `3 -> 3` ReLU causes model construction to fail
+because the first Dense produces four values. A ReLU described as `4 -> 2`
+fails the layer's own metadata validation even before connection checking.
+
+There is no truncation, padding, broadcasting, implicit reshape, or automatic
+repair of a mismatch. A malformed network never becomes an executable model.
+The topology stays fixed afterward, so inference uses the constructor's
+validated connections without allocating or rebuilding them on every call.
+
+## Working buffers and execution
+
+Each model owns two distinct reusable float buffers. Their common capacity is:
+
+```text
+capacity = max(all layer input sizes and all layer output sizes)
+```
+
+This includes external input/output sizes and every intermediate size. For the
+`2 -> 4 -> 2` example, both buffers have capacity four. Two buffers are allocated
+even for a one-layer model, keeping construction and execution uniform.
+Individual allocations are checked separately; no unchecked `2 * capacity`
+calculation is needed. These buffers are additional to the owned parameters.
+
+The first layer reads the caller's input and writes buffer A. Each later layer
+reads the previous result and writes the other buffer. The model passes the
+logical input count for that layer and the full buffer capacity to
+`cinder_layer_forward`. Never pass spare elements as part of a logical input.
+
+| Operation in the example | Reads | Writes | Result count |
+| --- | --- | --- | --- |
+| Dense `2 -> 4` | Caller input | A | 4 |
+| ReLU `4 -> 4` | A | B | 4 |
+| Dense `4 -> 2` | B | A | 2 |
+| Softmax `2 -> 2` | A | B | 2 |
+| Publish successful result | B | Caller output | 2 |
+
+With fewer or more layers, the last result may be in either buffer. A one-layer
+model writes A and then copies A's logical output to the caller. Every layer
+receives separate input/output storage, satisfying the common layer contract.
+
+Working-buffer contents need not be initialized or cleared between calls.
+Successful layers overwrite their entire logical output before a later layer
+reads it. In the example, the second Dense leaves old data beyond A's first two
+elements; Softmax receives a count of two and never reads those old elements.
+If a layer fails, execution stops immediately instead of consuming its partial
+result. The next run starts again at layer zero, so no explicit reset is needed.
+
+`cinder_model_run` takes a non-const model pointer because it modifies these
+private buffers. Layer topology and parameters remain unchanged. There are no
+allocations or frees during execution, including returned-error paths. The
+model retains no caller input, output, or error pointer after the call.
+
+## Inference validation and failure behavior
+
+The caller supplies one vector containing exactly the model input size and an
+output buffer with at least the model output size. Output need not be initialized.
+Counts are float elements; actual readable/writable extents are the caller's
+responsibility.
+
+Checks and execution follow this order:
+
+1. NULL model, input, or output: `INVALID_ARGUMENT`.
+2. Wrong input count, including zero: `DIMENSION_MISMATCH`.
+3. Insufficient output capacity, including zero: `BUFFER_TOO_SMALL`.
+4. Any NaN or infinity in the logical input: `NONFINITE`.
+5. Execute layers in order through `cinder_layer_forward`. Stop at the first
+   failure and return the existing status and diagnostic message unchanged.
+6. Only after all layers succeed, copy exactly the model output size to caller
+   output and return `CINDER_OK` with cleared error details.
+
+**Every returned failure preserves the entire caller output**, including
+arithmetic failure after earlier layers succeeded. This is stronger than the
+individual layer contract, which permits partial arithmetic results: those
+partial results stay in private buffers and are never published. Their contents
+are unspecified after failure and inaccessible to callers. This output guarantee
+applies to valid calls satisfying storage and lifetime preconditions; invalid
+pointers or unsynchronized calls cannot be made safe by a status code.
+
+For example, a two-output model given output `{91, 92, 93, 94}` either succeeds
+with `{result0, result1, 93, 94}`, or returns an error leaving all four values
+unchanged. The preserved values after failure are previous data, not a result
+for the failed input; callers must still check the returned status.
+
+Spare output capacity is untouched on every outcome. Input, layer parameters,
+and immutable metadata are also unchanged. A failed run does not invalidate
+the model. Subsequent runs may use different caller buffers and input values.
+Results depend on the current input and fixed parameters, not prior calls.
+
+The final copy adds `O(output_size)` work while preserving caller output without
+another allocation. Working storage is two vectors of the largest required
+size; inference work is the sum of the layer operations plus validation/copying.
+There is no global error state, printing, process termination, or new status
+code. Optional caller-owned errors follow [`error.h`](../include/cinder/error.h):
+matching status, an empty message on success, and a bounded null-terminated
+message on failure.
+
+## Storage, repeated calls, and concurrency
+
+The full advertised input and output ranges must be disjoint; exact and partial
+overlap are forbidden. Disjoint slices of the same caller allocation are allowed.
+Both ranges and error storage must also be separate from one another and all
+model-owned storage, including parameter arrays accessed through old aliases.
+Overlap and true accessible extents are caller preconditions, not runtime
+checks. The model API deliberately requires caller buffers separate from all
+owned data, even where a lower-level layer could read borrowed parameter data.
+
+| Situation | Contract |
+| --- | --- |
+| Repeated runs on one model | Allowed after the previous call returns, including after a failure; no reset. |
+| Simultaneous or reentrant runs on one model | Forbidden, even with different input/output/error buffers. |
+| Sharing one model between threads | Caller holds an external lock for each entire run and coordinates lifetime. |
+| Parallel runs on independent models | Allowed with separately owned layers/workspaces, separate writable output/error storage, and unchanged readable inputs. |
+| Size getters during a run | Allowed: they read immutable metadata, not working buffers. |
+| Destruction while any call or borrowed access uses the model | Forbidden; caller must synchronize lifetime. |
+
+The two working buffers are shared by all calls on an instance. Different
+caller output buffers therefore do not make simultaneous calls on that instance
+safe. There is no internal mutex, busy flag, `BUSY` status, or attempt to detect
+concurrent entry. External serialization or independently constructed models
+are the explicit coordination choices. Independent models may share read-only
+caller input; their owned layers and parameter allocations are not shared.
+
+The runtime does not create worker threads. Permission to call independent
+instances from application threads does not introduce internal multithreading
+or change the v0.1.0 execution scope.
+
+## Cleanup and future usage example
+
+`cinder_model_free(NULL)` is harmless. Freeing a valid model releases every
+adopted layer through `cinder_layer_free`, both working buffers, the private
+pointer array, and the model descriptor. It allocates nothing. The caller's
+model pointer is not reset; all borrowed layer and parameter pointers expire.
+Free a model exactly once, after all calls and borrowed accesses finish.
+
+This example illustrates ownership and the declared API. It can be syntax-checked
+now but cannot link or execute until the model functions are implemented:
+
+```c
+#include "cinder/model.h"
+
+int model_example(void)
+{
+    const float weights[] = {1, 2, -1, 0, 0.5f, -0.5f, 3, 1};
+    const float bias[] = {0.5f, -1, 2, 0};
+    const float input[] = {2, -1};
+    float output[] = {91, 92, 93, 94, 95, 96};
+    cinder_layer_t *layers[3] = {NULL, NULL, NULL};
+    cinder_model_t *model = NULL;
+    cinder_error_t error;
+
+    cinder_status_t status = cinder_layer_create_dense(
+        2, 4, weights, 8, bias, 4, &layers[0], &error);
+    if (status == CINDER_OK) {
+        status = cinder_layer_create_activation(CINDER_LAYER_RELU, 4, &layers[1], &error);
+    }
+    if (status == CINDER_OK) {
+        status = cinder_layer_create_activation(CINDER_LAYER_SOFTMAX, 4, &layers[2], &error);
+    }
+    if (status == CINDER_OK) {
+        status = cinder_model_create(layers, 3, &model, &error);
+        /* Success clears all slots. Failure leaves the layers caller-owned. */
+    }
+
+    int result = 1;
+    if (status == CINDER_OK && cinder_model_input_size(model) == 2 &&
+        cinder_model_output_size(model) == 4) {
+        status = cinder_model_run(model, input, 2, output, 6, &error);
+        /* Success writes four probabilities; output[4..5] stay 95 and 96.
+         * Any returned failure preserves all six original output values. */
+        result = status == CINDER_OK ? 0 : 1;
+    }
+
+    /* Safe after partial layer creation, model failure, or successful transfer. */
+    for (size_t i = 0; i < 3; ++i) {
+        cinder_layer_free(layers[i]);
+    }
+    cinder_model_free(model);
+    return result;
+}
+```
+
+The shorter example uses Dense `2 -> 4`, ReLU, and Softmax to demonstrate
+ownership and calls. The full `2 -> 4 -> 2` network remains a later integration
+fixture; this declaration example does not establish its numerical correctness.
+
+## Verification and next scoped steps
+
+On October 22, 2026, all six C11 syntax checks passed: the standalone header,
+repeated inclusion with existing headers, both C blocks in this document, and
+the two model API blocks in the roadmap. Checks used
+`-Wall -Wextra -Wpedantic -Werror -fsyntax-only`, without producing objects or
+executables, linking, or running model code. This step adds declarations and
+documentation only; no runtime model implementation, build target, or automated
+runtime test is added. Syntax checks do not establish construction, ownership,
+or inference behavior; those require the following implementation steps.
+
+1. Implement construction, size accessors, cleanup, connection validation, and
+   the two reusable buffers. Test one-layer and mixed models, empty/NULL/duplicate
+   entries, metadata errors, early/late connection mismatches, overflow checks,
+   ownership transfer only on success, cleared source slots, unchanged failure
+   slots/layers, and forced failure at all four model allocation points. Ensure
+   partial cleanup never frees untransferred layers and model cleanup frees
+   every adopted object exactly once.
+2. Implement inference with buffer alternation and a final copy only on success.
+   Test exact and spare capacity, non-finite inputs, source preservation, early
+   and late arithmetic errors with unchanged caller output, recovery, different
+   inputs on repeated runs, and zero allocation/free calls on success and failure.
+   Cover odd/even layer counts, a single layer, and widening/shrinking vectors
+   so stale buffer tails and wrong final-buffer selection cannot pass unnoticed.
+3. Compare the full `2 -> 4 -> 2` network's intermediate values and final
+   probabilities with NumPy, then complete sanitizer, leak, and hosted CI checks
+   before closing M2. Verify independent instances and externally serialized
+   calls; do not deliberately execute forbidden same-instance data races.
+
+The immediate next task is step 1. File loading, an exporter, and MNIST remain
+later phases.

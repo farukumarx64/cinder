@@ -656,4 +656,5 @@ This completes local Phase 1 verification. The [Dense-layer contract](DENSE.md)
 defines how Phase 2 packages these tensors and math kernels. Dense creation,
 cleanup, and forward execution are implemented. The [common layer interface](LAYER.md)
 now implements wrappers and dispatch for Dense, ReLU, and Softmax. The
-sequential-model contract is next.
+[sequential-model contract](MODEL.md) is defined; model construction, connection
+validation, size accessors, cleanup, and reusable buffers are next.
