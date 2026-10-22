@@ -390,7 +390,7 @@ for this change have not been verified.
 The [common layer interface](LAYER.md) now implements a tagged wrapper that
 owns this Dense object, exposes its dimensions, and delegates forward execution.
 Common constructors, validation, cleanup, and activation dispatch are implemented;
-the [sequential-model contract](MODEL.md) is defined, with model construction
-and cleanup next. Dense applies no activation and does not yet participate in
-an implemented model execution API. Buffer overlap remains a caller
+the [sequential model](MODEL.md) now implements construction and cleanup with
+ownership of its layers. Dense applies no activation; sequential execution
+through `cinder_model_run` is next. Buffer overlap remains a caller
 precondition, not a runtime-diagnosed error.

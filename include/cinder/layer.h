@@ -23,8 +23,8 @@ typedef enum {
  * After construction, callers treat all fields and nested Dense data as
  * read-only. Do not copy owning layers by value or free their payloads directly.
  * An executable/owning layer comes from a constructor and is freed once by its
- * current owner with cinder_layer_free. model.h defines transfer to a model on
- * successful model construction; its functions are not implemented yet.
+ * current owner with cinder_layer_free. model.h defines the implemented
+ * ownership transfer to a model on successful model construction.
  */
 typedef struct {
     cinder_layer_type_t type;

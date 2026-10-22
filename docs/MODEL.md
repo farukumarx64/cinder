@@ -1,9 +1,11 @@
 # Sequential-model contract
 
 The public declarations are in [`include/cinder/model.h`](../include/cinder/model.h).
-**This step defines the contract only.** Model construction, cleanup, accessors,
-and inference are not implemented or linked yet. The existing tensor, Dense,
-and common layer implementations remain the operations the model will compose.
+Construction, connection validation, size accessors, and cleanup are implemented
+in [`src/model.c`](../src/model.c) and linked into `cinder_core`. Each model owns
+its ordered layers and two reusable working buffers. **Inference remains a
+contract only:** `cinder_model_run` is declared but not implemented yet. The
+existing tensor, Dense, and common layer operations will supply its execution.
 
 ## Representation and public API
 
@@ -42,8 +44,8 @@ void cinder_model_free(cinder_model_t *model);
 ```
 
 `cinder_model_t` is an opaque type: callers can hold a pointer but cannot inspect
-its layout, allocate it by value, or change its fields. The implementation will
-store the ordered layer pointers, layer count, external input/output sizes,
+its layout, allocate it by value, or change its fields. The implementation
+stores the ordered layer pointers, layer count, external input/output sizes,
 working-buffer capacity, and two working-buffer pointers. Keeping those fields
 private prevents callers from invalidating connections or replacing buffers
 after construction. No public append/remove/reorder or workspace access API is
@@ -123,6 +125,27 @@ The small sequential runtime does not need a more complex ownership registry.
 Do not call a destructor that frees adopted layers on a partially constructed
 model before ownership has transferred.
 
+The implementation initially sets `layer_count` to zero and every owned pointer
+to NULL. That lets `cinder_model_free` clean up each partial allocation state
+without touching any caller-owned layer or reading uninitialized pointer-array
+entries. Only after all four allocations succeed does construction copy the
+ordered pointers, clear source slots, set the adopted layer count, and publish
+`*out_model`. Dense parameter arrays are neither copied again nor modified.
+
+The ownership chain after success is:
+
+```text
+caller owns model handle
+  model owns private layer-pointer array and both working buffers
+  model owns each common layer wrapper
+    Dense wrapper owns Dense object
+      Dense object owns weight/bias tensors and their arrays
+```
+
+The caller continues to own the input and destination output arrays. Model
+construction does not receive or allocate those arrays. The future run call
+will borrow them only for the duration of execution.
+
 An empty list is an error, not an identity operation. This gives every valid
 model well-defined positive external dimensions. It also rejects accidentally
 omitted layers instead of producing an apparently successful empty network.
@@ -154,7 +177,7 @@ repair of a mismatch. A malformed network never becomes an executable model.
 The topology stays fixed afterward, so inference uses the constructor's
 validated connections without allocating or rebuilding them on every call.
 
-## Working buffers and execution
+## Working buffers and planned execution
 
 Each model owns two distinct reusable float buffers. Their common capacity is:
 
@@ -167,6 +190,10 @@ This includes external input/output sizes and every intermediate size. For the
 even for a one-layer model, keeping construction and execution uniform.
 Individual allocations are checked separately; no unchecked `2 * capacity`
 calculation is needed. These buffers are additional to the owned parameters.
+
+Buffer allocation is implemented. The execution steps below describe the next
+scoped task, `cinder_model_run`. The buffers are private; there is no public
+workspace accessor or requirement that their initial contents be zero.
 
 The first layer reads the caller's input and writes buffer A. Each later layer
 reads the previous result and writes the other buffer. The model passes the
@@ -271,7 +298,7 @@ The runtime does not create worker threads. Permission to call independent
 instances from application threads does not introduce internal multithreading
 or change the v0.1.0 execution scope.
 
-## Cleanup and future usage example
+## Cleanup and construction example
 
 `cinder_model_free(NULL)` is harmless. Freeing a valid model releases every
 adopted layer through `cinder_layer_free`, both working buffers, the private
@@ -279,8 +306,55 @@ pointer array, and the model descriptor. It allocates nothing. The caller's
 model pointer is not reset; all borrowed layer and parameter pointers expire.
 Free a model exactly once, after all calls and borrowed accesses finish.
 
-This example illustrates ownership and the declared API. It can be syntax-checked
-now but cannot link or execute until the model functions are implemented:
+This construction-only example creates the `2 -> 4 -> 2` sequence and can be
+compiled, linked, and run with the current library:
+
+```c
+#include "cinder/model.h"
+
+int model_creation_example(void)
+{
+    const float weights1[] = {1, 2, -1, 0, 0.5f, -0.5f, 3, 1};
+    const float bias1[] = {0.5f, -1, 2, 0};
+    const float weights2[] = {1, 0, -1, 0.5f, 0, 1, 0.5f, -1};
+    const float bias2[] = {0, 0.5f};
+    cinder_layer_t *layers[4] = {NULL, NULL, NULL, NULL};
+    cinder_model_t *model = NULL;
+    cinder_error_t error;
+
+    cinder_status_t status = cinder_layer_create_dense(
+        2, 4, weights1, 8, bias1, 4, &layers[0], &error);
+    if (status == CINDER_OK) {
+        status = cinder_layer_create_activation(CINDER_LAYER_RELU, 4, &layers[1], &error);
+    }
+    if (status == CINDER_OK) {
+        status = cinder_layer_create_dense(4, 2, weights2, 8, bias2, 2, &layers[2], &error);
+    }
+    if (status == CINDER_OK) {
+        status = cinder_layer_create_activation(CINDER_LAYER_SOFTMAX, 2, &layers[3], &error);
+    }
+    if (status == CINDER_OK) {
+        status = cinder_model_create(layers, 4, &model, &error);
+    }
+    int result = status == CINDER_OK && cinder_model_input_size(model) == 2 &&
+                 cinder_model_output_size(model) == 2 ? 0 : 1;
+    /* On success these slots are NULL and the model owns all four layers.
+     * On failure any created layers still belong to the caller. */
+    for (size_t i = 0; i < 4; ++i) {
+        cinder_layer_free(layers[i]);
+    }
+    cinder_model_free(model);
+    return result;
+}
+```
+
+The model internally allocates two four-float buffers. Its external dimensions
+remain two inputs and two outputs; buffer capacity is not an external dimension.
+
+## Future inference example
+
+This example illustrates the declared execution API. It can be syntax-checked,
+but cannot link or run until `cinder_model_run` is implemented:
 
 ```c
 #include "cinder/model.h"
@@ -332,29 +406,54 @@ fixture; this declaration example does not establish its numerical correctness.
 
 ## Verification and next scoped steps
 
-On October 22, 2026, all six C11 syntax checks passed: the standalone header,
-repeated inclusion with existing headers, both C blocks in this document, and
-the two model API blocks in the roadmap. Checks used
-`-Wall -Wextra -Wpedantic -Werror -fsyntax-only`, without producing objects or
-executables, linking, or running model code. This step adds declarations and
-documentation only; no runtime model implementation, build target, or automated
-runtime test is added. Syntax checks do not establish construction, ownership,
-or inference behavior; those require the following implementation steps.
+The initial contract passed six C11 syntax checks on October 22, 2026, before
+implementation. Construction, validation, accessors, and cleanup were then
+implemented and verified locally on macOS on the same day:
 
-1. Implement construction, size accessors, cleanup, connection validation, and
-   the two reusable buffers. Test one-layer and mixed models, empty/NULL/duplicate
-   entries, metadata errors, early/late connection mismatches, overflow checks,
-   ownership transfer only on success, cleared source slots, unchanged failure
-   slots/layers, and forced failure at all four model allocation points. Ensure
-   partial cleanup never frees untransferred layers and model cleanup frees
-   every adopted object exactly once.
-2. Implement inference with buffer alternation and a final copy only on success.
+- `model_allocation` links the production library and checks empty/NULL inputs,
+  pointer-array overflow, invalid layer metadata with preserved diagnostics,
+  duplicates, and early/middle/late connection mismatches. It verifies validation
+  ordering, failure preservation, successful transfer with cleared slots,
+  corrected-list retries, one-layer models, activation-only models, and the
+  example sequence. Borrowed Dense parameters remain unchanged, the caller's
+  source pointer array can be freed, and separate models have independent owners.
+- `model_allocation_failures` compiles the real model/layer/Dense/tensor sources
+  with test-only allocator substitutions. Every one of the four model allocation
+  points is forced to fail, with and without optional error details. Each failure
+  releases all partial model storage, leaves the original layers alive and
+  executable, and permits either caller cleanup or a successful retry. Another
+  live model and its buffers survive failed construction unchanged.
+- The same test inspects private storage without adding a public workspace API.
+  It verifies exact layer order and identity, a separately owned pointer list,
+  two distinct writable buffers of the required byte size, and maxima at the
+  input, output, or middle of a sequence. Both buffers have four-float capacity
+  for the `2 -> 4 -> 2` example, and both exist even for a single-layer model.
+  A largest-representable-vector test intercepts the buffer allocation before
+  real malloc, verifying byte-count handling without requesting huge memory.
+- Allocation tracking confirms invalid construction attempts allocate nothing,
+  size getters allocate/free nothing, and cleanup makes no allocations. Every
+  successful allocation is freed exactly once, including adopted Dense data.
+  Reusing a cleared source slot cannot replace a model-owned layer.
+- Debug passed all 16 CTest tests. Release and combined ASan/UBSan builds with
+  generated tensor NumPy references enabled each passed all 17 tests. Both new
+  model test executables reported zero leaks with native macOS `leaks`.
+- A build with tests disabled succeeded and registered zero tests. The
+  construction example compiled with C11 warnings as errors, linked against
+  that library, and ran. The future inference example remains syntax-only.
+
+These results cover construction and cleanup, not model inference. Hosted
+macOS/Linux CI for this change has not been verified; existing jobs will run the
+new CTest registrations when published.
+
+The remaining scoped steps are:
+
+1. Implement inference with buffer alternation and a final copy only on success.
    Test exact and spare capacity, non-finite inputs, source preservation, early
    and late arithmetic errors with unchanged caller output, recovery, different
    inputs on repeated runs, and zero allocation/free calls on success and failure.
    Cover odd/even layer counts, a single layer, and widening/shrinking vectors
    so stale buffer tails and wrong final-buffer selection cannot pass unnoticed.
-3. Compare the full `2 -> 4 -> 2` network's intermediate values and final
+2. Compare the full `2 -> 4 -> 2` network's intermediate values and final
    probabilities with NumPy, then complete sanitizer, leak, and hosted CI checks
    before closing M2. Verify independent instances and externally serialized
    calls; do not deliberately execute forbidden same-instance data races.

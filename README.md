@@ -17,9 +17,9 @@ Phase 0 is complete, including the MIT license and verified development setup.
 Phase 2 includes Dense creation/cleanup with owned parameter copies and a
 tested, allocation-free forward pass. The common Dense/ReLU/Softmax layer
 interface now has implemented constructors, metadata validation, cleanup, and
-allocation-free dispatch. The sequential-model contract is defined; model
-construction, connection validation, size accessors, cleanup, and reusable
-buffers are the next scoped task. Model functions are not implemented yet.
+allocation-free dispatch. Model construction, connection validation, size
+accessors, cleanup, and two reusable working buffers are implemented. Sequential
+inference through `cinder_model_run` is the next scoped task and remains a declaration.
 The project contains a CMake build and a CLI that supports `--version`.
 The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
 
@@ -106,12 +106,21 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
 - The [sequential-model contract](docs/MODEL.md) and [public declarations](include/cinder/model.h)
   define an opaque, nonempty, ordered model. Creation validates connections and
   transfers layer ownership only on success, clearing the supplied array slots.
-  Two model-owned buffers support inference with unchanged caller output on
-  every returned failure; runs on the same instance must be serialized.
-  Headers and examples passed C11 syntax checks on October 22, 2026. Model
-  functions are declarations only; runtime behavior has not been tested yet.
-- The next scoped task is implementing model construction, connection validation,
-  size accessors, cleanup, and the two reusable working buffers.
+  Headers and examples passed C11 syntax checks on October 22, 2026, before implementation.
+- `cinder_model_create` now validates all layer metadata, duplicate pointers, and
+  adjacent dimensions before allocating. It owns a private pointer list and two
+  working buffers sized to the largest layer input/output vector. The example
+  `2 -> 4 -> 2` model has two four-float buffers. Size getters expose external
+  dimensions; `cinder_model_free` releases all adopted layers and model storage.
+- On October 22, model construction/cleanup passed the full Debug suite (16/16)
+  and Release plus combined ASan/UBSan suites with generated tensor NumPy
+  references enabled (17/17 each). Tests force all four model allocation failures,
+  verify rollback and ownership, and check private buffer sizes. Both new tests
+  reported zero native leaks; a build without tests and the linked construction
+  example passed. Hosted CI remains unverified for this change.
+- The next scoped task is implementing `cinder_model_run` with alternating
+  buffers and a final copy only after success. Its contract preserves caller
+  output on every returned failure and requires serialized calls per instance.
 - Model loading, sequential model inference, and the `info`, `run`, and `bench` commands are
   planned features; they are not implemented yet.
 
@@ -174,7 +183,7 @@ exactly `Cinder 0.1.0-dev` followed by a newline on standard output, and empty
 standard error. The expected version follows the CMake project version.
 Failures show diagnostics; the test has a ten-second timeout.
 
-The runtime tests cover tensor memory management, math, Dense, and common layers:
+The runtime tests cover tensor math and memory, layers, and model ownership:
 
 - `tensor_allocation` checks dimensions, zero initialization, writable storage,
   independent tensors, invalid arguments, both size-overflow cases, repeated
@@ -229,6 +238,11 @@ The runtime tests cover tensor memory management, math, Dense, and common layers
   Dense. `layer_allocation_failures` forces all six Dense-wrapper allocation
   failures and each activation's one allocation failure, tracks cleanup, and
   verifies that validation and forward execution allocate/free nothing.
+- `model_allocation` checks construction validation, connection mismatches,
+  ownership transfer, dimension getters, source-list lifetime, and independent
+  models. `model_allocation_failures` forces all four model allocations to fail,
+  verifies caller layers survive rollback, checks ordered adoption and exact
+  private buffer sizes, and tracks complete cleanup with no new allocations.
 
 All runtime tests have ten-second timeouts. Their checks stay active in Release
 builds, where ordinary C `assert` checks could be disabled by `NDEBUG`.
@@ -292,9 +306,9 @@ builds and `build-sanitize/` for sanitizer builds; explicitly set either option
 to `OFF` when disabling it in an existing build directory. Benchmark with
 sanitizers disabled because their checks add runtime overhead.
 
-The current tests exercise the version command, tensor allocation/cleanup,
-basic access, matrix-vector multiplication, bias addition, ReLU, and Softmax.
-NumPy reference comparisons are included; model inference tests remain future steps.
+The current tests exercise the version command, tensor math and memory,
+Dense/common layer execution, and model construction/cleanup. NumPy reference
+comparisons are included; model inference tests remain future steps.
 Passing the current tests is not evidence that future code is free of memory errors.
 
 See the upstream [AddressSanitizer documentation](https://clang.llvm.org/docs/AddressSanitizer.html)
@@ -376,10 +390,11 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | `src/tensor.c` | Tensor allocation, cleanup, checked access, matrix-vector multiplication, bias addition, ReLU, Softmax, and error reporting. |
 | `src/dense.c` | Dense creation, parameter copying, cleanup, and forward execution through tensor kernels. |
 | `src/layer.c` | Common constructors, metadata validation, cleanup, and Dense/ReLU/Softmax dispatch. |
+| `src/model.c` | Private model storage, ordered adoption, connection validation, buffer allocation, size getters, and cleanup. |
 | `include/cinder/tensor.h` | Tensor representation and function declarations. |
 | `include/cinder/dense.h` | Dense representation and implemented create/free/forward API declarations. |
 | `include/cinder/layer.h` | Common layer tags, dimensions, payload, and implemented API declarations. |
-| `include/cinder/model.h` | Opaque sequential model and create/size/run/free declarations; implementation pending. |
+| `include/cinder/model.h` | Opaque model with implemented create/size/free APIs; run remains a declaration. |
 | `include/cinder/error.h` | Status codes and caller-owned error details. |
 | `docs/TENSOR.md` | Tensor layout, ownership, validation, and failure contract. |
 | `docs/DENSE.md` | Dense parameter shapes, ownership, public API, overlap, failures, and worked example. |
@@ -393,6 +408,8 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | `tests/test_dense_forward.c` | Tests Dense results, saved NumPy references, validation, partial failures, and repeated execution. |
 | `tests/test_layer.c` | Tests common dispatch, metadata, ownership, source/output preservation, errors, and saved NumPy references. |
 | `tests/test_layer_alloc_failures.c` | Forces wrapper/owned-data allocation failures and checks cleanup, recovery, and allocation-free execution. |
+| `tests/test_model.c` | Tests model construction, connection validation, ownership, dimension getters, and cleanup. |
+| `tests/test_model_alloc_failures.c` | Forces all four model allocation failures and checks rollback, ordered ownership, and private buffer capacities. |
 | `tests/test_tensor_access.c` | Tests row-major access, bounds, finite values, and failure behavior. |
 | `tests/test_tensor_matvec.c` | Tests matrix-vector products, dimensions, output capacity, and numeric failures. |
 | `tests/test_tensor_bias.c` | Tests bias addition, vector lengths, numeric failures, and composed `Wx + b` results. |
@@ -419,8 +436,9 @@ and benchmark numbers describe targets, not existing capabilities or measured
 performance. Phases 0 and 1 are complete locally. Phase 2's Dense-layer contract,
 creation, cleanup, and forward pass are complete. The common layer interface
 and its constructors, validator, cleanup, and dispatch are implemented. The
-sequential-model contract is defined; implement model construction, connection
-validation, size accessors, cleanup, and reusable buffers next.
+sequential-model contract is defined, and construction, connection validation,
+size accessors, cleanup, and reusable buffers are implemented. Implement
+sequential inference next; M2 is not complete yet.
 
 The v0.1.0 scope excludes training, GPU execution, convolutional layers,
 quantization, SIMD, multithreading, and arbitrary computation graphs.

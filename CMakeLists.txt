@@ -42,7 +42,7 @@ function(cinder_configure_target target)
     endif()
 endfunction()
 
-add_library(cinder_core STATIC src/tensor.c src/dense.c src/layer.c)
+add_library(cinder_core STATIC src/tensor.c src/dense.c src/layer.c src/model.c)
 target_include_directories(cinder_core PUBLIC "${PROJECT_SOURCE_DIR}/include")
 cinder_configure_target(cinder_core)
 # Unix toolchains provide exp through libm (part of the system library on macOS).
@@ -85,6 +85,11 @@ if(BUILD_TESTING)
     target_link_libraries(test_layer PRIVATE cinder_core)
     cinder_configure_target(test_layer)
     add_test(NAME layer_interface COMMAND test_layer)
+
+    add_executable(test_model tests/test_model.c)
+    target_link_libraries(test_model PRIVATE cinder_core)
+    cinder_configure_target(test_model)
+    add_test(NAME model_allocation COMMAND test_model)
 
     add_executable(test_tensor_access tests/test_tensor_access.c)
     target_link_libraries(test_tensor_access PRIVATE cinder_core)
@@ -182,11 +187,24 @@ if(BUILD_TESTING)
     endif()
     add_test(NAME layer_allocation_failures COMMAND test_layer_alloc_failures)
 
+    # Track the full model/layer/tensor ownership chain and private workspaces.
+    # Allocator substitutions remain confined to this test translation unit.
+    add_executable(test_model_alloc_failures tests/test_model_alloc_failures.c)
+    target_include_directories(test_model_alloc_failures PRIVATE
+        "${PROJECT_SOURCE_DIR}/include"
+    )
+    cinder_configure_target(test_model_alloc_failures)
+    if(UNIX)
+        target_link_libraries(test_model_alloc_failures PRIVATE m)
+    endif()
+    add_test(NAME model_allocation_failures COMMAND test_model_alloc_failures)
+
     set_tests_properties(
         tensor_allocation tensor_access tensor_matvec tensor_bias tensor_relu
         tensor_softmax tensor_numpy_fixtures tensor_allocation_failures
         dense_allocation dense_allocation_failures dense_forward
         layer_interface layer_allocation_failures
+        model_allocation model_allocation_failures
         PROPERTIES TIMEOUT 10
     )
 endif()

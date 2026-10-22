@@ -4,8 +4,9 @@ The types and declarations are in [`include/cinder/layer.h`](../include/cinder/l
 The constructors, metadata validator, destructor, and forward dispatcher are
 implemented in [`src/layer.c`](../src/layer.c) and linked into `cinder_core`.
 Dense, ReLU, and Softmax share this API and reuse their existing tested kernels.
-The [sequential-model contract](MODEL.md) defines how models will adopt and
-connect these layers. Model creation, validation, buffers, and cleanup are next.
+The [sequential-model contract](MODEL.md) defines how models adopt and connect
+these layers. Model creation, validation, buffers, and cleanup are implemented;
+sequential inference is next.
 
 ## Type tag, dimensions, and payload
 
@@ -121,9 +122,10 @@ not an owning layer that can be passed to free or forward.
 The [model contract](MODEL.md#ownership-transfer-and-construction) specifies
 transfer only when model construction succeeds: the model adopts the layers
 and clears the caller's array slots. Failure leaves the layers caller-owned.
-The model constructor is not implemented yet. Layer inspection and execution
-do not transfer ownership; after adoption, the model manages layer execution
-and releases the layers during its own cleanup.
+This ownership transfer is implemented. Layer inspection and execution do not
+transfer ownership; after adoption, the model releases the layers during its
+own cleanup. Execution of adopted layers will be handled by `cinder_model_run`,
+which remains unimplemented.
 
 ## Validation visible to the model
 
@@ -155,7 +157,7 @@ Dense's own tensor layout, finite parameters, and intact metadata remain the
 invariants established by its constructor. Forward execution checks finite
 source values again; metadata validation is not a substitute for that check.
 
-After validating each layer, model connection validation can compare:
+After validating each layer, model construction compares:
 
 ```text
 previous_layer.output_size == next_layer.input_size
@@ -176,9 +178,9 @@ fails the connection check instead: the preceding layer produces four values,
 but ReLU expects three. Dense `4 -> 4` is valid too; Dense can change length
 but is not required to change it.
 
-The model can also use these fields to determine its external input/output
-sizes and the largest working vector. These are requirements for future model
-validation and buffer planning, not an implemented model API.
+Model construction also uses these fields to determine its external input/output
+sizes and the largest working vector, then allocates two reusable buffers.
+These construction checks are implemented; model execution is the next step.
 
 ## Common execution and switch dispatch
 
@@ -300,7 +302,7 @@ int layer_example(void)
     }
     if (status == CINDER_OK && (dense->output_size != relu->input_size ||
                                relu->output_size != softmax->input_size)) {
-        /* A future model constructor will report connection mismatches. */
+        /* The model constructor reports these connection mismatches automatically. */
         cinder_layer_free(softmax);
         cinder_layer_free(relu);
         cinder_layer_free(dense);
@@ -371,6 +373,6 @@ verified. Existing CI jobs automatically include the new CTest registrations.
 
 The [sequential-model contract](MODEL.md) is now defined, including ownership,
 connection checks, external dimensions, output preservation on failure, and
-serialized access to shared working buffers. Next, implement model construction,
-connection validation, size accessors, cleanup, and the two reusable buffers.
-Sequential inference follows as a separate scoped step.
+serialized access to shared working buffers. Model construction, connection
+validation, size accessors, cleanup, and both reusable buffers are implemented.
+Sequential inference is the next scoped step.

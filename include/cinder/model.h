@@ -6,7 +6,8 @@
 #include "cinder/layer.h"
 
 /*
- * Contract and declarations only; model functions are not implemented yet.
+ * Construction, connection validation, size accessors, and cleanup are
+ * implemented. cinder_model_run remains a declaration for the next step.
  * A model executes a fixed, nonempty sequence of layers on one float32 vector.
  * Its representation is private: it owns the layer list, every layer, and two
  * reusable working buffers. Public size accessors expose immutable dimensions.
@@ -70,6 +71,7 @@ size_t cinder_model_input_size(const cinder_model_t *model);
 size_t cinder_model_output_size(const cinder_model_t *model);
 
 /*
+ * Execution contract only; cinder_model_run is not implemented yet.
  * Run the fixed sequence on one input vector without allocations or frees.
  * model must be a live constructor-created object. It is non-const because
  * inference changes private working buffers, not topology or parameters.

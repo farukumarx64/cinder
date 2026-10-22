@@ -36,8 +36,10 @@ reject invalid inputs before writing, and leave spare output capacity untouched.
 The sequential-model contract is defined: fixed nonempty order, ownership
 transfer only on successful construction, validated connections, private reusable
 buffers, unchanged caller output on failure, and serialized runs per instance.
-Model functions are declarations only. Construction, connection validation,
-size accessors, cleanup, and the two buffers are the next scoped task.
+Construction, connection validation, size accessors, cleanup, and two reusable
+working buffers are implemented. Construction adopts layers only after all four
+model allocations succeed. Sequential inference through `cinder_model_run`
+is the next scoped task; that function remains a declaration.
 Implement and verify one scoped step at a time.
 
 ### Phase 0 checklist
@@ -91,9 +93,9 @@ checklist item and closing M0.
 - [x] Implement the Dense forward pass using the existing matvec and bias kernels. It checks input length, output capacity, and finite sources before writes, propagates kernel failures, and preserves input/parameters and spare capacity. Tests cover non-square shapes, known results, 11 saved NumPy fixtures (41 outputs), repeated inputs, validation preservation, arithmetic partial results/recovery, and zero allocation/free calls. On October 16, 2026, Debug passed 12/12 tests; Release and combined ASan/UBSan builds with generated tensor NumPy references enabled passed 13/13. Forward and extended allocation-failure executables reported zero native leaks; a build without tests passed. Hosted CI remains pending. See [forward behavior](docs/DENSE.md#forward-execution).
 - [x] Define the common layer interface and the Dense/ReLU/Softmax representation and execution contracts. The tagged structure exposes positive input/output sizes and a Dense-only owned payload; activations require equal sizes and no payload. Constructors, metadata validation, cleanup, separate-buffer forward execution, switch routes, and failure/overlap rules are declared in [layer.h](include/cinder/layer.h) and explained in [the contract](docs/LAYER.md). Header and example C11 syntax checks passed on October 16, 2026, before common layer implementation began.
 - [x] Implement common layer constructors, metadata validation, cleanup, and switch dispatch for Dense/ReLU/Softmax, reusing the existing kernels. Tests cover tags, payload/dimension consistency, activation input validation before copying, preserved lengths/sources, untouched spare capacity, error propagation/recovery, and 35 saved NumPy vectors. Fault tests cover all six Dense-wrapper allocations and the single allocation for each activation, complete cleanup, and allocation-free validation/forward calls. On October 21, 2026, Debug passed 14/14 tests; Release and combined ASan/UBSan with generated tensor references enabled passed 15/15. Both new executables reported zero native leaks; a build without tests and the linked documentation example passed. Hosted CI remains unverified for this change. See [implementation and verification](docs/LAYER.md#verification-and-next-step).
-- [x] Define the sequential-model contract: opaque nonempty ordered models, layer ownership transfer only on construction success with cleared source slots, rejection of duplicate entries and mismatched connections, dimension getters, two private working buffers, final output copy only after success, unchanged output on every returned failure, repeated-call recovery, and externally serialized runs per instance. See [the contract](docs/MODEL.md) and [public declarations](include/cinder/model.h). Header and example C11 syntax checks passed on October 22, 2026; model functions are not implemented yet.
-- [ ] Implement model creation, connection validation, size accessors, cleanup, and two reusable buffers sized for the largest required vector. Force all four model allocation failures; verify rollback preserves caller-owned layers and successful transfer clears source slots. **Next scoped task.**
-- [ ] Implement sequential inference with reusable buffers and no allocation during a normal call.
+- [x] Define the sequential-model contract: opaque nonempty ordered models, layer ownership transfer only on construction success with cleared source slots, rejection of duplicate entries and mismatched connections, dimension getters, two private working buffers, final output copy only after success, unchanged output on every returned failure, repeated-call recovery, and externally serialized runs per instance. See [the contract](docs/MODEL.md) and [public declarations](include/cinder/model.h). Header and example C11 syntax checks passed on October 22, 2026, before model implementation began.
+- [x] Implement model creation, connection validation, size accessors, cleanup, and two reusable buffers sized for the largest required vector. Validation precedes allocation; ownership transfers only after all four model allocations succeed. Tests cover ordered adoption, cleared source slots, unchanged failure slots/layers, all four forced allocation failures, complete cleanup, independent owners, and exact private buffer capacities (four floats each for the example network). On October 22, 2026, Debug passed 16/16 tests; Release and combined ASan/UBSan with generated tensor references enabled passed 17/17. Both new executables reported zero native leaks; a build without tests and the linked construction example passed. Hosted CI remains unverified for this change. See [model verification](docs/MODEL.md#verification-and-next-scoped-steps).
+- [ ] Implement sequential inference with alternating reusable buffers, a final copy only after all layers succeed, and no allocation/free calls on success or failure. **Next scoped task.**
 - [ ] Compare every intermediate output and final probabilities of a deterministic `2 -> 4 -> 2` network against NumPy; preserve the fixtures for Phase 3.
 - [ ] Verify repeated calls, failure recovery, allocation counts, cleanup, sanitizers, supported leak checks, and macOS/Linux CI before closing M2.
 
@@ -297,7 +299,8 @@ Use **CMake** as the build system.
 Keep the initial API small while making buffer sizes and failure details explicit.
 
 The sequential-model interface is defined in [model.h](include/cinder/model.h)
-and [the model contract](docs/MODEL.md); these functions are not implemented yet:
+and [the model contract](docs/MODEL.md). Construction, size accessors, and cleanup
+are implemented; `cinder_model_run` is still a declaration for the next step:
 
 ```c
 #include "cinder/layer.h"
@@ -769,7 +772,8 @@ is specified in [docs/LAYER.md](docs/LAYER.md) and
 [src/layer.c](src/layer.c). The sequential-model contract is defined in
 [docs/MODEL.md](docs/MODEL.md), with declarations in
 [include/cinder/model.h](include/cinder/model.h). Model construction, connection
-validation, size accessors, cleanup, and reusable buffers are next. Follow the Phase 2
+validation, size accessors, cleanup, and reusable buffers are implemented in
+[src/model.c](src/model.c). Sequential inference is next. Follow the Phase 2
 checklist in Current Progress; the dated sections below retain the planned
 milestone order.
 
@@ -786,7 +790,7 @@ typedef enum {
 
 Every layer exposes `input_size` and `output_size`. Dense may change length;
 ReLU and Softmax must preserve it. After validating each layer's metadata,
-model construction will require each output size to match the next input size.
+model construction requires each output size to match the next input size.
 
 Conceptually:
 
@@ -1674,7 +1678,7 @@ Documentation + release
 CINDER v0.1.0
 ```
 
-Follow these milestones in order even if individual daily targets shift. M0 and M1 are complete locally: the development setup and tensor math are implemented and verified, including deterministic NumPy comparisons. Phase 2's Dense API and common Dense/ReLU/Softmax layer API are implemented, and the sequential-model contract is defined. Continue with model construction, connection validation, size accessors, cleanup, and reusable buffers. Hosted CI verification of the latest runtime changes remains pending.
+Follow these milestones in order even if individual daily targets shift. M0 and M1 are complete locally: the development setup and tensor math are implemented and verified, including deterministic NumPy comparisons. Phase 2's Dense and common layer APIs, model construction/validation, size accessors, cleanup, and reusable buffers are implemented. Continue with sequential inference; M2 is not complete yet. Hosted CI verification of the latest runtime changes remains pending.
 
 The **October 25 deadline is the internal deadline**.
 
