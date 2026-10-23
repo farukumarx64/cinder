@@ -659,4 +659,5 @@ cleanup, and forward execution are implemented. The [common layer interface](LAY
 now implements wrappers and dispatch for Dense, ReLU, and Softmax. The
 [sequential model](MODEL.md) now implements construction, connection validation,
 size accessors, cleanup, reusable buffers, and sequential inference. Independent
-NumPy verification of the full example network is next.
+NumPy verification now covers every stage of the full example network; see
+[network references](NUMPY_TESTS.md#complete-tiny-network).

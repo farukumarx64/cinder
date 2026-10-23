@@ -127,6 +127,12 @@ if(BUILD_TESTING)
     cinder_configure_target(test_tensor_numpy)
     add_test(NAME tensor_numpy_fixtures COMMAND test_tensor_numpy)
 
+    add_executable(test_model_numpy tests/test_model_numpy.c)
+    target_include_directories(test_model_numpy PRIVATE "${PROJECT_SOURCE_DIR}/tests/fixtures")
+    target_link_libraries(test_model_numpy PRIVATE cinder_core)
+    cinder_configure_target(test_model_numpy)
+    add_test(NAME model_numpy_fixtures COMMAND test_model_numpy)
+
     if(CINDER_ENABLE_NUMPY_TESTS)
         find_package(Python3 3.11 REQUIRED COMPONENTS Interpreter)
         execute_process(
@@ -149,12 +155,22 @@ if(BUILD_TESTING)
             COMMENT "Generating independent float32 NumPy references"
             VERBATIM
         )
-        add_executable(test_tensor_numpy_generated tests/test_tensor_numpy.c "${cinder_numpy_header}")
+        # A single generation target prevents concurrent consumers from racing
+        # to write the same header during a parallel build.
+        add_custom_target(cinder_numpy_fixtures DEPENDS "${cinder_numpy_header}")
+        add_executable(test_tensor_numpy_generated tests/test_tensor_numpy.c)
+        add_dependencies(test_tensor_numpy_generated cinder_numpy_fixtures)
         target_include_directories(test_tensor_numpy_generated PRIVATE "${PROJECT_BINARY_DIR}/numpy-fixtures")
         target_link_libraries(test_tensor_numpy_generated PRIVATE cinder_core)
         cinder_configure_target(test_tensor_numpy_generated)
         add_test(NAME tensor_numpy_generated COMMAND test_tensor_numpy_generated)
-        set_tests_properties(tensor_numpy_generated PROPERTIES TIMEOUT 10)
+        add_executable(test_model_numpy_generated tests/test_model_numpy.c)
+        add_dependencies(test_model_numpy_generated cinder_numpy_fixtures)
+        target_include_directories(test_model_numpy_generated PRIVATE "${PROJECT_BINARY_DIR}/numpy-fixtures")
+        target_link_libraries(test_model_numpy_generated PRIVATE cinder_core)
+        cinder_configure_target(test_model_numpy_generated)
+        add_test(NAME model_numpy_generated COMMAND test_model_numpy_generated)
+        set_tests_properties(tensor_numpy_generated model_numpy_generated PROPERTIES TIMEOUT 10)
     endif()
 
     # This test compiles tensor.c with allocator substitutions confined to its
@@ -209,7 +225,7 @@ if(BUILD_TESTING)
         tensor_softmax tensor_numpy_fixtures tensor_allocation_failures
         dense_allocation dense_allocation_failures dense_forward
         layer_interface layer_allocation_failures
-        model_allocation model_allocation_failures model_run
+        model_allocation model_allocation_failures model_run model_numpy_fixtures
         PROPERTIES TIMEOUT 10
     )
 endif()

@@ -86,7 +86,7 @@ static void check_example_prefixes(cinder_error_t *error)
 {
     const float inputs[][2] = {{2, -1}, {0, 0}, {2, 2}};
     /* Hand-calculated intermediate vectors and two-value Softmax references.
-     * Full generated NumPy network fixtures remain a separate roadmap step. */
+     * Independent full-network NumPy comparisons live in test_model_numpy.c. */
     const float expected[][4][4] = {
         {{0.5f, -3, 3.5f, 5}, {0.5f, 0, 3.5f, 5}, {-0.5f, -2.75f},
          {0.904650535f, 0.095349465f}},

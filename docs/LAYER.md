@@ -6,7 +6,8 @@ implemented in [`src/layer.c`](../src/layer.c) and linked into `cinder_core`.
 Dense, ReLU, and Softmax share this API and reuse their existing tested kernels.
 The [sequential-model contract](MODEL.md) defines how models adopt and connect
 these layers. Model creation, validation, buffers, inference, and cleanup are
-implemented; full-network NumPy verification is next.
+implemented. Every stage of the full tiny network now matches NumPy; the
+remaining Phase 2 verification checklist is next.
 
 ## Type tag, dimensions, and payload
 
@@ -381,4 +382,5 @@ inference are implemented. On October 22, the activation interface was extended
 to support exact input/output aliasing, skipping the copy in that case. Tests
 cover in-place results, spare capacity, non-finite rejection before writes,
 invalid lengths/capacity, and recovery. See [model verification](MODEL.md#verification-and-next-scoped-steps)
-for the current suite results. Full-network NumPy verification is next.
+for the current suite results. The full tiny network now also matches NumPy
+through both layer and model APIs; see [network references](NUMPY_TESTS.md#complete-tiny-network).

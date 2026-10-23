@@ -18,6 +18,16 @@ typedef struct {
     numpy_vector_t input, relu, softmax;
 } numpy_activation_fixture_t;
 
+typedef struct {
+    const char *name;
+    size_t input_size, hidden_size, output_size;
+    numpy_vector_t weights1, bias1, weights2, bias2;
+} numpy_network_fixture_t;
+typedef struct {
+    const char *name;
+    numpy_vector_t input, dense1, relu, logits, softmax;
+} numpy_network_case_t;
+
 #define NUMPY_VECTOR(array) {array, sizeof(array) / sizeof((array)[0])}
 
 static const float non_square_weights[] = {
@@ -675,6 +685,241 @@ static const numpy_activation_fixture_t numpy_activation_fixtures[] = {
     {"equal_extremes", NUMPY_VECTOR(activation_equal_extremes_input), NUMPY_VECTOR(activation_equal_extremes_relu), NUMPY_VECTOR(activation_equal_extremes_softmax)},
     {"underflow", NUMPY_VECTOR(activation_underflow_input), NUMPY_VECTOR(activation_underflow_relu), NUMPY_VECTOR(activation_underflow_softmax)},
     {"spread", NUMPY_VECTOR(activation_spread_input), NUMPY_VECTOR(activation_spread_relu), NUMPY_VECTOR(activation_spread_softmax)},
+};
+
+static const float tiny_network_weights1[] = {
+    0x1.0000000000000p+0f, 0x1.0000000000000p+1f, -0x1.0000000000000p+0f, 0x0.0p+0f,
+    0x1.0000000000000p-1f, -0x1.0000000000000p-1f, 0x1.8000000000000p+1f, 0x1.0000000000000p+0f,
+};
+
+static const float tiny_network_bias1[] = {
+    0x1.0000000000000p-1f, -0x1.0000000000000p+0f, 0x1.0000000000000p+1f, 0x0.0p+0f,
+};
+
+static const float tiny_network_weights2[] = {
+    0x1.0000000000000p+0f, 0x0.0p+0f, -0x1.0000000000000p+0f, 0x1.0000000000000p-1f,
+    0x0.0p+0f, 0x1.0000000000000p+0f, 0x1.0000000000000p-1f, -0x1.0000000000000p+0f,
+};
+
+static const float tiny_network_bias2[] = {
+    0x0.0p+0f, 0x1.0000000000000p-1f,
+};
+
+static const numpy_network_fixture_t numpy_tiny_network = {
+    "tiny_2_4_2", 2, 4, 2, NUMPY_VECTOR(tiny_network_weights1), NUMPY_VECTOR(tiny_network_bias1), NUMPY_VECTOR(tiny_network_weights2), NUMPY_VECTOR(tiny_network_bias2)
+};
+
+static const float tiny_worked_input[] = {
+    0x1.0000000000000p+1f, -0x1.0000000000000p+0f,
+};
+
+static const float tiny_worked_dense1[] = {
+    0x1.0000000000000p-1f, -0x1.8000000000000p+1f, 0x1.c000000000000p+1f, 0x1.4000000000000p+2f,
+};
+
+static const float tiny_worked_relu[] = {
+    0x1.0000000000000p-1f, 0x0.0p+0f, 0x1.c000000000000p+1f, 0x1.4000000000000p+2f,
+};
+
+static const float tiny_worked_logits[] = {
+    -0x1.0000000000000p-1f, -0x1.6000000000000p+1f,
+};
+
+static const float tiny_worked_softmax[] = {
+    0x1.cf2e5a0000000p-1f, 0x1.868d280000000p-4f,
+};
+
+static const float tiny_zero_input[] = {
+    0x0.0p+0f, 0x0.0p+0f,
+};
+
+static const float tiny_zero_dense1[] = {
+    0x1.0000000000000p-1f, -0x1.0000000000000p+0f, 0x1.0000000000000p+1f, 0x0.0p+0f,
+};
+
+static const float tiny_zero_relu[] = {
+    0x1.0000000000000p-1f, 0x0.0p+0f, 0x1.0000000000000p+1f, 0x0.0p+0f,
+};
+
+static const float tiny_zero_logits[] = {
+    -0x1.8000000000000p+0f, 0x1.8000000000000p+0f,
+};
+
+static const float tiny_zero_softmax[] = {
+    0x1.8483440000000p-5f, 0x1.e7b7cc0000000p-1f,
+};
+
+static const float tiny_reversed_signs_input[] = {
+    -0x1.0000000000000p+0f, 0x1.0000000000000p+1f,
+};
+
+static const float tiny_reversed_signs_dense1[] = {
+    0x1.c000000000000p+1f, 0x0.0p+0f, 0x1.0000000000000p-1f, -0x1.0000000000000p+0f,
+};
+
+static const float tiny_reversed_signs_relu[] = {
+    0x1.c000000000000p+1f, 0x0.0p+0f, 0x1.0000000000000p-1f, 0x0.0p+0f,
+};
+
+static const float tiny_reversed_signs_logits[] = {
+    0x1.8000000000000p+1f, 0x1.8000000000000p-1f,
+};
+
+static const float tiny_reversed_signs_softmax[] = {
+    0x1.cf2e5a0000000p-1f, 0x1.868d280000000p-4f,
+};
+
+static const float tiny_positive_input[] = {
+    0x1.0000000000000p+1f, 0x1.0000000000000p+1f,
+};
+
+static const float tiny_positive_dense1[] = {
+    0x1.a000000000000p+2f, -0x1.8000000000000p+1f, 0x1.0000000000000p+1f, 0x1.0000000000000p+3f,
+};
+
+static const float tiny_positive_relu[] = {
+    0x1.a000000000000p+2f, 0x0.0p+0f, 0x1.0000000000000p+1f, 0x1.0000000000000p+3f,
+};
+
+static const float tiny_positive_logits[] = {
+    0x1.1000000000000p+3f, -0x1.a000000000000p+2f,
+};
+
+static const float tiny_positive_softmax[] = {
+    0x1.fffff40000000p-1f, 0x1.4875c20000000p-22f,
+};
+
+static const float tiny_negative_input[] = {
+    -0x1.0000000000000p+1f, -0x1.8000000000000p+1f,
+};
+
+static const float tiny_negative_dense1[] = {
+    -0x1.e000000000000p+2f, 0x1.0000000000000p+0f, 0x1.4000000000000p+1f, -0x1.2000000000000p+3f,
+};
+
+static const float tiny_negative_relu[] = {
+    0x0.0p+0f, 0x1.0000000000000p+0f, 0x1.4000000000000p+1f, 0x0.0p+0f,
+};
+
+static const float tiny_negative_logits[] = {
+    -0x1.4000000000000p+1f, 0x1.6000000000000p+1f,
+};
+
+static const float tiny_negative_softmax[] = {
+    0x1.561b2e0000000p-8f, 0x1.fd53cc0000000p-1f,
+};
+
+static const float tiny_decimals_input[] = {
+    0x1.99999a0000000p-4f, -0x1.99999a0000000p-3f,
+};
+
+static const float tiny_decimals_dense1[] = {
+    0x1.9999980000000p-3f, -0x1.19999a0000000p+0f, 0x1.1333340000000p+1f, 0x1.99999c0000000p-4f,
+};
+
+static const float tiny_decimals_relu[] = {
+    0x1.9999980000000p-3f, 0x0.0p+0f, 0x1.1333340000000p+1f, 0x1.99999c0000000p-4f,
+};
+
+static const float tiny_decimals_logits[] = {
+    -0x1.e666680000000p+0f, 0x1.79999a0000000p+0f,
+};
+
+static const float tiny_decimals_softmax[] = {
+    0x1.0f0a540000000p-5f, 0x1.ef0f5c0000000p-1f,
+};
+
+static const float tiny_relu_boundary_input[] = {
+    -0x1.0000000000000p+0f, 0x0.0p+0f,
+};
+
+static const float tiny_relu_boundary_dense1[] = {
+    -0x1.0000000000000p-1f, 0x0.0p+0f, 0x1.8000000000000p+0f, -0x1.8000000000000p+1f,
+};
+
+static const float tiny_relu_boundary_relu[] = {
+    0x0.0p+0f, 0x0.0p+0f, 0x1.8000000000000p+0f, 0x0.0p+0f,
+};
+
+static const float tiny_relu_boundary_logits[] = {
+    -0x1.8000000000000p+0f, 0x1.4000000000000p+0f,
+};
+
+static const float tiny_relu_boundary_softmax[] = {
+    0x1.ec3ad40000000p-5f, 0x1.e13c520000000p-1f,
+};
+
+static const float tiny_tied_logits_input[] = {
+    0x1.6000000000000p-1f, -0x1.0000000000000p-4f,
+};
+
+static const float tiny_tied_logits_dense1[] = {
+    0x1.1000000000000p+0f, -0x1.b000000000000p+0f, 0x1.3000000000000p+1f, 0x1.0000000000000p+1f,
+};
+
+static const float tiny_tied_logits_relu[] = {
+    0x1.1000000000000p+0f, 0x0.0p+0f, 0x1.3000000000000p+1f, 0x1.0000000000000p+1f,
+};
+
+static const float tiny_tied_logits_logits[] = {
+    -0x1.4000000000000p-2f, -0x1.4000000000000p-2f,
+};
+
+static const float tiny_tied_logits_softmax[] = {
+    0x1.0000000000000p-1f, 0x1.0000000000000p-1f,
+};
+
+static const float tiny_positive_saturation_input[] = {
+    0x1.0000000000000p+5f, 0x1.0000000000000p+4f,
+};
+
+static const float tiny_positive_saturation_dense1[] = {
+    0x1.0200000000000p+6f, -0x1.0800000000000p+5f, 0x1.4000000000000p+3f, 0x1.c000000000000p+6f,
+};
+
+static const float tiny_positive_saturation_relu[] = {
+    0x1.0200000000000p+6f, 0x0.0p+0f, 0x1.4000000000000p+3f, 0x1.c000000000000p+6f,
+};
+
+static const float tiny_positive_saturation_logits[] = {
+    0x1.ba00000000000p+6f, -0x1.aa00000000000p+6f,
+};
+
+static const float tiny_positive_saturation_softmax[] = {
+    0x1.0000000000000p+0f, 0x0.0p+0f,
+};
+
+static const float tiny_negative_saturation_input[] = {
+    -0x1.0000000000000p+5f, -0x1.0000000000000p+4f,
+};
+
+static const float tiny_negative_saturation_dense1[] = {
+    -0x1.fc00000000000p+5f, 0x1.f000000000000p+4f, -0x1.8000000000000p+2f, -0x1.c000000000000p+6f,
+};
+
+static const float tiny_negative_saturation_relu[] = {
+    0x0.0p+0f, 0x1.f000000000000p+4f, 0x0.0p+0f, 0x0.0p+0f,
+};
+
+static const float tiny_negative_saturation_logits[] = {
+    0x0.0p+0f, 0x1.f800000000000p+4f,
+};
+
+static const float tiny_negative_saturation_softmax[] = {
+    0x1.7822860000000p-46f, 0x1.0000000000000p+0f,
+};
+
+static const numpy_network_case_t numpy_network_cases[] = {
+    {"worked", NUMPY_VECTOR(tiny_worked_input), NUMPY_VECTOR(tiny_worked_dense1), NUMPY_VECTOR(tiny_worked_relu), NUMPY_VECTOR(tiny_worked_logits), NUMPY_VECTOR(tiny_worked_softmax)},
+    {"zero", NUMPY_VECTOR(tiny_zero_input), NUMPY_VECTOR(tiny_zero_dense1), NUMPY_VECTOR(tiny_zero_relu), NUMPY_VECTOR(tiny_zero_logits), NUMPY_VECTOR(tiny_zero_softmax)},
+    {"reversed_signs", NUMPY_VECTOR(tiny_reversed_signs_input), NUMPY_VECTOR(tiny_reversed_signs_dense1), NUMPY_VECTOR(tiny_reversed_signs_relu), NUMPY_VECTOR(tiny_reversed_signs_logits), NUMPY_VECTOR(tiny_reversed_signs_softmax)},
+    {"positive", NUMPY_VECTOR(tiny_positive_input), NUMPY_VECTOR(tiny_positive_dense1), NUMPY_VECTOR(tiny_positive_relu), NUMPY_VECTOR(tiny_positive_logits), NUMPY_VECTOR(tiny_positive_softmax)},
+    {"negative", NUMPY_VECTOR(tiny_negative_input), NUMPY_VECTOR(tiny_negative_dense1), NUMPY_VECTOR(tiny_negative_relu), NUMPY_VECTOR(tiny_negative_logits), NUMPY_VECTOR(tiny_negative_softmax)},
+    {"decimals", NUMPY_VECTOR(tiny_decimals_input), NUMPY_VECTOR(tiny_decimals_dense1), NUMPY_VECTOR(tiny_decimals_relu), NUMPY_VECTOR(tiny_decimals_logits), NUMPY_VECTOR(tiny_decimals_softmax)},
+    {"relu_boundary", NUMPY_VECTOR(tiny_relu_boundary_input), NUMPY_VECTOR(tiny_relu_boundary_dense1), NUMPY_VECTOR(tiny_relu_boundary_relu), NUMPY_VECTOR(tiny_relu_boundary_logits), NUMPY_VECTOR(tiny_relu_boundary_softmax)},
+    {"tied_logits", NUMPY_VECTOR(tiny_tied_logits_input), NUMPY_VECTOR(tiny_tied_logits_dense1), NUMPY_VECTOR(tiny_tied_logits_relu), NUMPY_VECTOR(tiny_tied_logits_logits), NUMPY_VECTOR(tiny_tied_logits_softmax)},
+    {"positive_saturation", NUMPY_VECTOR(tiny_positive_saturation_input), NUMPY_VECTOR(tiny_positive_saturation_dense1), NUMPY_VECTOR(tiny_positive_saturation_relu), NUMPY_VECTOR(tiny_positive_saturation_logits), NUMPY_VECTOR(tiny_positive_saturation_softmax)},
+    {"negative_saturation", NUMPY_VECTOR(tiny_negative_saturation_input), NUMPY_VECTOR(tiny_negative_saturation_dense1), NUMPY_VECTOR(tiny_negative_saturation_relu), NUMPY_VECTOR(tiny_negative_saturation_logits), NUMPY_VECTOR(tiny_negative_saturation_softmax)},
 };
 
 #undef NUMPY_VECTOR

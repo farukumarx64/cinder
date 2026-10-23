@@ -71,6 +71,29 @@ def activation_cases():
     ]
 
 
+def tiny_network():
+    """Fixed 2 -> 4 -> 2 example; keep for the exporter/loader round trip."""
+    parameters = dict(
+        weights1=f32([[1, 2], [-1, 0], [0.5, -0.5], [3, 1]]),
+        bias1=f32([0.5, -1, 2, 0]),
+        weights2=f32([[1, 0, -1, 0.5], [0, 1, 0.5, -1]]),
+        bias2=f32([0, 0.5]),
+    )
+    inputs = [
+        ("worked", [2, -1]),
+        ("zero", [0, 0]),
+        ("reversed_signs", [-1, 2]),
+        ("positive", [2, 2]),
+        ("negative", [-2, -3]),
+        ("decimals", [0.1, -0.2]),
+        ("relu_boundary", [-1, 0]),
+        ("tied_logits", [0.6875, -0.0625]),
+        ("positive_saturation", [32, 16]),
+        ("negative_saturation", [-32, -16]),
+    ]
+    return parameters, inputs
+
+
 def emit_array(lines, name, values):
     # A float32 converts exactly to a Python float. C11 hexadecimal literals
     # preserve its bits, including subnormals, without decimal-rounding loss.
@@ -100,6 +123,15 @@ def generate():
         "    const char *name;",
         "    numpy_vector_t input, relu, softmax;",
         "} numpy_activation_fixture_t;\n",
+        "typedef struct {",
+        "    const char *name;",
+        "    size_t input_size, hidden_size, output_size;",
+        "    numpy_vector_t weights1, bias1, weights2, bias2;",
+        "} numpy_network_fixture_t;",
+        "typedef struct {",
+        "    const char *name;",
+        "    numpy_vector_t input, dense1, relu, logits, softmax;",
+        "} numpy_network_case_t;\n",
         "#define NUMPY_VECTOR(array) {array, sizeof(array) / sizeof((array)[0])}\n",
     ]
     dense_records = []
@@ -136,7 +168,34 @@ def generate():
         fields = ", ".join(f"NUMPY_VECTOR(activation_{name}_{stage})" for stage in arrays)
         activation_records.append(f'    {{"{name}", {fields}}},')
     lines.extend(["static const numpy_activation_fixture_t numpy_activation_fixtures[] = {",
-                  *activation_records, "};\n", "#undef NUMPY_VECTOR",
+                  *activation_records, "};\n"])
+
+    parameters, cases = tiny_network()
+    shapes = dict(weights1=(4, 2), bias1=(4,), weights2=(2, 4), bias2=(2,))
+    for name, values in parameters.items():
+        require_array(values, shapes[name])
+        emit_array(lines, f"tiny_network_{name}", values)
+    fields = ", ".join(f"NUMPY_VECTOR(tiny_network_{name})" for name in parameters)
+    lines.extend(["static const numpy_network_fixture_t numpy_tiny_network = {",
+                  f'    "tiny_2_4_2", 2, 4, 2, {fields}', "};\n"])
+    network_records = []
+    for name, inputs in cases:
+        inputs = f32(inputs)
+        require_array(inputs, (2,))
+        dense1 = np.add(np.matmul(parameters["weights1"], inputs, dtype=np.float32),
+                        parameters["bias1"], dtype=np.float32)
+        relu = np.maximum(dense1, np.float32(0))
+        logits = np.add(np.matmul(parameters["weights2"], relu, dtype=np.float32),
+                        parameters["bias2"], dtype=np.float32)
+        arrays = dict(input=inputs, dense1=dense1, relu=relu,
+                      logits=logits, softmax=softmax(logits))
+        for stage, values in arrays.items():
+            require_array(values, (4,) if stage in ("dense1", "relu") else (2,))
+            emit_array(lines, f"tiny_{name}_{stage}", values)
+        fields = ", ".join(f"NUMPY_VECTOR(tiny_{name}_{stage})" for stage in arrays)
+        network_records.append(f'    {{"{name}", {fields}}},')
+    lines.extend(["static const numpy_network_case_t numpy_network_cases[] = {",
+                  *network_records, "};\n", "#undef NUMPY_VECTOR",
                   "#endif /* CINDER_NUMPY_FIXTURES_H */", ""])
     return "\n".join(lines)
 

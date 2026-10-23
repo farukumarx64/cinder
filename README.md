@@ -21,7 +21,9 @@ allocation-free dispatch. Model construction, connection validation, size
 accessors, cleanup, and two reusable working buffers are implemented. Sequential
 inference through `cinder_model_run` is implemented: Dense switches buffers,
 activations run in place, and caller output changes only after full success.
-Independent NumPy verification of the complete example network is next.
+Every stage of the complete example network now matches deterministic NumPy
+float32 fixtures. The remaining Phase 2 verification checklist, including hosted
+macOS/Linux CI, is next.
 The project contains a CMake build and a CLI that supports `--version`.
 The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
 
@@ -133,9 +135,18 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
   Model-run, model-storage, and layer tests reported zero native leaks. The
   build without tests and linked model/layer documentation examples passed.
   Hosted CI remains unverified for this change.
-- The next scoped task is comparing every intermediate and final result of the
-  complete `2 -> 4 -> 2` example against deterministic NumPy float32 fixtures.
-  Hand-calculated execution tests are in place; M2 is not closed yet.
+- The complete `2 -> 4 -> 2` network now matches independent float32 NumPy
+  references for ten fixed inputs. First Dense, ReLU, final logits, and Softmax
+  are checked through both common layers and sequential models, using shared
+  shape/finite checks and the unchanged `atol = rtol = 1e-5` rule. Saved fixtures
+  retain parameters, inputs, and every expected stage for the future file round trip.
+- On October 23, Debug passed 18/18 tests; Release and combined ASan/UBSan with
+  fresh NumPy generation passed 20/20. Each new network test compared 80 vectors
+  / 240 values; the maximum absolute error was `5.96046448e-8`. Regeneration was
+  identical locally and preserved all existing tensor arrays. The network test
+  reported zero native leaks, and a build without tests passed.
+- The next scoped task is completing the Phase 2 verification checklist,
+  including hosted macOS/Linux CI; M2 is not closed yet.
 - Model loading and the `info`, `run`, and `bench` commands are
   planned features; they are not implemented yet.
 
@@ -267,6 +278,12 @@ The runtime tests cover tensor math and memory, layers, model ownership, and inf
   shrinking/widening vectors, input/parameter preservation, exact/spare capacity,
   validation order, independent models, and repeated execution. Real arithmetic
   overflow at early/middle/late layers preserves caller output and diagnostics.
+- `model_numpy_fixtures` compares all four stages of the fixed `2 -> 4 -> 2`
+  network against NumPy for ten deterministic inputs. It checks a direct layer
+  sequence and models ending at each stage, including complete inference,
+  while preserving inputs/parameters and spare capacity. The tensor and model
+  reference tests share `numpy_compare.h` for shape, finiteness, tolerance,
+  failure diagnostics, and measured error statistics.
 
 All runtime tests have ten-second timeouts. Their checks stay active in Release
 builds, where ordinary C `assert` checks could be disabled by `NDEBUG`.
@@ -291,8 +308,8 @@ cmake --build build-numpy
 ctest --test-dir build-numpy --output-on-failure
 ```
 
-This adds one test, `tensor_numpy_generated`, using a generated header
-inside the build directory. The saved fixtures stay unchanged. CMake fails
+This adds `tensor_numpy_generated` and `model_numpy_generated`, using one
+generated header inside the build directory. The saved fixtures stay unchanged. CMake fails
 clearly if NumPy is missing or testing is disabled. See
 [NumPy reference verification](docs/NUMPY_TESTS.md) for the formulas, fixture
 generation command, reproducibility policy, and recorded results.
@@ -331,8 +348,8 @@ to `OFF` when disabling it in an existing build directory. Benchmark with
 sanitizers disabled because their checks add runtime overhead.
 
 The current tests exercise the version command, tensor math and memory,
-Dense/common layer execution, and model construction/cleanup. NumPy reference
-comparisons are included; model inference tests remain future steps.
+Dense/common layer execution, model construction/cleanup, and sequential inference.
+NumPy reference comparisons cover tensor math and every stage of the tiny network.
 Passing the current tests is not evidence that future code is free of memory errors.
 
 See the upstream [AddressSanitizer documentation](https://clang.llvm.org/docs/AddressSanitizer.html)
@@ -441,6 +458,8 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | `tests/test_tensor_relu.c` | Tests ReLU values, validation, failure preservation, and composed `ReLU(Wx + b)` results. |
 | `tests/test_tensor_softmax.c` | Tests stable probabilities, extreme/tiny values, validation, and composed math results. |
 | `tests/test_tensor_numpy.c` | Compares Cinder's math with saved or freshly generated NumPy fixtures. |
+| `tests/test_model_numpy.c` | Compares all tiny-network stages through layers and model prefixes against NumPy. |
+| `tests/numpy_compare.h` | Shared shape/finite checks, tolerance rule, diagnostics, and statistics for reference tests. |
 | `tests/generate_numpy_fixtures.py` | Generates independent float32 NumPy references with fixed inputs and seed. |
 | `tests/fixtures/numpy_fixtures.h` | Saved input arrays and NumPy expected results, tracked in Git. |
 | `tests/requirements-numpy.txt` | Pinned optional NumPy dependency for reference generation. |
@@ -462,8 +481,9 @@ performance. Phases 0 and 1 are complete locally. Phase 2's Dense-layer contract
 creation, cleanup, and forward pass are complete. The common layer interface
 and its constructors, validator, cleanup, and dispatch are implemented. The
 sequential-model contract is defined, and construction, connection validation,
-size accessors, cleanup, and reusable buffers are implemented. Implement
-sequential inference next; M2 is not complete yet.
+size accessors, cleanup, reusable buffers, and sequential inference are implemented.
+The complete example network matches NumPy at every stage. Complete the remaining
+Phase 2 verification checklist, including hosted CI; M2 is not closed yet.
 
 The v0.1.0 scope excludes training, GPU execution, convolutional layers,
 quantization, SIMD, multithreading, and arbitrary computation graphs.

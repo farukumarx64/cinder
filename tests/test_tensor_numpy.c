@@ -1,7 +1,7 @@
 #include "cinder/tensor.h"
 
 /* CMake chooses saved fixtures or freshly generated build-directory fixtures. */
-#include <numpy_fixtures.h>
+#include "numpy_compare.h"
 
 #include <math.h>
 #include <stdbool.h>
@@ -17,64 +17,7 @@
     } \
 } while (0)
 
-static size_t comparisons;
-static size_t elements;
-static double largest_absolute_error;
-static double largest_tolerance_fraction;
-
-static bool compare_vector(
-    const char *fixture,
-    const char *stage,
-    const float *actual,
-    size_t count,
-    numpy_vector_t reference,
-    bool report
-)
-{
-    if (count != reference.count || count == 0) {
-        if (report) {
-            fprintf(stderr, "%s/%s: shape mismatch or empty vector: %zu vs %zu\n",
-                    fixture, stage, count, reference.count);
-        }
-        return false;
-    }
-    /* Reject non-finite values before any tolerance arithmetic. */
-    for (size_t i = 0; i < count; ++i) {
-        if (!isfinite(actual[i]) || !isfinite(reference.data[i])) {
-            if (report) {
-                fprintf(stderr, "%s/%s[%zu]: non-finite actual or reference\n",
-                        fixture, stage, i);
-            }
-            return false;
-        }
-    }
-    for (size_t i = 0; i < count; ++i) {
-        double difference = fabs((double)actual[i] - (double)reference.data[i]);
-        double allowed = 1e-5 + 1e-5 * fabs((double)reference.data[i]);
-        if (difference > allowed) {
-            if (report) {
-                fprintf(stderr,
-                        "%s/%s[%zu]: actual %.9g, reference %.9g, error %.9g > %.9g\n",
-                        fixture, stage, i, (double)actual[i], (double)reference.data[i],
-                        difference, allowed);
-            }
-            return false;
-        }
-        if (report) {
-            if (difference > largest_absolute_error) {
-                largest_absolute_error = difference;
-            }
-            if (difference / allowed > largest_tolerance_fraction) {
-                largest_tolerance_fraction = difference / allowed;
-            }
-        }
-    }
-    if (report) {
-        ++comparisons;
-        elements += count;
-    }
-    return true;
-}
+static numpy_comparison_stats_t stats;
 
 static void check_comparator(void)
 {
@@ -83,19 +26,19 @@ static void check_comparator(void)
     const float close[] = {0.000001f, 2.000001f};
     const float wrong[] = {0.01f, 2.0f};
     const float reordered[] = {2.0f, 0.0f};
-    CHECK(compare_vector("self", "equal", expected, 2, reference, false));
-    CHECK(compare_vector("self", "close", close, 2, reference, false));
-    CHECK(!compare_vector("self", "wrong", wrong, 2, reference, false));
-    CHECK(!compare_vector("self", "order", reordered, 2, reference, false));
-    CHECK(!compare_vector("self", "shape", expected, 1, reference, false));
-    CHECK(!compare_vector("self", "empty", expected, 0, (numpy_vector_t){expected, 0}, false));
+    CHECK(compare_vector(NULL, "self", "equal", expected, 2, reference, false));
+    CHECK(compare_vector(NULL, "self", "close", close, 2, reference, false));
+    CHECK(!compare_vector(NULL, "self", "wrong", wrong, 2, reference, false));
+    CHECK(!compare_vector(NULL, "self", "order", reordered, 2, reference, false));
+    CHECK(!compare_vector(NULL, "self", "shape", expected, 1, reference, false));
+    CHECK(!compare_vector(NULL, "self", "empty", expected, 0, (numpy_vector_t){expected, 0}, false));
     const float bad[] = {NAN, INFINITY, -INFINITY};
     for (size_t i = 0; i < COUNT(bad); ++i) {
         float nonfinite[] = {0.0f, bad[i]};
         numpy_vector_t invalid_reference = {nonfinite, 2};
-        CHECK(!compare_vector("self", "actual", nonfinite, 2, reference, false));
-        CHECK(!compare_vector("self", "reference", expected, 2, invalid_reference, false));
-        CHECK(!compare_vector("self", "both", nonfinite, 2, invalid_reference, false));
+        CHECK(!compare_vector(NULL, "self", "actual", nonfinite, 2, reference, false));
+        CHECK(!compare_vector(NULL, "self", "reference", expected, 2, invalid_reference, false));
+        CHECK(!compare_vector(NULL, "self", "both", nonfinite, 2, invalid_reference, false));
     }
 }
 
@@ -112,7 +55,7 @@ static void check_status(cinder_status_t status, const cinder_error_t *error,
 static void check_output(const char *name, const char *stage, const float *output,
                          size_t count, numpy_vector_t reference)
 {
-    CHECK(compare_vector(name, stage, output, count, reference, true));
+    CHECK(compare_vector(&stats, name, stage, output, count, reference, true));
     CHECK(isnan(output[count])); /* Spare capacity must remain untouched. */
 }
 
@@ -190,7 +133,7 @@ int main(void)
     printf("NumPy references passed: %zu dense fixtures, %zu activation fixtures, "
            "%zu vectors, %zu elements.\nMax absolute error: %.9g; "
            "max fraction of tolerance: %.9g (must be <= 1).\n",
-           COUNT(numpy_dense_fixtures), COUNT(numpy_activation_fixtures), comparisons,
-           elements, largest_absolute_error, largest_tolerance_fraction);
+           COUNT(numpy_dense_fixtures), COUNT(numpy_activation_fixtures), stats.comparisons,
+           stats.elements, stats.largest_absolute_error, stats.largest_tolerance_fraction);
     return EXIT_SUCCESS;
 }

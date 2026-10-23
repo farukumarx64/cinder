@@ -414,7 +414,8 @@ int model_example(void)
 The shorter example uses Dense `2 -> 4`, ReLU, and Softmax to demonstrate
 ownership and calls. The runtime tests also execute the full `2 -> 4 -> 2`
 network against hand-calculated results. Independent generated NumPy references
-for every stage of that full network remain the next scoped step.
+now also verify every stage through the layer and model APIs; see
+[complete-network verification](NUMPY_TESTS.md#complete-tiny-network).
 
 ## Verification and next scoped steps
 
@@ -487,14 +488,17 @@ Sequential inference was then implemented on October 22, 2026:
 Hosted macOS/Linux CI for the latest change remains unverified; existing jobs
 will run the new CTest registration when published.
 
-The remaining scoped steps are:
+On October 23, the complete network was checked against deterministic float32
+NumPy fixtures for ten inputs. Tests compare all four stages through a direct
+layer sequence and sequential models ending at each stage, including the full
+network. They use the same shape/finite checks and `atol = rtol = 1e-5` comparator
+as the tensor reference tests. Debug passed 18/18 tests; Release and combined
+ASan/UBSan with fresh references passed 20/20. The network executable reported
+zero native leaks. Parameters, inputs, and expected stages are saved for the
+future exporter/loader round trip. See [the reference guide](NUMPY_TESTS.md#complete-tiny-network)
+for the cases, measured errors, and generation commands.
 
-1. Compare the full `2 -> 4 -> 2` network's intermediate values and final
-   probabilities with deterministic NumPy float32 fixtures; preserve them for
-   the Phase 3 exporter/loader round trip.
-2. Complete M2 verification, including hosted macOS/Linux CI and any remaining
-   concurrency/lifetime checks. Serialize same-instance calls externally; do
-   not deliberately execute forbidden same-instance data races.
-
-The immediate next task is step 1. File loading, an exporter, and MNIST remain
-later phases.
+The next scoped task is completing M2 verification, including hosted macOS/Linux
+CI and any remaining concurrency/lifetime checks. Serialize same-instance calls
+externally; do not deliberately execute forbidden same-instance data races.
+File loading, an exporter, and MNIST remain later phases.
