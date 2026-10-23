@@ -498,7 +498,15 @@ zero native leaks. Parameters, inputs, and expected stages are saved for the
 future exporter/loader round trip. See [the reference guide](NUMPY_TESTS.md#complete-tiny-network)
 for the cases, measured errors, and generation commands.
 
-The next scoped task is completing M2 verification, including hosted macOS/Linux
-CI and any remaining concurrency/lifetime checks. Serialize same-instance calls
-externally; do not deliberately execute forbidden same-instance data races.
-File loading, an exporter, and MNIST remain later phases.
+The October 23 [M2 lifecycle audit](M2_VERIFICATION.md) adds 4,120
+success/failure/recovery cycles, concurrent independent instances, and externally
+serialized shared-model calls. Poisoned private buffers must produce the same
+results as baseline runs; allocation tracking now includes attempted `free(NULL)`
+calls, and construction retries execute inference before destruction. Debug
+passed 19/19 tests; Release and ASan/UBSan with fresh references passed 21/21.
+Lifecycle and model-storage executables reported zero native leaks.
+
+Hosted CI passed for runtime commit `f6480d5`; it predates the latest NumPy and
+lifecycle test additions. Passing all three jobs for the published test revision
+is the remaining M2 closure gate. The report records exact evidence and
+limitations. File loading, an exporter, and MNIST remain later phases.

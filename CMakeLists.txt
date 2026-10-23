@@ -133,6 +133,18 @@ if(BUILD_TESTING)
     cinder_configure_target(test_model_numpy)
     add_test(NAME model_numpy_fixtures COMMAND test_model_numpy)
 
+    # Test caller-managed concurrency on the supported macOS/Linux platforms.
+    # Threads are a test dependency, not a dependency of the runtime library.
+    if(UNIX)
+        find_package(Threads REQUIRED)
+        add_executable(test_model_lifecycle tests/test_model_lifecycle.c)
+        target_include_directories(test_model_lifecycle PRIVATE "${PROJECT_SOURCE_DIR}/tests/fixtures")
+        target_link_libraries(test_model_lifecycle PRIVATE cinder_core Threads::Threads)
+        cinder_configure_target(test_model_lifecycle)
+        add_test(NAME model_lifecycle COMMAND test_model_lifecycle)
+        set_tests_properties(model_lifecycle PROPERTIES TIMEOUT 10)
+    endif()
+
     if(CINDER_ENABLE_NUMPY_TESTS)
         find_package(Python3 3.11 REQUIRED COMPONENTS Interpreter)
         execute_process(

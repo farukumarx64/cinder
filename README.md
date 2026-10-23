@@ -22,8 +22,10 @@ accessors, cleanup, and two reusable working buffers are implemented. Sequential
 inference through `cinder_model_run` is implemented: Dense switches buffers,
 activations run in place, and caller output changes only after full success.
 Every stage of the complete example network now matches deterministic NumPy
-float32 fixtures. The remaining Phase 2 verification checklist, including hosted
-macOS/Linux CI, is next.
+float32 fixtures. The Phase 2 lifecycle audit now passes locally, including
+failure recovery and caller-managed concurrency. M2 closure awaits hosted CI
+for the revision containing the latest NumPy/lifecycle tests; see
+[the verification report](docs/M2_VERIFICATION.md).
 The project contains a CMake build and a CLI that supports `--version`.
 The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
 
@@ -145,8 +147,16 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
   / 240 values; the maximum absolute error was `5.96046448e-8`. Regeneration was
   identical locally and preserved all existing tensor arrays. The network test
   reported zero native leaks, and a build without tests passed.
-- The next scoped task is completing the Phase 2 verification checklist,
-  including hosted macOS/Linux CI; M2 is not closed yet.
+- On October 23, the lifecycle audit passed Debug (19/19), Release and combined
+  ASan/UBSan with fresh references (21/21 each). It exercises 4,120
+  success/failure/recovery cycles, independent models, and externally serialized
+  shared-model threads. Poisoned buffers reproduce baseline results; inference
+  performs zero allocation/free attempts. Both lifecycle and model-storage
+  executables reported zero native leaks. See [the M2 report](docs/M2_VERIFICATION.md).
+- Hosted macOS/Linux and Linux sanitizer/leak jobs passed for `f6480d5`;
+  [the inspected run](https://github.com/farukumarx64/cinder/actions/runs/39930054347)
+  predates the newer NumPy/lifecycle tests. Publishing and verifying those tests
+  on all three jobs is the remaining M2 closure gate.
 - Model loading and the `info`, `run`, and `bench` commands are
   planned features; they are not implemented yet.
 
@@ -284,6 +294,11 @@ The runtime tests cover tensor math and memory, layers, model ownership, and inf
   while preserving inputs/parameters and spare capacity. The tensor and model
   reference tests share `numpy_compare.h` for shape, finiteness, tolerance,
   failure diagnostics, and measured error statistics.
+- `model_lifecycle` runs the full network through 4,120 success/failure/recovery
+  cycles, compares results with saved NumPy fixtures, and checks independent
+  models before/after destruction. On macOS/Linux it also tests concurrent
+  independent models and externally locked shared-model calls. POSIX Threads
+  is a dependency of this test only, not of `cinder_core`.
 
 All runtime tests have ten-second timeouts. Their checks stay active in Release
 builds, where ordinary C `assert` checks could be disabled by `NDEBUG`.
@@ -442,6 +457,7 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | `docs/LAYER.md` | Common layer representation, ownership, dimension validation, dispatch, and buffer/failure contract. |
 | `docs/MODEL.md` | Model ownership transfer, connections, dimensions, buffers, inference failures, and concurrency contract. |
 | `docs/NUMPY_TESTS.md` | Reference calculations, fixtures, tolerances, regeneration, and verification results. |
+| `docs/M2_VERIFICATION.md` | Lifecycle/allocation audit, local and hosted evidence, closure gate, and limitations. |
 | `tests/check_version.cmake` | Checks the version command's exit status and output. |
 | `tests/test_tensor.c` | Tests the core library's allocation and cleanup API. |
 | `tests/test_dense.c` | Tests Dense shapes, validation, copied parameters, and independent ownership/lifetimes. |
@@ -459,6 +475,7 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | `tests/test_tensor_softmax.c` | Tests stable probabilities, extreme/tiny values, validation, and composed math results. |
 | `tests/test_tensor_numpy.c` | Compares Cinder's math with saved or freshly generated NumPy fixtures. |
 | `tests/test_model_numpy.c` | Compares all tiny-network stages through layers and model prefixes against NumPy. |
+| `tests/test_model_lifecycle.c` | Exercises repeated/recovering inference and independent or externally serialized model use. |
 | `tests/numpy_compare.h` | Shared shape/finite checks, tolerance rule, diagnostics, and statistics for reference tests. |
 | `tests/generate_numpy_fixtures.py` | Generates independent float32 NumPy references with fixed inputs and seed. |
 | `tests/fixtures/numpy_fixtures.h` | Saved input arrays and NumPy expected results, tracked in Git. |
@@ -482,8 +499,9 @@ creation, cleanup, and forward pass are complete. The common layer interface
 and its constructors, validator, cleanup, and dispatch are implemented. The
 sequential-model contract is defined, and construction, connection validation,
 size accessors, cleanup, reusable buffers, and sequential inference are implemented.
-The complete example network matches NumPy at every stage. Complete the remaining
-Phase 2 verification checklist, including hosted CI; M2 is not closed yet.
+The complete example network matches NumPy at every stage, and lifecycle checks
+pass locally. Hosted CI for the latest NumPy/lifecycle revision is the remaining
+closure gate; M2 is not closed yet.
 
 The v0.1.0 scope excludes training, GPU execution, convolutional layers,
 quantization, SIMD, multithreading, and arbitrary computation graphs.

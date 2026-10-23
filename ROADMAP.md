@@ -43,8 +43,11 @@ model allocations succeed. Sequential inference through `cinder_model_run` is
 implemented with separate Dense buffers, in-place activations, unchanged caller
 output on failure, and no execution allocations/frees. Independent NumPy fixtures
 now verify every stage of the full example network for ten fixed inputs through
-both common layers and model execution. Complete the remaining Phase 2
-verification checklist, including hosted macOS/Linux CI, next.
+both common layers and model execution. The lifecycle audit now passes locally,
+including poisoned-buffer independence, allocation counts, construction retries,
+and valid threaded caller use. Hosted CI passed for runtime commit `f6480d5`;
+CI for the newer NumPy/lifecycle test revision is the remaining M2 closure gate.
+See [the dated verification report](docs/M2_VERIFICATION.md).
 Implement and verify one scoped step at a time.
 
 ### Phase 0 checklist
@@ -102,7 +105,9 @@ checklist item and closing M0.
 - [x] Implement model creation, connection validation, size accessors, cleanup, and two reusable buffers sized for the largest required vector. Validation precedes allocation; ownership transfers only after all four model allocations succeed. Tests cover ordered adoption, cleared source slots, unchanged failure slots/layers, all four forced allocation failures, complete cleanup, independent owners, and exact private buffer capacities (four floats each for the example network). On October 22, 2026, Debug passed 16/16 tests; Release and combined ASan/UBSan with generated tensor references enabled passed 17/17. Both new executables reported zero native leaks; a build without tests and the linked construction example passed. Hosted CI remains unverified for this change. See [model verification](docs/MODEL.md#verification-and-next-scoped-steps).
 - [x] Implement sequential inference: copy validated input into private storage, alternate buffers for Dense, run ReLU/Softmax in place through common dispatch, and publish caller output only after all layers succeed. Stop on the first failure and preserve its diagnostic; no allocations/frees occur during success, rejection, arithmetic failure, or recovery. Tests cover known results, differing vector sizes, single/activation-only/activation-first models, consecutive Dense layers, repeated calls, independent models, source/spare-capacity preservation, and failure at each layer position. On October 22, 2026, Debug passed 17/17 tests; Release and combined ASan/UBSan with generated tensor NumPy references enabled passed 18/18. See [model verification](docs/MODEL.md#verification-and-next-scoped-steps). Hosted CI remains unverified for this change.
 - [x] Compare every intermediate output and final probabilities of the fixed `2 -> 4 -> 2` network against NumPy for ten deterministic inputs. Saved and generated fixtures cover Dense1, ReLU, final logits, and Softmax through both common layers and sequential model prefixes. Shared shape/finite checks and `atol = rtol = 1e-5` remain unchanged. On October 23, 2026, Debug passed 18/18 tests; Release and combined ASan/UBSan with fresh references passed 20/20. Each network test compared 80 vectors / 240 values, with maximum absolute error `5.96046448e-8`. Regeneration was identical locally; the network executable reported zero native leaks, and a build without tests passed. Parameters, inputs, and stage outputs are retained for Phase 3. See [complete-network verification](docs/NUMPY_TESTS.md#complete-network-verification--october-23-2026).
-- [ ] Verify repeated calls, failure recovery, allocation counts, cleanup, sanitizers, supported leak checks, and macOS/Linux CI before closing M2. Local execution, allocation, sanitizer, and leak coverage is recorded above; hosted CI and the remaining verification review are next. **Next scoped task.**
+- [x] Verify lifecycle behavior locally: repeated/different inputs, failed calls followed by success, independent owners, destruction of one model while another survives, poisoned private buffers, zero inference allocation/free attempts, and construction-failure cleanup/retry. The new test executes 4,120 success/failure/recovery cycles, including concurrent independent models and caller-serialized shared-model threads. On October 23, 2026, Debug passed 19/19; Release and combined ASan/UBSan with fresh NumPy references passed 21/21. Lifecycle and model-storage executables reported zero native leaks; the tests-disabled build passed. See [M2 verification](docs/M2_VERIFICATION.md).
+- [x] Inspect hosted macOS/Linux and Linux sanitizer/leak results. [Run 39930054347](https://github.com/farukumarx64/cinder/actions/runs/39930054347) passed all three jobs for `f6480d5`, with 17/17 macOS, 18/18 Linux, and 17/17 Linux sanitizer tests. Runtime sources/headers are unchanged since that revision; newer test additions were not included in the run.
+- [ ] Publish and verify the revision containing the NumPy and lifecycle additions on all three CI jobs, record its actual results, and close M2. Expected test counts are 19 macOS, 21 Linux with fresh NumPy, and 19 Linux sanitizers. **Remaining closure gate.**
 
 ---
 
@@ -779,7 +784,8 @@ is specified in [docs/LAYER.md](docs/LAYER.md) and
 [include/cinder/model.h](include/cinder/model.h). Model construction, connection
 validation, size accessors, cleanup, reusable buffers, and sequential inference
 are implemented in [src/model.c](src/model.c). Full-network NumPy verification
-now passes locally; complete the remaining M2 verification checklist next. Follow the Phase 2
+and lifecycle checks now pass locally; hosted CI for the latest test revision
+is the remaining M2 closure gate. Follow the Phase 2
 checklist in Current Progress; the dated sections below retain the planned
 milestone order.
 
@@ -1684,7 +1690,7 @@ Documentation + release
 CINDER v0.1.0
 ```
 
-Follow these milestones in order even if individual daily targets shift. M0 and M1 are complete locally: the development setup and tensor math are implemented and verified, including deterministic NumPy comparisons. Phase 2's Dense and common layer APIs, model construction/validation, size accessors, cleanup, reusable buffers, and sequential inference are implemented. The full tiny network matches NumPy at every stage. Complete the remaining M2 verification checklist next; M2 is not closed yet. Hosted CI verification of the latest runtime changes remains pending.
+Follow these milestones in order even if individual daily targets shift. M0 and M1 are complete locally: the development setup and tensor math are implemented and verified, including deterministic NumPy comparisons. Phase 2's runtime is implemented, the full tiny network matches NumPy, and the lifecycle audit passes locally. Runtime commit `f6480d5` passed hosted macOS/Linux and sanitizer/leak checks; the latest NumPy/lifecycle test revision must pass CI before M2 is closed. See the M2 verification report for actual results and limitations.
 
 The **October 25 deadline is the internal deadline**.
 

@@ -19,6 +19,7 @@ enum { MODEL_ALLOCATIONS = 4 };
 static size_t allocation_calls;
 static size_t fail_on_call;
 static size_t free_calls;
+static size_t free_attempts;
 static size_t attempted_sizes[128];
 static struct { void *pointer; size_t size; } live_blocks[64];
 static size_t live_count;
@@ -72,6 +73,7 @@ static void *test_calloc(size_t count, size_t size)
 
 static void test_free(void *block)
 {
+    ++free_attempts;
     if (block == NULL) {
         return;
     }
@@ -147,7 +149,7 @@ static const float bias[] = {0.5f, -1, 2, 0};
 static void reset_allocator(void)
 {
     CHECK(live_count == 0);
-    allocation_calls = free_calls = fail_on_call = 0;
+    allocation_calls = free_calls = free_attempts = fail_on_call = 0;
 }
 
 static cinder_layer_t *activation(cinder_layer_type_t type, size_t size)
@@ -274,6 +276,11 @@ static void check_failure(size_t failure, int retry, cinder_error_t *error)
         for (size_t i = 0; i < 100; ++i) {
             CHECK(cinder_model_input_size(model) == 2 && cinder_model_output_size(model) == 2);
         }
+        /* A constructor retry must yield an executable model, not just valid metadata. */
+        forward_calls = fail_on_forward = 0;
+        CHECK(cinder_model_run(model, input, 2, output, 4, error) == CINDER_OK);
+        CHECK(isfinite(output[0]) && isfinite(output[1]));
+        CHECK(fabs((double)output[0] + output[1] - 1.0) < 1e-6);
         CHECK(free_calls == failure - 1);
         cinder_model_free(model);
         CHECK(allocation_calls == calls_before_cleanup);
@@ -450,7 +457,13 @@ static void check_run_storage(cinder_error_t *error)
     cinder_model_t *model = NULL;
     CHECK(cinder_model_create(layers, 4, &model, NULL) == CINDER_OK);
     const float inputs[][2] = {{2, -1}, {0, 0}, {-1, 2}};
+    float baseline[COUNT(inputs)][2];
+    for (size_t i = 0; i < COUNT(inputs); ++i) {
+        forward_calls = fail_on_forward = 0;
+        CHECK(cinder_model_run(model, inputs[i], 2, baseline[i], 2, NULL) == CINDER_OK);
+    }
     size_t allocations_before = allocation_calls, frees_before = free_calls;
+    size_t free_attempts_before = free_attempts;
     size_t live_before = live_count;
     /* An attempted allocation would fail; it must not even be attempted. */
     fail_on_call = allocation_calls + 1;
@@ -495,8 +508,10 @@ static void check_run_storage(cinder_error_t *error)
             }
             CHECK(isfinite(output[0]) && isfinite(output[1]) && isnan(output[2]));
             CHECK(fabs((double)output[0] + output[1] - 1.0) < 1e-6);
+            CHECK(memcmp(output, baseline[example], sizeof(baseline[example])) == 0);
             CHECK(isnan(model->buffers[0][2]) && isnan(model->buffers[0][3]));
             CHECK(allocation_calls == allocations_before && free_calls == frees_before);
+            CHECK(free_attempts == free_attempts_before);
             CHECK(live_count == live_before);
             for (size_t i = 0; i < 4; ++i) {
                 check_parameters(model->layers[i]);
@@ -522,6 +537,7 @@ static void check_run_storage(cinder_error_t *error)
                  CINDER_ERROR_NONFINITE, error);
     CHECK(forward_calls == 0 && memcmp(output, saved, sizeof(output)) == 0);
     CHECK(allocation_calls == allocations_before && free_calls == frees_before);
+    CHECK(free_attempts == free_attempts_before);
     cinder_model_free(model);
     CHECK(live_count == 0 && free_calls == allocation_calls);
 }
@@ -541,6 +557,7 @@ static void check_run_arithmetic_without_allocation(cinder_error_t *error)
         float output[] = {91, 92, NAN}, saved[3];
         memcpy(saved, output, sizeof(output));
         size_t allocations_before = allocation_calls, frees_before = free_calls;
+        size_t free_attempts_before = free_attempts;
         fail_on_call = allocation_calls + 1;
         forward_calls = fail_on_forward = 0;
         check_result(cinder_model_run(model, input, 2, output, 3, error),
@@ -552,6 +569,7 @@ static void check_run_arithmetic_without_allocation(cinder_error_t *error)
         CHECK(forward_calls == 3 && output[0] == b[0] && output[1] == b[1]);
         CHECK(isnan(output[2]));
         CHECK(allocation_calls == allocations_before && free_calls == frees_before);
+        CHECK(free_attempts == free_attempts_before);
         cinder_model_free(model);
         CHECK(live_count == 0 && free_calls == allocation_calls);
     }
