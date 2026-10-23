@@ -25,8 +25,10 @@ Every stage of the complete example network now matches deterministic NumPy
 float32 fixtures. The Phase 2 lifecycle audit passes locally and in macOS/Linux
 CI, including failure recovery and caller-managed concurrency. See
 [the verification report](docs/M2_VERIFICATION.md) for the exact revision,
-results, and limitations. The next scoped step is to define the `.cnd`
-model-format contract before implementing the exporter or loader.
+results, and limitations. Phase 3's [`.cnd` version 1 contract](docs/MODEL_FORMAT.md)
+is now defined, including exact byte layouts, limits, input files, and a worked
+168-byte tiny-network example. The next scoped step is exporter model validation;
+binary writing and loading are still to be implemented.
 The project contains a CMake build and a CLI that supports `--version`.
 The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
 
@@ -458,6 +460,7 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | `docs/DENSE.md` | Dense parameter shapes, ownership, public API, overlap, failures, and worked example. |
 | `docs/LAYER.md` | Common layer representation, ownership, dimension validation, dispatch, and buffer/failure contract. |
 | `docs/MODEL.md` | Model ownership transfer, connections, dimensions, buffers, inference failures, and concurrency contract. |
+| `docs/MODEL_FORMAT.md` | `.cnd` version 1 byte layout, layer IDs, limits, validation, input-file contract, and worked example. |
 | `docs/NUMPY_TESTS.md` | Reference calculations, fixtures, tolerances, regeneration, and verification results. |
 | `docs/M2_VERIFICATION.md` | Lifecycle/allocation audit, local and hosted evidence, M2 closure, and limitations. |
 | `tests/check_version.cmake` | Checks the version command's exit status and output. |
@@ -503,7 +506,8 @@ sequential-model contract is defined, and construction, connection validation,
 size accessors, cleanup, reusable buffers, and sequential inference are implemented.
 The complete example network matches NumPy at every stage, and lifecycle checks
 pass locally and in hosted macOS/Linux CI. M2 closed on October 23, 2026.
-Next: define the Phase 3 `.cnd` model-format contract.
+The Phase 3 `.cnd` format contract is defined. Next: validate supported Python
+models for export, before implementing binary writing.
 
 The v0.1.0 scope excludes training, GPU execution, convolutional layers,
 quantization, SIMD, multithreading, and arbitrary computation graphs.

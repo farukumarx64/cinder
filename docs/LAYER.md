@@ -6,8 +6,9 @@ implemented in [`src/layer.c`](../src/layer.c) and linked into `cinder_core`.
 Dense, ReLU, and Softmax share this API and reuse their existing tested kernels.
 The [sequential-model contract](MODEL.md) defines how models adopt and connect
 these layers. Model creation, validation, buffers, inference, and cleanup are
-implemented. Every stage of the full tiny network now matches NumPy; the
-remaining Phase 2 verification checklist is next.
+implemented. Every stage of the full tiny network matches NumPy, and
+[M2 verification](M2_VERIFICATION.md) is complete. Phase 3's
+[model-format contract](MODEL_FORMAT.md) now defines the serialized layer records.
 
 ## Type tag, dimensions, and payload
 
@@ -30,8 +31,9 @@ typedef struct {
 The type tag identifies which operation to execute and how to interpret the
 payload. An all-zero descriptor has the invalid tag and cannot execute.
 Unknown tags are also rejected, rather than treated as an identity operation.
-These enum values describe runtime objects; they do not define future `.cnd`
-file IDs, enum widths, or a struct layout to write directly to disk.
+These enum values describe runtime objects. The [`.cnd` contract](MODEL_FORMAT.md#layer-records)
+separately assigns fixed file IDs and requires explicit mapping; the native enum
+width and struct layout are never written directly to disk.
 
 Both dimension fields count float elements, not bytes. They must be positive,
 and each vector's byte extent must fit in `size_t`.

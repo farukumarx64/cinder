@@ -216,8 +216,9 @@ execution paths makes **80 vector comparisons / 240 values** per executable.
 The saved `numpy_tiny_network` record holds dimensions and parameters once;
 `numpy_network_cases` holds stable case names, inputs, and all four stage outputs.
 Future export/load tests can serialize these parameters, reload the network,
-and reuse the same inputs and expected outputs. This step introduces no `.cnd`
-format, exporter, or loader, and the fixtures are not a serialized model file.
+and reuse the same inputs and expected outputs. The [`.cnd` version 1 contract](MODEL_FORMAT.md#worked-tiny-network)
+uses these same parameters for its worked byte layout. The fixtures remain C
+reference arrays; binary export and loading are subsequent implementation steps.
 
 ## Comparison rule and failure diagnostics
 

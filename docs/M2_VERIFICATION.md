@@ -135,9 +135,9 @@ evidence. The existing CI workflow required no changes.
 ## Milestone closure and limitations
 
 The lifecycle, allocation, cleanup, numerical-reference, sanitizer, supported
-leak, and macOS/Linux checks required for M2 have passed. The next scoped step
-is Phase 3's `.cnd` model-format contract in `docs/MODEL_FORMAT.md`, before
-implementing the exporter or loader.
+leak, and macOS/Linux checks required for M2 have passed. At closure, the next
+scoped step was Phase 3's [`.cnd` model-format contract](MODEL_FORMAT.md), now
+defined. See [current progress](../ROADMAP.md#current-progress) for subsequent work.
 
 - One model still permits only one active call. Callers must serialize shared
   access and coordinate destruction; there is no internal concurrency detection.

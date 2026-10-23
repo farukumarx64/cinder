@@ -49,8 +49,10 @@ and valid threaded caller use. **M2 is complete as of October 23, 2026:** hosted
 CI for `f5424a4` passed 19/19 macOS tests, 21/21 Linux tests with fresh NumPy,
 and 19/19 Linux sanitizer/leak tests, including the lifecycle additions.
 See [the dated verification report](docs/M2_VERIFICATION.md) for evidence and
-limitations. **Next scoped step: define the Phase 3 `.cnd` model-format contract
-in `docs/MODEL_FORMAT.md`, before implementing the exporter or loader.**
+limitations. Phase 3's [`.cnd` version 1 contract](docs/MODEL_FORMAT.md) was defined
+on October 23: fixed header/record layouts, little-endian binary32 parameters,
+limits, strict EOF, input preprocessing, and the worked tiny-network bytes.
+**Next scoped step: implement exporter model validation before binary writing.**
 Implement and verify one scoped step at a time.
 
 ### Phase 0 checklist
@@ -116,6 +118,17 @@ The counts in earlier checklist entries record their original local checks.
 The complete suite, including those earlier features, passed the hosted run
 above. Remaining platform/concurrency limits are recorded in the M2 report.
 
+### Phase 3 checklist
+
+- [x] Define the `.cnd` version 1 contract before implementing export/load: a 16-byte file header, 16-byte layer headers, stable IDs, exact Dense payload sizes, dimension connections, little-endian binary32 encoding, finite parameters, resource limits, strict EOF, filename-based display names, and the separate input/preprocessing contract. On October 23, the complete 168-byte example, offsets, 22 parameters, input bytes, and stage results were checked against the existing tiny-network fixtures with Python's standard library. See [the specification](docs/MODEL_FORMAT.md). No exporter or loader is implemented by this step.
+- [ ] Implement exporter model validation: accept only supported sequential configurations, extract dimensions and finite float32 parameters, and reject unsupported or inconsistent models.
+- [ ] Implement binary export and reproducible tiny-network fixtures according to the specification; verify exact bytes and preserve reference inputs/outputs.
+- [ ] Define the C loader API, error statuses, file handling, and ownership/cleanup contract.
+- [ ] Implement loading and model construction with successful-load and malformed-file tests alongside the parser.
+- [ ] Complete malformed-file, size-limit, non-finite-data, and forced allocation-failure coverage; verify partial cleanup and recovery.
+- [ ] Verify Python export -> `.cnd` -> C load -> inference against every saved tiny-network stage, using matching shapes, finite values, and `atol = rtol = 1e-5`.
+- [ ] Exercise loaded-model lifecycle behavior, sanitizers, supported leak checks, and macOS/Linux CI; record actual results and close M3.
+
 ---
 
 # 1. v0.1.0 Goal
@@ -129,7 +142,7 @@ $ cinder info mnist.cnd
 Output:
 
 ```text
-Model: MNIST MLP
+Model: mnist.cnd
 Input: 784
 
 Layers:
@@ -190,7 +203,7 @@ That is enough for a strong `v0.1.0`.
 - [x] Softmax activation
 - [x] Sequential neural networks (in-memory single-vector API)
 - [ ] Model loading from disk
-- [ ] Custom Cinder model format
+- [x] Custom Cinder model-format contract (version 1; exporter/loader implementation remains)
 - [ ] Python model exporter
 - [ ] CLI inference
 - [ ] CLI model inspection
@@ -251,7 +264,8 @@ These decisions refine the existing scope without adding operators or a general 
 - **Verification:** run unit tests, sanitizers, and macOS/Linux CI early. Compare intermediate outputs and final outputs against deterministic float32 reference fixtures with explicit absolute and relative tolerances.
 - **First end-to-end checkpoint:** export the tiny `2 → 4 → 2` network, load it in C, and match its reference outputs before beginning MNIST integration.
 
-The detailed binary layout belongs in `docs/MODEL_FORMAT.md` during Phase 3. The core math implementation follows the decisions above.
+The detailed binary layout is defined in [docs/MODEL_FORMAT.md](docs/MODEL_FORMAT.md).
+The core math implementation follows the decisions above.
 
 ---
 
@@ -400,106 +414,60 @@ No unnecessary abstractions.
 
 # 6. Cinder Model Format
 
-Cinder should have a very small custom binary model format.
-
-Use:
-
-```text
-.cnd
-```
-
-Example:
+The [version 1 specification](docs/MODEL_FORMAT.md) defines the `.cnd` format.
+It was completed on October 23, 2026, before exporter or loader implementation.
+The specification is authoritative; this section summarizes its decisions.
 
 ```text
-mnist.cnd
+16-byte file header: CNDR | version | input_size | layer_count
+    followed by exactly layer_count records:
+16-byte layer header: type_id | input_size | output_size | payload_bytes
+    followed immediately by exactly payload_bytes parameter bytes
+EOF immediately after the final record
 ```
 
-A simplified representation could be:
+All numeric header fields are unsigned 32-bit little-endian values. `CNDR`
+is four literal bytes; version is exactly `1`. The final record supplies the
+model output size. Files contain no padding, end marker, names, or metadata.
 
-```text
-MAGIC
-VERSION
-INPUT_SIZE
-LAYER_COUNT
+- File IDs are Dense `1`, ReLU `2`, and Softmax `3`, explicitly mapped to runtime
+  types. Unknown IDs and unsupported versions are rejected.
+- Dense stores little-endian IEEE 754 binary32 row-major
+  `[output_size][input_size]` weights, followed by `[output_size]` biases.
+  Its exact payload length is `4 * (input_size * output_size + output_size)`.
+- ReLU and Softmax have zero payload bytes and preserve vector length.
+  Every connection and the header's input dimension must agree.
+- All parameters must be finite. Signed zeros and subnormals are allowed.
+- Inclusive limits are 1,024 layers, 65,536 elements per vector, and 64 MiB of
+  total parameter bytes. Validate lengths, available bytes, checked arithmetic,
+  and native allocation sizes before use; release partial state on failure.
+- The file must end exactly after its last record. Any trailing byte is rejected.
+- The future CLI displays the supplied path's basename, including its extension,
+  such as `Model: mnist.cnd`. Descriptions and class labels live in example docs.
 
-LAYER
-  TYPE
-  INPUT_SIZE
-  OUTPUT_SIZE
-  WEIGHTS
-  BIASES
+No native structs, `size_t`, pointers, or enum objects are written to disk. A
+finite weight changed by a bit flip can still be structurally valid; version 1
+has no checksum or authenticity mechanism.
 
-LAYER
-  TYPE
-  ...
-
-END
-```
-
-Use a magic header such as:
-
-```text
-CNDR
-```
-
-Followed by:
-
-```text
-version = 1
-```
-
-The magic header identifies Cinder files and the version permits rejection of unsupported formats. Structural validation catches malformed files; these fields alone do not detect every corrupted weight.
-
-Possible conceptual structure:
-
-```text
-CNDR
-│
-├── Version
-├── Metadata
-├── Input shape
-├── Layer count
-│
-├── Dense
-│   ├── Input size
-│   ├── Output size
-│   ├── Weights
-│   └── Bias
-│
-├── ReLU
-│
-├── Dense
-│   ├── Input size
-│   ├── Output size
-│   ├── Weights
-│   └── Bias
-│
-└── Softmax
-```
-
-The Python exporter converts a supported trained model into this format.
-
-Before writing the exporter or loader, the format specification must define:
-
-- Exact offsets or record layout, numeric layer identifiers, and payload lengths.
-- Fixed-width unsigned integer fields and little-endian encoding; do not write `size_t`, native enum values, pointers, or padded structs to disk.
-- Little-endian IEEE 754 binary32 parameters, with Dense weights stored as row-major `[output_size][input_size]` followed by `[output_size]` biases.
-- Consistent layer dimensions: Dense input must match the previous output; ReLU and Softmax preserve the vector length.
-- A documented policy for model names/metadata and the end of the file. The CLI's model name must have a defined source.
-- Limits for layer count, dimensions, and total parameter bytes. Check multiplication/addition overflow and available payload bytes before allocation or reading.
-- Rejection of zero dimensions, unsupported records, incomplete payloads, and non-finite parameters. Clean up all allocations on failure.
-
-A finite weight changed by a bit flip may still be structurally valid. General corruption detection would require an integrity mechanism such as a checksum, which is not required for v0.1.0.
+The specification includes the complete 168-byte encoding of our fixed
+`2 -> 4 -> 2` network, exact offsets, sample input bytes, and expected stages.
+The exporter and loader must later reproduce and validate this fixture.
 
 ### Input File Contract
 
-For `cinder run` and `cinder bench`, the input file contains exactly the model's input count of little-endian IEEE 754 binary32 values, with no header. Reject missing or extra bytes and non-finite inputs.
+For `cinder run` and `cinder bench`, the separate input file contains exactly the
+model's input count of little-endian IEEE 754 binary32 values, with no header.
+Reject missing/extra bytes and non-finite inputs before inference.
 
-The MNIST example uses 784 values obtained by flattening a 28 × 28 image in row-major order and converting pixel values to float32 in `[0, 1]` by dividing by 255. Use the same preprocessing in training, reference inference, and sample generation. The C runtime receives already-preprocessed values.
+The MNIST example uses 784 values: flatten a 28 x 28 image in row-major order,
+convert pixels to float32, and divide by float32 `255.0` to obtain `[0, 1]`.
+Training, reference inference, and sample generation use the same preprocessing.
+The C runtime receives already-preprocessed values. The general input format
+allows any finite values; MNIST supplies the normalization convention.
 
-Document this input contract in `docs/MODEL_FORMAT.md` and the MNIST README. The exporter/example tooling must generate sample files so users do not have to guess their layout.
-
-Cinder itself only performs inference.
+The [input-file specification](docs/MODEL_FORMAT.md#input-file-and-preprocessing-contract)
+defines the exact layout. The future MNIST README must repeat its preprocessing
+requirements, and example/export tooling must generate sample files.
 
 ---
 
@@ -908,6 +876,10 @@ Completed October 23, 2026; see [M2 verification](docs/M2_VERIFICATION.md).
 
 ## Model Serialization
 
+The dates in this section are the original planning targets. The format
+contract was completed on October 23, 2026; the Phase 3 checklist in Current
+Progress records the actual status. Exporter model validation is next.
+
 Replace the hard-coded application path with model loading, while retaining the tiny network as a test fixture.
 
 Models should now come from:
@@ -940,7 +912,8 @@ Write:
 docs/MODEL_FORMAT.md
 ```
 
-Do this **before writing the parser**.
+Completed October 23, 2026: [the version 1 contract](docs/MODEL_FORMAT.md).
+This specification must precede the exporter and parser.
 
 Document the binary format clearly.
 
@@ -956,9 +929,12 @@ Offset     Type        Meaning
 ...
 ```
 
-Resolve all format and input-contract requirements from Section 6 before implementing the serializer or parser. The byte-offset table above is illustrative, not the final specification. Define explicit resource limits and a trailing-data policy in the final spec.
+The specification resolves Section 6's format and input requirements, including
+resource limits and a strict trailing-data policy. It is the authoritative
+layout; the header table above is a short excerpt.
 
-The exact format can evolve during development, provided the specification, exporter, loader, and fixtures change together.
+Future format changes must follow the specification's versioning policy and
+update the specification, exporter, loader, and fixtures together.
 
 ---
 
@@ -1460,7 +1436,7 @@ Cinder `v0.1.0` is finished when:
 - [ ] Loader rejects malformed structures, excessive sizes, and incomplete data without leaking memory
 - [ ] Benchmarks document their environment and measure inference separately from loading and preprocessing
 - [ ] Architecture is documented
-- [ ] Model format is documented
+- [x] Model format version 1 is documented
 - [ ] README is complete
 - [ ] GitHub `v0.1.0` release exists
 
@@ -1701,7 +1677,7 @@ Documentation + release
 CINDER v0.1.0
 ```
 
-Follow these milestones in order even if individual daily targets shift. M0, M1, and M2 are complete. The full tiny network matches NumPy, and the lifecycle audit passes locally and in hosted macOS/Linux CI. Revision `f5424a4`, including the NumPy/lifecycle tests, passed all three CI jobs, closing M2 on October 23, 2026. See the M2 verification report for actual results and limitations. The next scoped task is Phase 3's `.cnd` model-format contract.
+Follow these milestones in order even if individual daily targets shift. M0, M1, and M2 are complete. The full tiny network matches NumPy, and the lifecycle audit passes locally and in hosted macOS/Linux CI. Revision `f5424a4`, including the NumPy/lifecycle tests, passed all three CI jobs, closing M2 on October 23, 2026. See the M2 verification report for actual results and limitations. Phase 3's `.cnd` model-format contract is defined; exporter model validation is the next scoped task.
 
 The **October 25 deadline is the internal deadline**.
 

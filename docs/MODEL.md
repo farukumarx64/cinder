@@ -58,9 +58,10 @@ accessor, so zero is an invalid-model sentinel, not a valid empty model. Other
 non-NULL pointers must identify live models; getters cannot diagnose dangling
 or invented pointers. Accessors allocate nothing and do not use error storage.
 
-File loading and serialized model-format rules belong to Phase 3. There is no
-`cinder_model_load` declaration in this step. Its future implementation can
-construct layers and use this same validated construction path.
+Phase 3's [`.cnd` version 1 format contract](MODEL_FORMAT.md) defines the file
+layout, validation rules, and resource limits. File loading is not implemented,
+and there is no `cinder_model_load` declaration yet. Its future implementation
+can construct layers and use this same validated construction path.
 
 ## Ownership transfer and construction
 
@@ -510,5 +511,5 @@ tests on macOS, 21/21 on Linux with fresh references, and 19/19 with Linux
 ASan/UBSan/leak detection in
 [run 39984963408](https://github.com/farukumarx64/cinder/actions/runs/39984963408).
 M2 closed on October 23, 2026. The report records exact evidence and limitations.
-Next is the `.cnd` model-format contract; file loading, an exporter, and MNIST
-remain later work.
+The [`.cnd` model-format contract](MODEL_FORMAT.md) is now defined. Exporter
+model validation is next; binary export, file loading, and MNIST remain later work.
