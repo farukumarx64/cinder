@@ -649,7 +649,9 @@ ASan/UBSan builds with fresh NumPy generation each passed all 10 tests. Each
 reference run compared 79 vectors / 341 results across 11 matrix/bias and 12
 activation fixtures. The largest absolute error was `1.1920929e-7`; no tolerance
 change or math implementation change was needed. The saved references were
-generated with Python 3.12.14 and NumPy 2.3.5. Hosted CI results remain pending.
+generated with Python 3.12.14 and NumPy 2.3.5. Hosted macOS/Linux and Linux
+sanitizer/leak checks subsequently passed at [M2 closure](M2_VERIFICATION.md)
+on October 23, 2026, including saved and freshly generated tensor references.
 
 See [NumPy reference verification](NUMPY_TESTS.md) for fixture coverage,
 regeneration, diagnostics, local results, and the limits of these comparisons.

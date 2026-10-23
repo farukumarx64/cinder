@@ -9,8 +9,8 @@ Training happens outside the runtime.
 
 ## Current status
 
-**Phase 1 (M1) is complete locally:** tensor allocation, cleanup, basic access,
-matrix-vector multiplication, bias addition, ReLU, and stable Softmax are
+**M0, M1, and M2 are complete; M2 closed on October 23, 2026.** Tensor allocation,
+cleanup, basic access, matrix-vector multiplication, bias addition, ReLU, and stable Softmax are
 implemented and tested. The math operations match deterministic NumPy float32
 references within the documented tolerance.
 Phase 0 is complete, including the MIT license and verified development setup.
@@ -22,10 +22,11 @@ accessors, cleanup, and two reusable working buffers are implemented. Sequential
 inference through `cinder_model_run` is implemented: Dense switches buffers,
 activations run in place, and caller output changes only after full success.
 Every stage of the complete example network now matches deterministic NumPy
-float32 fixtures. The Phase 2 lifecycle audit now passes locally, including
-failure recovery and caller-managed concurrency. M2 closure awaits hosted CI
-for the revision containing the latest NumPy/lifecycle tests; see
-[the verification report](docs/M2_VERIFICATION.md).
+float32 fixtures. The Phase 2 lifecycle audit passes locally and in macOS/Linux
+CI, including failure recovery and caller-managed concurrency. See
+[the verification report](docs/M2_VERIFICATION.md) for the exact revision,
+results, and limitations. The next scoped step is to define the `.cnd`
+model-format contract before implementing the exporter or loader.
 The project contains a CMake build and a CLI that supports `--version`.
 The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
 
@@ -73,7 +74,7 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
   See [the reference test guide](docs/NUMPY_TESTS.md) for coverage and limits.
 - The Softmax and NumPy reference executables reported zero native leaks on
   October 16, as did access, matrix-vector, bias, and ReLU tests on October 15 and the allocation
-  tests on October 9. Hosted CI verification of the NumPy changes is pending.
+  tests on October 9.
 - The [Dense-layer contract](docs/DENSE.md) specifies dimensions, row-major
   weights, a bias vector, owned parameter copies, public functions, buffer
   overlap rules, and validation versus arithmetic failure behavior.
@@ -84,7 +85,7 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
 - After adding Dense creation/cleanup on October 16, all 11 ordinary Debug
   tests passed. Release and ASan/UBSan builds with generated NumPy references
   enabled passed 12/12. Both new Dense executables reported zero native leaks;
-  a build without tests also passed. Hosted verification of this change is pending.
+  a build without tests also passed.
 - `cinder_dense_forward` computes `y = Wx + b` through the existing matvec and
   bias functions. It validates lengths/capacity and all sources before writes,
   preserves input/parameters, and leaves spare output capacity untouched.
@@ -94,7 +95,7 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
   Release and ASan/UBSan with generated tensor NumPy references enabled passed
   13/13. Dense matches all 11 saved NumPy matrix/bias fixtures. The forward and
   extended allocation-failure executables reported zero native leaks; a build
-  without tests passed. Hosted CI verification of this change remains pending.
+  without tests passed.
 - The [common layer contract](docs/LAYER.md) defines a type tag, shared
   input/output dimensions, an owned Dense-only payload, constructors, metadata
   validation, cleanup, and forward execution. Activations support exact in-place
@@ -109,7 +110,7 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
   passed 15/15. Layer dispatch matches 35 saved NumPy reference vectors. Tests
   force every constructor allocation failure and verify allocation-free calls.
   Both new executables reported zero native leaks; a build without tests and
-  the linked documentation example passed. Hosted CI remains unverified for this change.
+  the linked documentation example passed.
 - The [sequential-model contract](docs/MODEL.md) and [public declarations](include/cinder/model.h)
   define an opaque, nonempty, ordered model. Creation validates connections and
   transfers layer ownership only on success, clearing the supplied array slots.
@@ -124,7 +125,7 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
   references enabled (17/17 each). Tests force all four model allocation failures,
   verify rollback and ownership, and check private buffer sizes. Both new tests
   reported zero native leaks; a build without tests and the linked construction
-  example passed. Hosted CI remains unverified for this change.
+  example passed.
 - `cinder_model_run` validates pointers, lengths, capacity, and finite input,
   copies input to private storage, and dispatches layers in order. Dense uses
   the other working buffer; ReLU/Softmax update the current vector in place.
@@ -136,7 +137,6 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
   ASan/UBSan with generated tensor NumPy references enabled (18/18 each).
   Model-run, model-storage, and layer tests reported zero native leaks. The
   build without tests and linked model/layer documentation examples passed.
-  Hosted CI remains unverified for this change.
 - The complete `2 -> 4 -> 2` network now matches independent float32 NumPy
   references for ten fixed inputs. First Dense, ReLU, final logits, and Softmax
   are checked through both common layers and sequential models, using shared
@@ -153,10 +153,11 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
   shared-model threads. Poisoned buffers reproduce baseline results; inference
   performs zero allocation/free attempts. Both lifecycle and model-storage
   executables reported zero native leaks. See [the M2 report](docs/M2_VERIFICATION.md).
-- Hosted macOS/Linux and Linux sanitizer/leak jobs passed for `f6480d5`;
-  [the inspected run](https://github.com/farukumarx64/cinder/actions/runs/39930054347)
-  predates the newer NumPy/lifecycle tests. Publishing and verifying those tests
-  on all three jobs is the remaining M2 closure gate.
+- Hosted CI for `f5424a4`, including the NumPy and lifecycle additions, passed
+  19/19 tests on macOS, 21/21 on Linux with fresh NumPy references, and 19/19
+  under Linux ASan/UBSan/leak detection. Job statuses and test logs in
+  [run 39984963408](https://github.com/farukumarx64/cinder/actions/runs/39984963408)
+  were inspected on October 23, completing M2.
 - Model loading and the `info`, `run`, and `bench` commands are
   planned features; they are not implemented yet.
 
@@ -404,9 +405,9 @@ when running the sanitizer build's tests:
 (cd build-sanitize && ASAN_OPTIONS=detect_leaks=1 ctest --output-on-failure)
 ```
 
-The Linux sanitizer CI job runs the full CTest suite with leak detection
-enabled. The new NumPy fixture checks will run after these changes are pushed;
-their hosted results are pending. See the
+The Linux sanitizer CI job passed all 19 tests using saved NumPy references,
+with leak detection enabled at M2 closure; see [the recorded results](docs/M2_VERIFICATION.md).
+See the
 [LeakSanitizer documentation](https://clang.llvm.org/docs/LeakSanitizer.html).
 
 ## Continuous integration
@@ -427,8 +428,9 @@ for the same branch or pull request.
 
 All jobs test the saved NumPy fixtures. The ordinary Linux job additionally
 creates a Python virtual environment, installs the pinned reference dependency,
-and enables `CINDER_ENABLE_NUMPY_TESTS`. Hosted results for this addition are
-pending a future push.
+and enables `CINDER_ENABLE_NUMPY_TESTS`. The M2 revision passed all three jobs:
+19 macOS tests, 21 Linux tests, and 19 Linux sanitizer tests. See
+[the verified run](https://github.com/farukumarx64/cinder/actions/runs/39984963408).
 
 The workflow uses read-only repository permissions and a pinned checkout action.
 Check results and failure logs in [GitHub Actions](https://github.com/farukumarx64/cinder/actions/workflows/ci.yml).
@@ -457,7 +459,7 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | `docs/LAYER.md` | Common layer representation, ownership, dimension validation, dispatch, and buffer/failure contract. |
 | `docs/MODEL.md` | Model ownership transfer, connections, dimensions, buffers, inference failures, and concurrency contract. |
 | `docs/NUMPY_TESTS.md` | Reference calculations, fixtures, tolerances, regeneration, and verification results. |
-| `docs/M2_VERIFICATION.md` | Lifecycle/allocation audit, local and hosted evidence, closure gate, and limitations. |
+| `docs/M2_VERIFICATION.md` | Lifecycle/allocation audit, local and hosted evidence, M2 closure, and limitations. |
 | `tests/check_version.cmake` | Checks the version command's exit status and output. |
 | `tests/test_tensor.c` | Tests the core library's allocation and cleanup API. |
 | `tests/test_dense.c` | Tests Dense shapes, validation, copied parameters, and independent ownership/lifetimes. |
@@ -500,8 +502,8 @@ and its constructors, validator, cleanup, and dispatch are implemented. The
 sequential-model contract is defined, and construction, connection validation,
 size accessors, cleanup, reusable buffers, and sequential inference are implemented.
 The complete example network matches NumPy at every stage, and lifecycle checks
-pass locally. Hosted CI for the latest NumPy/lifecycle revision is the remaining
-closure gate; M2 is not closed yet.
+pass locally and in hosted macOS/Linux CI. M2 closed on October 23, 2026.
+Next: define the Phase 3 `.cnd` model-format contract.
 
 The v0.1.0 scope excludes training, GPU execution, convolutional layers,
 quantization, SIMD, multithreading, and arbitrary computation graphs.

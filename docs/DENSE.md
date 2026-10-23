@@ -383,9 +383,9 @@ in separate scoped steps on October 16, 2026.
   `BUILD_TESTING=OFF` passed and registered zero tests. The documented lifetime
   and forward examples compiled, linked, and ran successfully.
 
-These are local macOS results. Existing CI jobs will run the new CTest tests
-on macOS/Linux and under Linux sanitizers after publication; hosted results
-for this change have not been verified.
+These are the local macOS results at implementation time. The Dense tests
+subsequently passed hosted macOS/Linux and Linux sanitizer/leak checks at
+[M2 closure](M2_VERIFICATION.md) on October 23, 2026.
 
 The [common layer interface](LAYER.md) now implements a tagged wrapper that
 owns this Dense object, exposes its dimensions, and delegates forward execution.

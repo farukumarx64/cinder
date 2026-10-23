@@ -289,8 +289,8 @@ the system Python 3.9.6 was not modified.
 
 The CI workflow runs the saved fixtures on macOS, Linux, and Linux with
 ASan/UBSan/leak detection. The ordinary Linux job also installs the pinned NumPy
-dependency in a virtual environment and generates fresh references. Hosted
-results for these changes remain pending a future push.
+dependency in a virtual environment and generates fresh references. These checks
+passed hosted CI at M2 closure; see the results below.
 
 This completes the local Phase 1 math verification. Phase 2's standalone
 [Dense API](DENSE.md) and [common layer dispatch](LAYER.md) are now also verified
@@ -313,4 +313,13 @@ The existing tensor test retained its previous counts and maximum errors after
 moving its comparator into the shared helper. Native macOS `leaks` reported
 zero leaks for the new network executable, and a build with tests disabled
 succeeded and registered zero tests. Full verification results are also recorded
-in the roadmap; hosted CI for this change remains unverified.
+in the roadmap.
+
+After the lifecycle test was added, hosted CI for `f5424a4` passed 19/19 tests
+on macOS, 21/21 on Linux with fresh NumPy 2.3.5 references, and 19/19 with Linux
+ASan/UBSan/leak detection in
+[run 39984963408](https://github.com/farukumarx64/cinder/actions/runs/39984963408).
+Saved tensor/network reference tests passed in every job, and both generated
+reference tests passed in ordinary Linux CI. This completes hosted verification
+of the NumPy additions. See [M2 verification](M2_VERIFICATION.md) for lifecycle
+results and milestone closure on October 23, 2026.

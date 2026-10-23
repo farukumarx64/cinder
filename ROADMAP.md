@@ -21,12 +21,12 @@ All predictions, accuracy percentages, and benchmark timings shown in this docum
 ## Current Progress
 
 Phase 0 (M0) is complete as of October 8, 2026, including the MIT license and
-verified development setup. Phase 1 (M1) is complete locally as of October 16,
+verified development setup. Phase 1 (M1) was completed locally on October 16,
 2026: the tensor contract, allocation/cleanup, access, matrix-vector
 multiplication, bias addition, ReLU, and stable Softmax are implemented and
 tested. The math operations match deterministic NumPy float32 references
-within the documented tolerance. Hosted CI results for the latest changes
-are pending a future push.
+within the documented tolerance; hosted macOS/Linux verification passed at M2
+closure on October 23.
 Phase 2 has a documented Dense-layer contract and implemented creation, cleanup,
 and allocation-free forward execution. Dense owns independent parameter copies
 and matches the saved NumPy matrix/bias references. The common layer interface
@@ -43,11 +43,14 @@ model allocations succeed. Sequential inference through `cinder_model_run` is
 implemented with separate Dense buffers, in-place activations, unchanged caller
 output on failure, and no execution allocations/frees. Independent NumPy fixtures
 now verify every stage of the full example network for ten fixed inputs through
-both common layers and model execution. The lifecycle audit now passes locally,
+both common layers and model execution. The lifecycle audit passes locally,
 including poisoned-buffer independence, allocation counts, construction retries,
-and valid threaded caller use. Hosted CI passed for runtime commit `f6480d5`;
-CI for the newer NumPy/lifecycle test revision is the remaining M2 closure gate.
-See [the dated verification report](docs/M2_VERIFICATION.md).
+and valid threaded caller use. **M2 is complete as of October 23, 2026:** hosted
+CI for `f5424a4` passed 19/19 macOS tests, 21/21 Linux tests with fresh NumPy,
+and 19/19 Linux sanitizer/leak tests, including the lifecycle additions.
+See [the dated verification report](docs/M2_VERIFICATION.md) for evidence and
+limitations. **Next scoped step: define the Phase 3 `.cnd` model-format contract
+in `docs/MODEL_FORMAT.md`, before implementing the exporter or loader.**
 Implement and verify one scoped step at a time.
 
 ### Phase 0 checklist
@@ -91,23 +94,27 @@ checklist item and closing M0.
 - [x] Implement matrix-vector multiplication; explain the loops and verify a non-square example calculated by hand. The API checks input length, output capacity, finite sources, and arithmetic results without allocating. Its contract documents separate output storage and partial output on arithmetic failure. On October 15, 2026, all 5 tests passed locally in Debug, Release, and combined ASan/UBSan builds; the matvec executable reported zero native leaks, and a build without tests passed. See [the worked example and contract](docs/TENSOR.md#matrix-vector-multiplication).
 - [x] Implement bias addition and validate vector lengths. The in-place API checks equal nonzero lengths, byte-count overflow, finite sources, and sums without allocating. Integration tests verify `Wx + b`, a zero input, and untouched spare output capacity. On October 15, 2026, all 6 tests passed locally in Debug, Release, and combined ASan/UBSan builds; the bias executable reported zero native leaks, and a build without tests passed. See [the bias contract and worked example](docs/TENSOR.md#bias-addition).
 - [x] Implement ReLU and test negative, zero, and positive values. The in-place API validates pointers, count, byte extent, and finite values before replacing negatives with positive zero. Tests cover signed zeros, extremes, subnormals, full preservation on failure, repeated application, no allocation, and `ReLU(Wx + b)`. On October 15, 2026, all 7 tests passed locally in Debug, Release, and combined ASan/UBSan builds; the ReLU executable reported zero native leaks, and a build without tests passed. See [the ReLU contract and worked example](docs/TENSOR.md#relu).
-- [x] Implement stable Softmax and its empty/non-finite input handling. The in-place API subtracts the maximum before exponentiation, uses double intermediates with float32 storage, and allocates no memory. Tests cover known probabilities, offsets, equal/extreme scores, tiny probabilities, long-vector normalization, input rejection without mutation, and composed math. On October 16, 2026, all 8 tests passed locally in Debug, Release, and combined ASan/UBSan builds; the Softmax executable reported zero native leaks, and a build without tests passed. Hosted CI awaits a future push. See [the Softmax contract and worked example](docs/TENSOR.md#softmax).
-- [x] Validate the math operations against deterministic float32 NumPy fixtures using the documented tolerance rule. The saved and freshly generated references cover 11 matrix/bias fixtures and 12 activation fixtures, comparing 79 vectors / 341 results including intermediate outputs. Shapes and finiteness are checked first; `atol = rtol = 1e-5` is unchanged. On October 16, 2026, the ordinary Debug suite passed 9/9 tests; Release and ASan/UBSan builds with fresh generation passed 10/10. The largest absolute error was `1.1920929e-7`. Repeated generation was identical locally, missing-dependency/configuration guards passed, and the reference executable reported zero native leaks. See [NumPy reference verification](docs/NUMPY_TESTS.md). M1 is complete locally; hosted CI remains pending.
+- [x] Implement stable Softmax and its empty/non-finite input handling. The in-place API subtracts the maximum before exponentiation, uses double intermediates with float32 storage, and allocates no memory. Tests cover known probabilities, offsets, equal/extreme scores, tiny probabilities, long-vector normalization, input rejection without mutation, and composed math. On October 16, 2026, all 8 tests passed locally in Debug, Release, and combined ASan/UBSan builds; the Softmax executable reported zero native leaks, and a build without tests passed. See [the Softmax contract and worked example](docs/TENSOR.md#softmax).
+- [x] Validate the math operations against deterministic float32 NumPy fixtures using the documented tolerance rule. The saved and freshly generated references cover 11 matrix/bias fixtures and 12 activation fixtures, comparing 79 vectors / 341 results including intermediate outputs. Shapes and finiteness are checked first; `atol = rtol = 1e-5` is unchanged. On October 16, 2026, the ordinary Debug suite passed 9/9 tests; Release and ASan/UBSan builds with fresh generation passed 10/10. The largest absolute error was `1.1920929e-7`. Repeated generation was identical locally, missing-dependency/configuration guards passed, and the reference executable reported zero native leaks. See [NumPy reference verification](docs/NUMPY_TESTS.md). M1 was completed locally on October 16; hosted verification passed at M2 closure.
 
 ### Phase 2 checklist
 
 - [x] Define the Dense-layer contract: positive input/output sizes, row-major `[output_size][input_size]` weights, an `[output_size][1]` bias tensor, owned copies of finite source parameters, create/free/forward declarations, exact input length, minimum output capacity, overlap preconditions, and validation versus arithmetic failure behavior. See [the contract](docs/DENSE.md) and [public declarations](include/cinder/dense.h). The header and worked example passed C11 syntax checks on October 16, 2026, before implementation began.
-- [x] Implement Dense-layer creation and cleanup using tensor allocation, with validation before allocation and independently owned parameter copies. Tests cover invalid dimensions/counts, overflow, non-finite sources, source independence and permitted overlap, all five allocation-failure points, partial cleanup, optional errors, and recovery. On October 16, 2026, Debug passed 11/11 tests; Release and combined ASan/UBSan builds with generated NumPy references enabled passed 12/12. Both Dense executables reported zero native leaks, and a build without tests passed. Hosted CI for this change remains pending. See [implementation and verification](docs/DENSE.md#creation-and-cleanup-implementation).
-- [x] Implement the Dense forward pass using the existing matvec and bias kernels. It checks input length, output capacity, and finite sources before writes, propagates kernel failures, and preserves input/parameters and spare capacity. Tests cover non-square shapes, known results, 11 saved NumPy fixtures (41 outputs), repeated inputs, validation preservation, arithmetic partial results/recovery, and zero allocation/free calls. On October 16, 2026, Debug passed 12/12 tests; Release and combined ASan/UBSan builds with generated tensor NumPy references enabled passed 13/13. Forward and extended allocation-failure executables reported zero native leaks; a build without tests passed. Hosted CI remains pending. See [forward behavior](docs/DENSE.md#forward-execution).
+- [x] Implement Dense-layer creation and cleanup using tensor allocation, with validation before allocation and independently owned parameter copies. Tests cover invalid dimensions/counts, overflow, non-finite sources, source independence and permitted overlap, all five allocation-failure points, partial cleanup, optional errors, and recovery. On October 16, 2026, Debug passed 11/11 tests; Release and combined ASan/UBSan builds with generated NumPy references enabled passed 12/12. Both Dense executables reported zero native leaks, and a build without tests passed. See [implementation and verification](docs/DENSE.md#creation-and-cleanup-implementation).
+- [x] Implement the Dense forward pass using the existing matvec and bias kernels. It checks input length, output capacity, and finite sources before writes, propagates kernel failures, and preserves input/parameters and spare capacity. Tests cover non-square shapes, known results, 11 saved NumPy fixtures (41 outputs), repeated inputs, validation preservation, arithmetic partial results/recovery, and zero allocation/free calls. On October 16, 2026, Debug passed 12/12 tests; Release and combined ASan/UBSan builds with generated tensor NumPy references enabled passed 13/13. Forward and extended allocation-failure executables reported zero native leaks; a build without tests passed. See [forward behavior](docs/DENSE.md#forward-execution).
 - [x] Define the common layer interface and the Dense/ReLU/Softmax representation and execution contracts. The tagged structure exposes positive input/output sizes and a Dense-only owned payload; activations require equal sizes and no payload. Constructors, metadata validation, cleanup, separate-buffer forward execution, switch routes, and failure/overlap rules are declared in [layer.h](include/cinder/layer.h) and explained in [the contract](docs/LAYER.md). Header and example C11 syntax checks passed on October 16, 2026, before common layer implementation began.
-- [x] Implement common layer constructors, metadata validation, cleanup, and switch dispatch for Dense/ReLU/Softmax, reusing the existing kernels. Tests cover tags, payload/dimension consistency, activation input validation before copying, preserved lengths/sources, untouched spare capacity, error propagation/recovery, and 35 saved NumPy vectors. Fault tests cover all six Dense-wrapper allocations and the single allocation for each activation, complete cleanup, and allocation-free validation/forward calls. On October 21, 2026, Debug passed 14/14 tests; Release and combined ASan/UBSan with generated tensor references enabled passed 15/15. Both new executables reported zero native leaks; a build without tests and the linked documentation example passed. Hosted CI remains unverified for this change. See [implementation and verification](docs/LAYER.md#verification-and-next-step).
+- [x] Implement common layer constructors, metadata validation, cleanup, and switch dispatch for Dense/ReLU/Softmax, reusing the existing kernels. Tests cover tags, payload/dimension consistency, activation input validation before copying, preserved lengths/sources, untouched spare capacity, error propagation/recovery, and 35 saved NumPy vectors. Fault tests cover all six Dense-wrapper allocations and the single allocation for each activation, complete cleanup, and allocation-free validation/forward calls. On October 21, 2026, Debug passed 14/14 tests; Release and combined ASan/UBSan with generated tensor references enabled passed 15/15. Both new executables reported zero native leaks; a build without tests and the linked documentation example passed. See [implementation and verification](docs/LAYER.md#verification-and-next-step).
 - [x] Define the sequential-model contract: opaque nonempty ordered models, layer ownership transfer only on construction success with cleared source slots, rejection of duplicate entries and mismatched connections, dimension getters, two private working buffers, final output copy only after success, unchanged output on every returned failure, repeated-call recovery, and externally serialized runs per instance. See [the contract](docs/MODEL.md) and [public declarations](include/cinder/model.h). Header and example C11 syntax checks passed on October 22, 2026, before model implementation began.
-- [x] Implement model creation, connection validation, size accessors, cleanup, and two reusable buffers sized for the largest required vector. Validation precedes allocation; ownership transfers only after all four model allocations succeed. Tests cover ordered adoption, cleared source slots, unchanged failure slots/layers, all four forced allocation failures, complete cleanup, independent owners, and exact private buffer capacities (four floats each for the example network). On October 22, 2026, Debug passed 16/16 tests; Release and combined ASan/UBSan with generated tensor references enabled passed 17/17. Both new executables reported zero native leaks; a build without tests and the linked construction example passed. Hosted CI remains unverified for this change. See [model verification](docs/MODEL.md#verification-and-next-scoped-steps).
-- [x] Implement sequential inference: copy validated input into private storage, alternate buffers for Dense, run ReLU/Softmax in place through common dispatch, and publish caller output only after all layers succeed. Stop on the first failure and preserve its diagnostic; no allocations/frees occur during success, rejection, arithmetic failure, or recovery. Tests cover known results, differing vector sizes, single/activation-only/activation-first models, consecutive Dense layers, repeated calls, independent models, source/spare-capacity preservation, and failure at each layer position. On October 22, 2026, Debug passed 17/17 tests; Release and combined ASan/UBSan with generated tensor NumPy references enabled passed 18/18. See [model verification](docs/MODEL.md#verification-and-next-scoped-steps). Hosted CI remains unverified for this change.
+- [x] Implement model creation, connection validation, size accessors, cleanup, and two reusable buffers sized for the largest required vector. Validation precedes allocation; ownership transfers only after all four model allocations succeed. Tests cover ordered adoption, cleared source slots, unchanged failure slots/layers, all four forced allocation failures, complete cleanup, independent owners, and exact private buffer capacities (four floats each for the example network). On October 22, 2026, Debug passed 16/16 tests; Release and combined ASan/UBSan with generated tensor references enabled passed 17/17. Both new executables reported zero native leaks; a build without tests and the linked construction example passed. See [model verification](docs/MODEL.md#verification-and-next-scoped-steps).
+- [x] Implement sequential inference: copy validated input into private storage, alternate buffers for Dense, run ReLU/Softmax in place through common dispatch, and publish caller output only after all layers succeed. Stop on the first failure and preserve its diagnostic; no allocations/frees occur during success, rejection, arithmetic failure, or recovery. Tests cover known results, differing vector sizes, single/activation-only/activation-first models, consecutive Dense layers, repeated calls, independent models, source/spare-capacity preservation, and failure at each layer position. On October 22, 2026, Debug passed 17/17 tests; Release and combined ASan/UBSan with generated tensor NumPy references enabled passed 18/18. See [model verification](docs/MODEL.md#verification-and-next-scoped-steps).
 - [x] Compare every intermediate output and final probabilities of the fixed `2 -> 4 -> 2` network against NumPy for ten deterministic inputs. Saved and generated fixtures cover Dense1, ReLU, final logits, and Softmax through both common layers and sequential model prefixes. Shared shape/finite checks and `atol = rtol = 1e-5` remain unchanged. On October 23, 2026, Debug passed 18/18 tests; Release and combined ASan/UBSan with fresh references passed 20/20. Each network test compared 80 vectors / 240 values, with maximum absolute error `5.96046448e-8`. Regeneration was identical locally; the network executable reported zero native leaks, and a build without tests passed. Parameters, inputs, and stage outputs are retained for Phase 3. See [complete-network verification](docs/NUMPY_TESTS.md#complete-network-verification--october-23-2026).
 - [x] Verify lifecycle behavior locally: repeated/different inputs, failed calls followed by success, independent owners, destruction of one model while another survives, poisoned private buffers, zero inference allocation/free attempts, and construction-failure cleanup/retry. The new test executes 4,120 success/failure/recovery cycles, including concurrent independent models and caller-serialized shared-model threads. On October 23, 2026, Debug passed 19/19; Release and combined ASan/UBSan with fresh NumPy references passed 21/21. Lifecycle and model-storage executables reported zero native leaks; the tests-disabled build passed. See [M2 verification](docs/M2_VERIFICATION.md).
 - [x] Inspect hosted macOS/Linux and Linux sanitizer/leak results. [Run 39930054347](https://github.com/farukumarx64/cinder/actions/runs/39930054347) passed all three jobs for `f6480d5`, with 17/17 macOS, 18/18 Linux, and 17/17 Linux sanitizer tests. Runtime sources/headers are unchanged since that revision; newer test additions were not included in the run.
-- [ ] Publish and verify the revision containing the NumPy and lifecycle additions on all three CI jobs, record its actual results, and close M2. Expected test counts are 19 macOS, 21 Linux with fresh NumPy, and 19 Linux sanitizers. **Remaining closure gate.**
+- [x] Publish and verify the NumPy and lifecycle additions on all three CI jobs. [Run 39984963408](https://github.com/farukumarx64/cinder/actions/runs/39984963408) passed for `f5424a4a3639cf5c357fccb6ab5ad8f6cf73477a`: 19/19 macOS, 21/21 Linux with fresh NumPy, and 19/19 Linux ASan/UBSan/leak tests. Job statuses, revision, and test logs were inspected. **M2 closed October 23, 2026.**
+
+The counts in earlier checklist entries record their original local checks.
+The complete suite, including those earlier features, passed the hosted run
+above. Remaining platform/concurrency limits are recorded in the M2 report.
 
 ---
 
@@ -784,10 +791,9 @@ is specified in [docs/LAYER.md](docs/LAYER.md) and
 [include/cinder/model.h](include/cinder/model.h). Model construction, connection
 validation, size accessors, cleanup, reusable buffers, and sequential inference
 are implemented in [src/model.c](src/model.c). Full-network NumPy verification
-and lifecycle checks now pass locally; hosted CI for the latest test revision
-is the remaining M2 closure gate. Follow the Phase 2
-checklist in Current Progress; the dated sections below retain the planned
-milestone order.
+and lifecycle checks pass locally and in hosted macOS/Linux CI. M2 closed on
+October 23, 2026. Follow the Phase 2 checklist in Current Progress for observed
+results; the dated sections below retain the original planned milestone order.
 
 The declared common layer tags are:
 
@@ -893,6 +899,8 @@ As specified in the model contract, allocate two reusable working buffers during
 ```text
 M2 — A complete hard-coded neural network executes entirely in C
 ```
+
+Completed October 23, 2026; see [M2 verification](docs/M2_VERIFICATION.md).
 
 ---
 
@@ -1428,12 +1436,12 @@ Benchmarking
 
 Cinder `v0.1.0` is finished when:
 
-- [ ] Pure C inference runtime works
-- [ ] Builds on macOS
-- [ ] Builds on Linux
-- [ ] Tensor representation works
+- [x] Pure C in-memory inference runtime works
+- [x] Builds on macOS
+- [x] Builds on Linux
+- [x] Tensor representation works
 - [x] Matrix-vector multiplication works
-- [x] Dense, ReLU, and Softmax layers work through common dispatch locally; sequential integration remains pending
+- [x] Dense, ReLU, and Softmax work through common dispatch and sequential models
 - [x] ReLU works
 - [x] Softmax works
 - [ ] `.cnd` models load from disk
@@ -1446,15 +1454,18 @@ Cinder `v0.1.0` is finished when:
 - [ ] `cinder run` works
 - [ ] `cinder info` works
 - [ ] `cinder bench` works
-- [ ] Unit tests pass
-- [ ] macOS and Linux CI build and test successfully
-- [ ] Sanitizer and supported leak checks report no findings in the exercised test suite
+- [x] Unit tests pass for the implemented M2 scope
+- [x] macOS and Linux CI build and test successfully for M2
+- [x] Sanitizer and supported leak checks report no findings in the exercised M2 suite
 - [ ] Loader rejects malformed structures, excessive sizes, and incomplete data without leaking memory
 - [ ] Benchmarks document their environment and measure inference separately from loading and preprocessing
 - [ ] Architecture is documented
 - [ ] Model format is documented
 - [ ] README is complete
 - [ ] GitHub `v0.1.0` release exists
+
+M2 checks reflect the current implementation and must remain green as the
+loader, exporter, CLI, and other release features are added.
 
 Once these boxes are checked:
 
@@ -1690,7 +1701,7 @@ Documentation + release
 CINDER v0.1.0
 ```
 
-Follow these milestones in order even if individual daily targets shift. M0 and M1 are complete locally: the development setup and tensor math are implemented and verified, including deterministic NumPy comparisons. Phase 2's runtime is implemented, the full tiny network matches NumPy, and the lifecycle audit passes locally. Runtime commit `f6480d5` passed hosted macOS/Linux and sanitizer/leak checks; the latest NumPy/lifecycle test revision must pass CI before M2 is closed. See the M2 verification report for actual results and limitations.
+Follow these milestones in order even if individual daily targets shift. M0, M1, and M2 are complete. The full tiny network matches NumPy, and the lifecycle audit passes locally and in hosted macOS/Linux CI. Revision `f5424a4`, including the NumPy/lifecycle tests, passed all three CI jobs, closing M2 on October 23, 2026. See the M2 verification report for actual results and limitations. The next scoped task is Phase 3's `.cnd` model-format contract.
 
 The **October 25 deadline is the internal deadline**.
 

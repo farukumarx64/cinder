@@ -485,8 +485,7 @@ Sequential inference was then implemented on October 22, 2026:
   examples and the layer example compiled with C11 warnings as errors, linked
   against that library, and ran successfully.
 
-Hosted macOS/Linux CI for the latest change remains unverified; existing jobs
-will run the new CTest registration when published.
+These tests also passed hosted macOS/Linux CI at M2 closure, recorded below.
 
 On October 23, the complete network was checked against deterministic float32
 NumPy fixtures for ten inputs. Tests compare all four stages through a direct
@@ -506,7 +505,10 @@ calls, and construction retries execute inference before destruction. Debug
 passed 19/19 tests; Release and ASan/UBSan with fresh references passed 21/21.
 Lifecycle and model-storage executables reported zero native leaks.
 
-Hosted CI passed for runtime commit `f6480d5`; it predates the latest NumPy and
-lifecycle test additions. Passing all three jobs for the published test revision
-is the remaining M2 closure gate. The report records exact evidence and
-limitations. File loading, an exporter, and MNIST remain later phases.
+Hosted CI for `f5424a4`, including the NumPy and lifecycle tests, passed 19/19
+tests on macOS, 21/21 on Linux with fresh references, and 19/19 with Linux
+ASan/UBSan/leak detection in
+[run 39984963408](https://github.com/farukumarx64/cinder/actions/runs/39984963408).
+M2 closed on October 23, 2026. The report records exact evidence and limitations.
+Next is the `.cnd` model-format contract; file loading, an exporter, and MNIST
+remain later work.

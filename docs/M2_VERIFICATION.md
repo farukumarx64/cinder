@@ -1,14 +1,13 @@
 # M2 lifecycle verification — October 23, 2026
 
-**Local verification is complete. M2 closure is pending hosted CI for the
-revision containing the NumPy network fixtures and lifecycle additions.**
+**M2 is complete as of October 23, 2026. Local verification and all three
+hosted CI jobs passed with the NumPy network fixtures and lifecycle additions.**
 
-The local base is `19dd4a1acac79e5e3a8a0b261e94614db01d7258`. This verification
-adds tests, test-build configuration, and documentation; it changes no runtime
-source or public API. The latest hosted run inspected is for `f6480d5`, whose
-runtime sources and public headers are identical to this checkout. That run
-does not include the newer NumPy or lifecycle tests, so its successful results
-must not be presented as hosted verification of those tests.
+The verified revision is `f5424a4a3639cf5c357fccb6ab5ad8f6cf73477a`, which includes
+the NumPy commit `19dd4a1acac79e5e3a8a0b261e94614db01d7258`.
+[GitHub Actions run 39984963408](https://github.com/farukumarx64/cinder/actions/runs/39984963408)
+confirms the published revision. This verification adds tests, test-build
+configuration, and documentation; it changes no runtime source or public API.
 
 ## Lifecycle behavior
 
@@ -110,31 +109,36 @@ restricted-process memory-display notice but completed successfully.
 
 ## Hosted results actually inspected
 
-[GitHub Actions run 39930054347](https://github.com/farukumarx64/cinder/actions/runs/39930054347)
+[GitHub Actions run 39984963408](https://github.com/farukumarx64/cinder/actions/runs/39984963408)
 completed successfully on October 23, 2026, for
-`f6480d5c76cf57e8fbfa76e335fa822cec5e14f4` (sequential inference). Both job
-statuses and test logs were inspected:
+`f5424a4a3639cf5c357fccb6ab5ad8f6cf73477a`. Job statuses, checked-out commit,
+and test logs were inspected:
 
 | Job | Toolchain / checks | Actual result |
 | --- | --- | --- |
-| macOS 15 | Apple Clang 17.0.0, CMake 4.4.3 | 17/17 tests passed. |
-| Ubuntu 24.04 | GCC 13.3.0, CMake 3.31.6, NumPy 2.3.5 fresh references | 18/18 passed. |
-| Ubuntu 24.04 sanitizers | Clang 18.1.3, ASan + UBSan + LeakSanitizer | 17/17 passed. |
+| macOS 15 | Apple Clang 17.0.0, CMake 4.4.3 | 19/19 tests passed. |
+| Ubuntu 24.04 | GCC 13.3.0, CMake 3.31.6, NumPy 2.3.5 fresh references | 21/21 passed. |
+| Ubuntu 24.04 sanitizers | Clang 18.1.3, ASan + UBSan + LeakSanitizer | 19/19 passed. |
 
 The sanitizer log confirms `ASAN_OPTIONS=detect_leaks=1:halt_on_error=1` and
 `UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1`. Configuration, compilation,
-and testing succeeded in all three jobs.
+and testing succeeded in all three jobs, with no reported sanitizer or leak
+findings. The logs explicitly show `model_lifecycle`, `model_allocation_failures`,
+and `model_numpy_fixtures` passing on each platform; `model_numpy_generated`
+also passes in the ordinary Linux job. The two extra Linux tests compare freshly
+generated tensor and network references in addition to the saved fixtures.
 
-The newer NumPy commit `19dd4a1` and these lifecycle additions were not in that
-run. The existing workflow automatically picks up the new CTest registrations
-when published. Its expected counts for this revision are 19 on macOS, 21 on
-ordinary Linux with fresh NumPy, and 19 on Linux sanitizers; these are expected
-counts, not results already observed.
+The earlier successful run for `f6480d5` was only a baseline; the run above
+includes both the NumPy and lifecycle additions and supplies the M2 closure
+evidence. The existing CI workflow required no changes.
 
-## Remaining closure gate and limitations
+## Milestone closure and limitations
 
-- Publish the reviewed NumPy/lifecycle changes, require all three CI jobs to
-  pass for that revision, and record the run URL/SHA/results before closing M2.
+The lifecycle, allocation, cleanup, numerical-reference, sanitizer, supported
+leak, and macOS/Linux checks required for M2 have passed. The next scoped step
+is Phase 3's `.cnd` model-format contract in `docs/MODEL_FORMAT.md`, before
+implementing the exporter or loader.
+
 - One model still permits only one active call. Callers must serialize shared
   access and coordinate destruction; there is no internal concurrency detection.
   Separate models own separate parameters and workspaces.

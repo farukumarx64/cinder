@@ -371,8 +371,9 @@ The runtime implementation was verified locally on macOS on October 21, 2026:
   usage example compiled with C11 warnings as errors, linked against that
   library, and ran successfully.
 
-These are local results; hosted macOS/Linux CI for this change has not been
-verified. Existing CI jobs automatically include the new CTest registrations.
+These are local results at implementation time. The layer tests subsequently
+passed hosted macOS/Linux and Linux sanitizer/leak checks at
+[M2 closure](M2_VERIFICATION.md) on October 23, 2026.
 
 The [sequential-model contract](MODEL.md) is now defined, including ownership,
 connection checks, external dimensions, output preservation on failure, and
