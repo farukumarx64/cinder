@@ -6,8 +6,8 @@
 #include "cinder/layer.h"
 
 /*
- * Construction, connection validation, size accessors, and cleanup are
- * implemented. cinder_model_run remains a declaration for the next step.
+ * Construction, connection validation, size accessors, inference, and cleanup
+ * are implemented.
  * A model executes a fixed, nonempty sequence of layers on one float32 vector.
  * Its representation is private: it owns the layer list, every layer, and two
  * reusable working buffers. Public size accessors expose immutable dimensions.
@@ -71,7 +71,6 @@ size_t cinder_model_input_size(const cinder_model_t *model);
 size_t cinder_model_output_size(const cinder_model_t *model);
 
 /*
- * Execution contract only; cinder_model_run is not implemented yet.
  * Run the fixed sequence on one input vector without allocations or frees.
  * model must be a live constructor-created object. It is non-const because
  * inference changes private working buffers, not topology or parameters.
@@ -80,8 +79,9 @@ size_t cinder_model_output_size(const cinder_model_t *model);
  * input_count != model input size -> DIMENSION_MISMATCH;
  * output_capacity < model output size -> BUFFER_TOO_SMALL;
  * any non-finite input -> NONFINITE. Zero counts follow the same rules.
- * Then call cinder_layer_forward in list order, always into alternating private
- * buffers, using each layer's logical input count. Stop on the first failure
+ * Copy input to the first private buffer, then call cinder_layer_forward in list
+ * order using each layer's logical input count. Dense writes the other buffer;
+ * ReLU/Softmax update the current buffer in place. Stop on the first failure
  * and preserve its status/error details. Copy exactly the model output size to
  * caller output ONLY after every layer succeeds. A single layer uses this
  * same path. Connections have already been validated during construction.

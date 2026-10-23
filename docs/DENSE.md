@@ -6,8 +6,8 @@ single-vector forward execution are implemented** in
 [`src/dense.c`](../src/dense.c), part of `cinder_core`.
 
 The layer packages the existing float32 math `y = Wx + b` for one input vector.
-It applies no activation. ReLU, Softmax, common layer dispatch, and sequential
-model execution will be integrated separately.
+It applies no activation. ReLU and Softmax are separate layers; the common layer
+interface and sequential model compose these operations.
 
 ## Representation and shapes
 
@@ -390,7 +390,7 @@ for this change have not been verified.
 The [common layer interface](LAYER.md) now implements a tagged wrapper that
 owns this Dense object, exposes its dimensions, and delegates forward execution.
 Common constructors, validation, cleanup, and activation dispatch are implemented;
-the [sequential model](MODEL.md) now implements construction and cleanup with
-ownership of its layers. Dense applies no activation; sequential execution
-through `cinder_model_run` is next. Buffer overlap remains a caller
+the [sequential model](MODEL.md) now implements construction, cleanup, and
+sequential execution with ownership of its layers and reusable buffers. Dense
+applies no activation and still requires separate input/output storage. Buffer overlap remains a caller
 precondition, not a runtime-diagnosed error.

@@ -177,15 +177,18 @@ cinder_status_t cinder_layer_forward(
                                         output, output_capacity, error);
         case CINDER_LAYER_RELU:
         case CINDER_LAYER_SOFTMAX:
-            /* Validate every source value before the first output write. The
-             * existing kernels operate in place, on the copied logical vector. */
+            /* Validate every source value before the first output write. */
             for (size_t i = 0; i < input_count; ++i) {
                 if (!isfinite(input[i])) {
                     return layer_result(CINDER_ERROR_NONFINITE, error,
                                         "Activation inputs must be finite.");
                 }
             }
-            memcpy(output, input, input_count * sizeof(*input));
+            /* Exact aliasing is supported for activations. Skip memcpy for
+             * that case; partial overlap remains a caller contract violation. */
+            if (output != input) {
+                memcpy(output, input, input_count * sizeof(*input));
+            }
             if (layer->type == CINDER_LAYER_RELU) {
                 return cinder_tensor_relu(output, layer->output_size, error);
             }

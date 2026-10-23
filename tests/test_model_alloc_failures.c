@@ -1,5 +1,6 @@
 #include "cinder/model.h"
 
+#include <float.h>
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -97,7 +98,45 @@ static void test_free(void *block)
 #include "../src/tensor.c"
 #include "../src/dense.c"
 #include "../src/layer.c"
+/* Observe dispatch only inside model.c; forward real calls to the tested layer
+ * implementation. Fault injection checks short-circuiting even at activations,
+ * whose valid finite inputs normally cannot produce an arithmetic failure. */
+static size_t forward_calls;
+static size_t fail_on_forward;
+static struct {
+    const cinder_layer_t *layer;
+    const float *input;
+    float *output;
+    size_t count;
+    size_t capacity;
+} forward_trace[8];
+
+static cinder_status_t observed_forward(
+    const cinder_layer_t *layer, const float *input, size_t count,
+    float *output, size_t capacity, cinder_error_t *error)
+{
+    CHECK(forward_calls < COUNT(forward_trace));
+    forward_trace[forward_calls].layer = layer;
+    forward_trace[forward_calls].input = input;
+    forward_trace[forward_calls].output = output;
+    forward_trace[forward_calls].count = count;
+    forward_trace[forward_calls].capacity = capacity;
+    ++forward_calls;
+    if (forward_calls == fail_on_forward) {
+        /* Simulate a layer failure after a partial write. */
+        output[0] = NAN;
+        if (error != NULL) {
+            error->code = CINDER_ERROR_NONFINITE;
+            strcpy(error->message, "Injected layer failure after partial output.");
+        }
+        return CINDER_ERROR_NONFINITE;
+    }
+    return cinder_layer_forward(layer, input, count, output, capacity, error);
+}
+
+#define cinder_layer_forward observed_forward
 #include "../src/model.c"
+#undef cinder_layer_forward
 #undef malloc
 #undef calloc
 #undef free
@@ -403,6 +442,121 @@ static void check_existing_model_survives(void)
     }
 }
 
+static void check_run_storage(cinder_error_t *error)
+{
+    reset_allocator();
+    cinder_layer_t *layers[4];
+    example_layers(layers);
+    cinder_model_t *model = NULL;
+    CHECK(cinder_model_create(layers, 4, &model, NULL) == CINDER_OK);
+    const float inputs[][2] = {{2, -1}, {0, 0}, {-1, 2}};
+    size_t allocations_before = allocation_calls, frees_before = free_calls;
+    size_t live_before = live_count;
+    /* An attempted allocation would fail; it must not even be attempted. */
+    fail_on_call = allocation_calls + 1;
+    for (size_t failure = 0; failure <= 4; ++failure) {
+        for (size_t example = 0; example < COUNT(inputs); ++example) {
+            /* Poison both buffers, including spare tails, before every run. */
+            for (size_t b = 0; b < 2; ++b) {
+                for (size_t i = 0; i < model->buffer_capacity; ++i) {
+                    model->buffers[b][i] = NAN;
+                }
+            }
+            float output[] = {91, 92, NAN}, saved[3];
+            memcpy(saved, output, sizeof(output));
+            forward_calls = 0;
+            fail_on_forward = failure;
+            check_result(cinder_model_run(model, inputs[example], 2, output, 3, error),
+                         failure == 0 ? CINDER_OK : CINDER_ERROR_NONFINITE, error);
+            size_t calls = failure == 0 ? 4 : failure;
+            CHECK(forward_calls == calls);
+            /* Initial input copy -> A; Dense A->B; ReLU B->B;
+             * Dense B->A; Softmax A->A. Counts shrink to two, capacity stays four. */
+            const size_t reads[] = {0, 1, 1, 0}, writes[] = {1, 1, 0, 0};
+            const size_t counts[] = {2, 4, 4, 2};
+            for (size_t i = 0; i < calls; ++i) {
+                CHECK(forward_trace[i].layer == model->layers[i]);
+                CHECK(forward_trace[i].input == model->buffers[reads[i]]);
+                CHECK(forward_trace[i].output == model->buffers[writes[i]]);
+                CHECK(forward_trace[i].count == counts[i]);
+                CHECK(forward_trace[i].capacity == 4);
+            }
+            if (failure != 0) {
+                CHECK(memcmp(output, saved, sizeof(output)) == 0);
+                if (error != NULL) {
+                    CHECK(strcmp(error->message,
+                                 "Injected layer failure after partial output.") == 0);
+                }
+                /* Retry immediately with the partially written buffers intact. */
+                fail_on_forward = forward_calls = 0;
+                check_result(cinder_model_run(model, inputs[example], 2, output, 3, error),
+                             CINDER_OK, error);
+                CHECK(forward_calls == 4);
+            }
+            CHECK(isfinite(output[0]) && isfinite(output[1]) && isnan(output[2]));
+            CHECK(fabs((double)output[0] + output[1] - 1.0) < 1e-6);
+            CHECK(isnan(model->buffers[0][2]) && isnan(model->buffers[0][3]));
+            CHECK(allocation_calls == allocations_before && free_calls == frees_before);
+            CHECK(live_count == live_before);
+            for (size_t i = 0; i < 4; ++i) {
+                check_parameters(model->layers[i]);
+            }
+        }
+    }
+    /* Every preflight rejection skips dispatch and allocates/frees nothing. */
+    forward_calls = fail_on_forward = 0;
+    float output[] = {91, 92, NAN}, saved[3];
+    memcpy(saved, output, sizeof(output));
+    check_result(cinder_model_run(NULL, inputs[0], 2, output, 3, error),
+                 CINDER_ERROR_INVALID_ARGUMENT, error);
+    check_result(cinder_model_run(model, NULL, 2, output, 3, error),
+                 CINDER_ERROR_INVALID_ARGUMENT, error);
+    check_result(cinder_model_run(model, inputs[0], 2, NULL, 3, error),
+                 CINDER_ERROR_INVALID_ARGUMENT, error);
+    check_result(cinder_model_run(model, inputs[0], 1, output, 3, error),
+                 CINDER_ERROR_DIMENSION_MISMATCH, error);
+    check_result(cinder_model_run(model, inputs[0], 2, output, 1, error),
+                 CINDER_ERROR_BUFFER_TOO_SMALL, error);
+    const float bad[] = {1, NAN};
+    check_result(cinder_model_run(model, bad, 2, output, 3, error),
+                 CINDER_ERROR_NONFINITE, error);
+    CHECK(forward_calls == 0 && memcmp(output, saved, sizeof(output)) == 0);
+    CHECK(allocation_calls == allocations_before && free_calls == frees_before);
+    cinder_model_free(model);
+    CHECK(live_count == 0 && free_calls == allocation_calls);
+}
+
+static void check_run_arithmetic_without_allocation(cinder_error_t *error)
+{
+    for (int bias_failure = 0; bias_failure <= 1; ++bias_failure) {
+        reset_allocator();
+        const float w[] = {1, 0, FLT_MAX, 0};
+        const float b[] = {0, bias_failure ? FLT_MAX : 0};
+        cinder_layer_t *layers[] = {activation(CINDER_LAYER_RELU, 2), NULL,
+                                    activation(CINDER_LAYER_RELU, 2)};
+        CHECK(cinder_layer_create_dense(2, 2, w, 4, b, 2, &layers[1], NULL) == CINDER_OK);
+        cinder_model_t *model = NULL;
+        CHECK(cinder_model_create(layers, 3, &model, NULL) == CINDER_OK);
+        const float input[] = {bias_failure ? 1.0f : 2.0f, 0};
+        float output[] = {91, 92, NAN}, saved[3];
+        memcpy(saved, output, sizeof(output));
+        size_t allocations_before = allocation_calls, frees_before = free_calls;
+        fail_on_call = allocation_calls + 1;
+        forward_calls = fail_on_forward = 0;
+        check_result(cinder_model_run(model, input, 2, output, 3, error),
+                     CINDER_ERROR_NONFINITE, error);
+        CHECK(forward_calls == 2 && memcmp(output, saved, sizeof(output)) == 0);
+        const float zero[] = {0, 0};
+        forward_calls = 0;
+        check_result(cinder_model_run(model, zero, 2, output, 3, error), CINDER_OK, error);
+        CHECK(forward_calls == 3 && output[0] == b[0] && output[1] == b[1]);
+        CHECK(isnan(output[2]));
+        CHECK(allocation_calls == allocations_before && free_calls == frees_before);
+        cinder_model_free(model);
+        CHECK(live_count == 0 && free_calls == allocation_calls);
+    }
+}
+
 int main(void)
 {
     for (int with_error = 0; with_error <= 1; ++with_error) {
@@ -414,10 +568,12 @@ int main(void)
             check_failure(failure, 1, error);
         }
         check_validation_without_allocation(error);
+        check_run_storage(error);
+        check_run_arithmetic_without_allocation(error);
     }
     check_capacities();
     check_largest_representable_buffer();
     check_existing_model_survives();
-    puts("Model allocation tests passed: four failures, full rollback, ownership, and two sized buffers.");
+    puts("Model storage tests passed: allocation rollback, ownership, buffer reuse, and allocation-free inference.");
     return EXIT_SUCCESS;
 }

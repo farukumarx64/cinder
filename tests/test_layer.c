@@ -231,6 +231,45 @@ static void check_repeated_dispatch(cinder_error_t *error)
     cinder_layer_free(softmax);
 }
 
+static void check_in_place(cinder_layer_type_t type, cinder_error_t *error)
+{
+    cinder_layer_t *layer = create_activation(type, 3);
+    const float input[] = {-1, 0, 1};
+    const float relu[] = {0, 0, 1};
+    const float softmax[] = {0.09003057f, 0.24472847f, 0.66524096f};
+    const float *expected = type == CINDER_LAYER_RELU ? relu : softmax;
+    for (size_t capacity = 3; capacity <= 4; ++capacity) {
+        float storage[] = {-101, -1, 0, 1, NAN, -102};
+        check_result(cinder_layer_forward(layer, storage + 1, 3, storage + 1,
+                                          capacity, error), CINDER_OK, error);
+        for (size_t i = 0; i < 3; ++i) {
+            CHECK(fabs((double)storage[i + 1] - expected[i]) < 1e-6);
+        }
+        CHECK(storage[0] == -101 && isnan(storage[4]) && storage[5] == -102);
+    }
+    const float nonfinite[] = {NAN, INFINITY, -INFINITY};
+    for (size_t value = 0; value < COUNT(nonfinite); ++value) {
+        for (size_t index = 0; index < 3; ++index) {
+            float values[] = {-1, 0, 1, NAN}, saved[4];
+            values[index] = nonfinite[value];
+            memcpy(saved, values, sizeof(saved));
+            check_result(cinder_layer_forward(layer, values, 3, values, 4, error),
+                         CINDER_ERROR_NONFINITE, error);
+            CHECK(memcmp(values, saved, sizeof(values)) == 0);
+        }
+    }
+    float values[3];
+    memcpy(values, input, sizeof(values));
+    check_result(cinder_layer_forward(layer, values, 2, values, 3, error),
+                 CINDER_ERROR_DIMENSION_MISMATCH, error);
+    CHECK(memcmp(values, input, sizeof(values)) == 0);
+    check_result(cinder_layer_forward(layer, values, 3, values, 2, error),
+                 CINDER_ERROR_BUFFER_TOO_SMALL, error);
+    CHECK(memcmp(values, input, sizeof(values)) == 0);
+    check_result(cinder_layer_forward(layer, values, 3, values, 3, error), CINDER_OK, error);
+    cinder_layer_free(layer);
+}
+
 static void compare_fixture(const char *name, const cinder_layer_t *layer,
                              numpy_vector_t input, numpy_vector_t expected)
 {
@@ -346,6 +385,8 @@ int main(void)
         check_activation_validation(CINDER_LAYER_RELU, error);
         check_activation_validation(CINDER_LAYER_SOFTMAX, error);
         check_repeated_dispatch(error);
+        check_in_place(CINDER_LAYER_RELU, error);
+        check_in_place(CINDER_LAYER_SOFTMAX, error);
         check_dense_ownership_and_errors(error);
     }
     check_numpy_references();

@@ -280,8 +280,8 @@ Matvec receives the output buffer capacity (`4`). Bias addition receives the
 number of results (`weights->rows`, which is `2`), so spare, uninitialized
 storage is not treated as part of the vector. Apply bias only after matvec
 succeeds. Bias addition uses `O(M)` time, `O(1)` extra space, and no allocations.
-Together these functions implement the arithmetic `y = Wx + b`; the layer
-abstraction and model execution remain future steps.
+Together these functions implement the arithmetic `y = Wx + b`, reused by the
+[Dense layer](DENSE.md) and [sequential model](MODEL.md).
 
 ## ReLU
 
@@ -352,8 +352,9 @@ if (status == CINDER_OK) {
 }
 ```
 
-Consume the result only when the final status is `CINDER_OK`. The layer
-abstraction and model execution remain separate future steps.
+Consume the result only when the final status is `CINDER_OK`. The
+[common layer interface](LAYER.md) and [sequential model](MODEL.md) compose these
+operations and propagate their statuses.
 
 ## Softmax
 
@@ -657,4 +658,5 @@ defines how Phase 2 packages these tensors and math kernels. Dense creation,
 cleanup, and forward execution are implemented. The [common layer interface](LAYER.md)
 now implements wrappers and dispatch for Dense, ReLU, and Softmax. The
 [sequential model](MODEL.md) now implements construction, connection validation,
-size accessors, cleanup, and reusable buffers. Sequential inference is next.
+size accessors, cleanup, reusable buffers, and sequential inference. Independent
+NumPy verification of the full example network is next.

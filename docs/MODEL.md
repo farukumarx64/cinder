@@ -1,11 +1,11 @@
 # Sequential-model contract
 
 The public declarations are in [`include/cinder/model.h`](../include/cinder/model.h).
-Construction, connection validation, size accessors, and cleanup are implemented
+Construction, connection validation, size accessors, inference, and cleanup are implemented
 in [`src/model.c`](../src/model.c) and linked into `cinder_core`. Each model owns
-its ordered layers and two reusable working buffers. **Inference remains a
-contract only:** `cinder_model_run` is declared but not implemented yet. The
-existing tensor, Dense, and common layer operations will supply its execution.
+its ordered layers and two reusable working buffers. `cinder_model_run` executes
+through the existing common layer operations without allocating, and copies the
+final result to caller output only after every layer succeeds.
 
 ## Representation and public API
 
@@ -143,8 +143,8 @@ caller owns model handle
 ```
 
 The caller continues to own the input and destination output arrays. Model
-construction does not receive or allocate those arrays. The future run call
-will borrow them only for the duration of execution.
+construction does not receive or allocate those arrays. The run call borrows
+them only for the duration of execution.
 
 An empty list is an error, not an identity operation. This gives every valid
 model well-defined positive external dimensions. It also rejects accidentally
@@ -177,7 +177,7 @@ repair of a mismatch. A malformed network never becomes an executable model.
 The topology stays fixed afterward, so inference uses the constructor's
 validated connections without allocating or rebuilding them on every call.
 
-## Working buffers and planned execution
+## Working buffers and execution
 
 Each model owns two distinct reusable float buffers. Their common capacity is:
 
@@ -191,31 +191,41 @@ even for a one-layer model, keeping construction and execution uniform.
 Individual allocations are checked separately; no unchecked `2 * capacity`
 calculation is needed. These buffers are additional to the owned parameters.
 
-Buffer allocation is implemented. The execution steps below describe the next
-scoped task, `cinder_model_run`. The buffers are private; there is no public
-workspace accessor or requirement that their initial contents be zero.
+Both buffer allocation and execution are implemented. The buffers are private;
+there is no public workspace accessor or requirement that their initial contents
+be zero.
 
-The first layer reads the caller's input and writes buffer A. Each later layer
-reads the previous result and writes the other buffer. The model passes the
-logical input count for that layer and the full buffer capacity to
-`cinder_layer_forward`. Never pass spare elements as part of a logical input.
+After validating the call, copy the caller's logical input into buffer A. This
+also protects caller input when the first layer is an activation. Each Dense
+reads the current buffer and writes the other one; each ReLU or Softmax updates
+the current buffer in place. All operations use `cinder_layer_forward`, whose
+activation contract now permits exact input/output aliasing and skips the copy
+in that case. Dense still requires separate buffers; partial overlap is never
+allowed. The model's caller input/output ranges must still be disjoint.
+
+The model tracks the current buffer index and logical vector length separately.
+It passes that logical length and the full working-buffer capacity to each
+layer, then updates the current length to the successful layer's output size.
+Never pass spare elements as part of a logical input.
 
 | Operation in the example | Reads | Writes | Result count |
 | --- | --- | --- | --- |
-| Dense `2 -> 4` | Caller input | A | 4 |
-| ReLU `4 -> 4` | A | B | 4 |
+| Copy validated input | Caller input | A | 2 |
+| Dense `2 -> 4` | A | B | 4 |
+| ReLU `4 -> 4` | B | B | 4 |
 | Dense `4 -> 2` | B | A | 2 |
-| Softmax `2 -> 2` | A | B | 2 |
-| Publish successful result | B | Caller output | 2 |
+| Softmax `2 -> 2` | A | A | 2 |
+| Publish successful result | A | Caller output | 2 |
 
-With fewer or more layers, the last result may be in either buffer. A one-layer
-model writes A and then copies A's logical output to the caller. Every layer
-receives separate input/output storage, satisfying the common layer contract.
+The last result may be in either buffer, determined by the number of Dense
+layers rather than the total layer count. A single Dense finishes in B; a single
+activation finishes in A. The same loop handles either case and activation-only
+models. No activation needs an extra copy or a buffer switch.
 
 Working-buffer contents need not be initialized or cleared between calls.
-Successful layers overwrite their entire logical output before a later layer
-reads it. In the example, the second Dense leaves old data beyond A's first two
-elements; Softmax receives a count of two and never reads those old elements.
+The initial copy and each successful layer supply the complete logical input for
+the following operation. In the example, the second Dense leaves old data beyond
+A's first two elements; Softmax receives a count of two and never reads those old elements.
 If a layer fails, execution stops immediately instead of consuming its partial
 result. The next run starts again at layer zero, so no explicit reset is needed.
 
@@ -237,7 +247,8 @@ Checks and execution follow this order:
 2. Wrong input count, including zero: `DIMENSION_MISMATCH`.
 3. Insufficient output capacity, including zero: `BUFFER_TOO_SMALL`.
 4. Any NaN or infinity in the logical input: `NONFINITE`.
-5. Execute layers in order through `cinder_layer_forward`. Stop at the first
+5. Copy input into private storage and execute layers in order through
+   `cinder_layer_forward`. Stop at the first
    failure and return the existing status and diagnostic message unchanged.
 6. Only after all layers succeed, copy exactly the model output size to caller
    output and return `CINDER_OK` with cleared error details.
@@ -260,9 +271,10 @@ and immutable metadata are also unchanged. A failed run does not invalidate
 the model. Subsequent runs may use different caller buffers and input values.
 Results depend on the current input and fixed parameters, not prior calls.
 
-The final copy adds `O(output_size)` work while preserving caller output without
-another allocation. Working storage is two vectors of the largest required
-size; inference work is the sum of the layer operations plus validation/copying.
+The initial and final copies add `O(input_size + output_size)` work while
+preserving caller input/output without another allocation. Working storage is
+two vectors of the largest required size; inference work is the sum of the layer
+operations plus validation/copying.
 There is no global error state, printing, process termination, or new status
 code. Optional caller-owned errors follow [`error.h`](../include/cinder/error.h):
 matching status, an empty message on success, and a bounded null-terminated
@@ -351,10 +363,9 @@ int model_creation_example(void)
 The model internally allocates two four-float buffers. Its external dimensions
 remain two inputs and two outputs; buffer capacity is not an external dimension.
 
-## Future inference example
+## Inference example
 
-This example illustrates the declared execution API. It can be syntax-checked,
-but cannot link or run until `cinder_model_run` is implemented:
+This example uses the implemented execution API and can link against `cinder_core`:
 
 ```c
 #include "cinder/model.h"
@@ -401,8 +412,9 @@ int model_example(void)
 ```
 
 The shorter example uses Dense `2 -> 4`, ReLU, and Softmax to demonstrate
-ownership and calls. The full `2 -> 4 -> 2` network remains a later integration
-fixture; this declaration example does not establish its numerical correctness.
+ownership and calls. The runtime tests also execute the full `2 -> 4 -> 2`
+network against hand-calculated results. Independent generated NumPy references
+for every stage of that full network remain the next scoped step.
 
 ## Verification and next scoped steps
 
@@ -439,24 +451,50 @@ implemented and verified locally on macOS on the same day:
   model test executables reported zero leaks with native macOS `leaks`.
 - A build with tests disabled succeeded and registered zero tests. The
   construction example compiled with C11 warnings as errors, linked against
-  that library, and ran. The future inference example remains syntax-only.
+  that library, and ran. At that construction-only step, the inference example
+  was syntax-checked only.
 
-These results cover construction and cleanup, not model inference. Hosted
-macOS/Linux CI for this change has not been verified; existing jobs will run the
-new CTest registrations when published.
+Sequential inference was then implemented on October 22, 2026:
+
+- `model_run` links the production library and checks each prefix of the example
+  network against hand-calculated results, repeated different inputs, single
+  layers, activation-only and activation-first models, consecutive Dense layers,
+  widening/shrinking vectors, exact/spare output capacity, input/parameter
+  preservation, validation order, and disjoint slices of one caller array.
+- Real multiplication and bias overflow at the first, middle, or last layer
+  preserves every caller output byte and the original kernel diagnostic.
+  Immediate retries succeed without resetting the model; separately constructed
+  instances remain independent when run alternately or one is destroyed.
+- Extended `model_allocation_failures` observes the actual dispatch pointers and
+  counts: Dense switches buffers, activations alias exactly, and shrinking
+  vectors never consume poisoned spare tails. Test-only injected failures after
+  partial writes at each of four layer positions verify immediate stopping and
+  unchanged caller output, including failure at either activation.
+- Allocation counters remain unchanged during success, preflight rejection,
+  injected failure, real arithmetic failure, and recovery. The next allocation
+  is armed to fail, proving inference does not depend on allocation success.
+  Production code has no allocator or dispatch test hooks.
+- `layer_interface` additionally checks in-place ReLU/Softmax, exact/spare
+  capacity, non-finite values at every input position, validation preservation,
+  and successful retry with cleared diagnostics.
+- Debug passed 17/17 CTest tests. Release and combined ASan/UBSan builds with
+  generated tensor NumPy references enabled passed 18/18 each. The model-run,
+  model-storage, and layer test executables each reported zero native macOS leaks.
+  The build with tests disabled succeeded and registered zero tests. Both model
+  examples and the layer example compiled with C11 warnings as errors, linked
+  against that library, and ran successfully.
+
+Hosted macOS/Linux CI for the latest change remains unverified; existing jobs
+will run the new CTest registration when published.
 
 The remaining scoped steps are:
 
-1. Implement inference with buffer alternation and a final copy only on success.
-   Test exact and spare capacity, non-finite inputs, source preservation, early
-   and late arithmetic errors with unchanged caller output, recovery, different
-   inputs on repeated runs, and zero allocation/free calls on success and failure.
-   Cover odd/even layer counts, a single layer, and widening/shrinking vectors
-   so stale buffer tails and wrong final-buffer selection cannot pass unnoticed.
-2. Compare the full `2 -> 4 -> 2` network's intermediate values and final
-   probabilities with NumPy, then complete sanitizer, leak, and hosted CI checks
-   before closing M2. Verify independent instances and externally serialized
-   calls; do not deliberately execute forbidden same-instance data races.
+1. Compare the full `2 -> 4 -> 2` network's intermediate values and final
+   probabilities with deterministic NumPy float32 fixtures; preserve them for
+   the Phase 3 exporter/loader round trip.
+2. Complete M2 verification, including hosted macOS/Linux CI and any remaining
+   concurrency/lifetime checks. Serialize same-instance calls externally; do
+   not deliberately execute forbidden same-instance data races.
 
 The immediate next task is step 1. File loading, an exporter, and MNIST remain
 later phases.

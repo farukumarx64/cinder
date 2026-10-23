@@ -5,8 +5,8 @@ The constructors, metadata validator, destructor, and forward dispatcher are
 implemented in [`src/layer.c`](../src/layer.c) and linked into `cinder_core`.
 Dense, ReLU, and Softmax share this API and reuse their existing tested kernels.
 The [sequential-model contract](MODEL.md) defines how models adopt and connect
-these layers. Model creation, validation, buffers, and cleanup are implemented;
-sequential inference is next.
+these layers. Model creation, validation, buffers, inference, and cleanup are
+implemented; full-network NumPy verification is next.
 
 ## Type tag, dimensions, and payload
 
@@ -124,8 +124,7 @@ transfer only when model construction succeeds: the model adopts the layers
 and clears the caller's array slots. Failure leaves the layers caller-owned.
 This ownership transfer is implemented. Layer inspection and execution do not
 transfer ownership; after adoption, the model releases the layers during its
-own cleanup. Execution of adopted layers will be handled by `cinder_model_run`,
-which remains unimplemented.
+own cleanup. Execution of adopted layers is handled by `cinder_model_run`.
 
 ## Validation visible to the model
 
@@ -180,7 +179,7 @@ but is not required to change it.
 
 Model construction also uses these fields to determine its external input/output
 sizes and the largest working vector, then allocates two reusable buffers.
-These construction checks are implemented; model execution is the next step.
+These construction checks and sequential model execution are implemented.
 
 ## Common execution and switch dispatch
 
@@ -195,9 +194,10 @@ cinder_status_t cinder_layer_forward(
 );
 ```
 
-Execution accepts one input vector and a separate writable output buffer for
-every layer kind. The input length must exactly match `input_size`; output
-capacity must be at least `output_size`. Output need not be initialized. The
+Execution accepts one input vector and writable output storage. Dense requires
+separate input/output buffers; ReLU and Softmax also permit exact aliasing for
+in-place execution. The input length must exactly match `input_size`; output
+capacity must be at least `output_size`. Separate output need not be initialized. The
 layer neither allocates/frees storage nor retains caller buffers during a call.
 
 Validation order is: reject NULL layer/input/output with `INVALID_ARGUMENT`;
@@ -211,13 +211,14 @@ The implementation uses a `switch (layer->type)` with these paths:
 | Case | Execution path |
 | --- | --- |
 | `CINDER_LAYER_DENSE` | Delegate to `cinder_dense_forward`, which validates finite input/weights/bias before computing `Wx + b`. |
-| `CINDER_LAYER_RELU` | Check every input value is finite, copy exactly `input_size` floats to output, then call `cinder_tensor_relu(output, output_size, error)`. |
-| `CINDER_LAYER_SOFTMAX` | Check every input value is finite, copy exactly `input_size` floats to output, then call `cinder_tensor_softmax(output, output_size, error)`. |
+| `CINDER_LAYER_RELU` | Check every input value is finite, copy exactly `input_size` floats if input/output differ, then call `cinder_tensor_relu(output, output_size, error)`. |
+| `CINDER_LAYER_SOFTMAX` | Check every input value is finite, copy exactly `input_size` floats if input/output differ, then call `cinder_tensor_softmax(output, output_size, error)`. |
 | INVALID / default | Return `INVALID_ARGUMENT` with error details; never fall through to another operation. |
 
 Activations use the output itself as the existing kernel's mutable vector.
-This adds a linear copy but no temporary allocation. It preserves the input
-and gives the future model the same separate-buffer call shape for every type.
+With separate buffers this adds a linear copy but no temporary allocation and
+preserves input. When `input == output`, the copy is skipped and the original
+vector becomes the result. The model uses this in-place path for activations.
 The existing tensor activation functions remain available for direct in-place
 use. Activation input validation must happen before the copy: copying a bad
 input and then relying only on the kernel's rejection would violate output
@@ -237,17 +238,19 @@ scan is necessary to preserve the separate output on validation failure.
 
 ## Overlap, failures, and error details
 
-For all layer types, the full advertised output range must be disjoint from
-the input range, the wrapper and all Dense-owned storage, and optional error
-storage. Exact input/output aliasing is also forbidden for activations through
-this interface. Disjoint slices of a single allocation are allowed. Read-only
+Dense requires disjoint input/output ranges. ReLU and Softmax permit either
+disjoint ranges or `input == output`; partial overlap is forbidden. For all
+types, the full advertised output range must be disjoint from the wrapper,
+all Dense-owned storage, and optional error storage.
+Disjoint slices of a single allocation are allowed. Read-only
 input may borrow Dense parameter data. Error storage must be disjoint from all
 sources and owned objects. Accessible sizes and overlap are caller
 preconditions, not runtime checks; callers must not change or free data while
 a call uses it.
 
-Success writes exactly `output_size` floats. Spare capacity, input, and owned
-parameters stay unchanged on every outcome. Pointer, metadata, length,
+Success writes exactly `output_size` floats. Spare capacity, separate input, and
+owned parameters stay unchanged on every outcome. With an in-place activation,
+input is also the writable output. Pointer, metadata, length,
 capacity, and finite-source validation failures preserve the entire output.
 After computation begins, Dense arithmetic failures retain its documented
 partial results; Softmax numeric failure may leave copied inputs, exponentials,
@@ -264,8 +267,7 @@ printing, or process termination is needed.
 ## Usage example
 
 This example manually executes Dense, ReLU, and Softmax using caller-owned
-buffers. A sequential model will automate connection checks and buffer reuse
-in a later step:
+buffers. A sequential model now automates connection checks and buffer reuse:
 
 ```c
 #include "cinder/layer.h"
@@ -374,5 +376,9 @@ verified. Existing CI jobs automatically include the new CTest registrations.
 The [sequential-model contract](MODEL.md) is now defined, including ownership,
 connection checks, external dimensions, output preservation on failure, and
 serialized access to shared working buffers. Model construction, connection
-validation, size accessors, cleanup, and both reusable buffers are implemented.
-Sequential inference is the next scoped step.
+validation, size accessors, cleanup, both reusable buffers, and sequential
+inference are implemented. On October 22, the activation interface was extended
+to support exact input/output aliasing, skipping the copy in that case. Tests
+cover in-place results, spare capacity, non-finite rejection before writes,
+invalid lengths/capacity, and recovery. See [model verification](MODEL.md#verification-and-next-scoped-steps)
+for the current suite results. Full-network NumPy verification is next.

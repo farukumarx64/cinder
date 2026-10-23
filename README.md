@@ -19,7 +19,9 @@ tested, allocation-free forward pass. The common Dense/ReLU/Softmax layer
 interface now has implemented constructors, metadata validation, cleanup, and
 allocation-free dispatch. Model construction, connection validation, size
 accessors, cleanup, and two reusable working buffers are implemented. Sequential
-inference through `cinder_model_run` is the next scoped task and remains a declaration.
+inference through `cinder_model_run` is implemented: Dense switches buffers,
+activations run in place, and caller output changes only after full success.
+Independent NumPy verification of the complete example network is next.
 The project contains a CMake build and a CLI that supports `--version`.
 The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
 
@@ -91,11 +93,12 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
   without tests passed. Hosted CI verification of this change remains pending.
 - The [common layer contract](docs/LAYER.md) defines a type tag, shared
   input/output dimensions, an owned Dense-only payload, constructors, metadata
-  validation, cleanup, and separate-buffer forward execution. Activations must
+  validation, cleanup, and forward execution. Activations support exact in-place
+  input/output aliasing or separate buffers; Dense needs separate buffers. Activations must
   preserve vector length. These functions are implemented in `src/layer.c`.
 - Common dispatch reuses the existing Dense, ReLU, and Softmax functions.
-  Activations validate all input values before copying into the output, preserve
-  sources and dimensions, and leave spare capacity untouched. Each activation
+  Activations validate all input values before writing, copy separate input into
+  output when needed, and preserve dimensions and spare capacity. Each activation
   owns one wrapper and no parameters or working buffers.
 - After adding common layer execution on October 21, Debug passed 14/14 tests;
   Release and combined ASan/UBSan with generated tensor NumPy references enabled
@@ -118,10 +121,22 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
   verify rollback and ownership, and check private buffer sizes. Both new tests
   reported zero native leaks; a build without tests and the linked construction
   example passed. Hosted CI remains unverified for this change.
-- The next scoped task is implementing `cinder_model_run` with alternating
-  buffers and a final copy only after success. Its contract preserves caller
-  output on every returned failure and requires serialized calls per instance.
-- Model loading, sequential model inference, and the `info`, `run`, and `bench` commands are
+- `cinder_model_run` validates pointers, lengths, capacity, and finite input,
+  copies input to private storage, and dispatches layers in order. Dense uses
+  the other working buffer; ReLU/Softmax update the current vector in place.
+  The first layer failure stops execution with its original diagnostic. Only
+  full success copies the logical result to caller output; spare capacity and
+  input remain untouched. Repeated runs need no reset, including after failure,
+  and allocate/free nothing. Calls on one instance must be serialized.
+- On October 22, sequential inference passed Debug (17/17), Release and combined
+  ASan/UBSan with generated tensor NumPy references enabled (18/18 each).
+  Model-run, model-storage, and layer tests reported zero native leaks. The
+  build without tests and linked model/layer documentation examples passed.
+  Hosted CI remains unverified for this change.
+- The next scoped task is comparing every intermediate and final result of the
+  complete `2 -> 4 -> 2` example against deterministic NumPy float32 fixtures.
+  Hand-calculated execution tests are in place; M2 is not closed yet.
+- Model loading and the `info`, `run`, and `bench` commands are
   planned features; they are not implemented yet.
 
 See [the roadmap](ROADMAP.md#current-progress) for the current checklist and
@@ -183,7 +198,7 @@ exactly `Cinder 0.1.0-dev` followed by a newline on standard output, and empty
 standard error. The expected version follows the CMake project version.
 Failures show diagnostics; the test has a ten-second timeout.
 
-The runtime tests cover tensor math and memory, layers, and model ownership:
+The runtime tests cover tensor math and memory, layers, model ownership, and inference:
 
 - `tensor_allocation` checks dimensions, zero initialization, writable storage,
   independent tensors, invalid arguments, both size-overflow cases, repeated
@@ -233,7 +248,8 @@ The runtime tests cover tensor math and memory, layers, and model ownership:
   output against all 11 saved NumPy matrix/bias fixtures (41 output values).
 - `layer_interface` checks Dense/ReLU/Softmax dispatch, constructor ownership,
   metadata validation, unchanged activation dimensions and sources, exact/spare
-  capacity, rejection before writes, diagnostics, recovery, and repeated calls.
+  capacity, rejection before writes, diagnostics, recovery, repeated calls,
+  and in-place activation execution.
   It compares 12 saved NumPy fixtures through each activation and 11 through
   Dense. `layer_allocation_failures` forces all six Dense-wrapper allocation
   failures and each activation's one allocation failure, tracks cleanup, and
@@ -243,6 +259,14 @@ The runtime tests cover tensor math and memory, layers, and model ownership:
   models. `model_allocation_failures` forces all four model allocations to fail,
   verifies caller layers survive rollback, checks ordered adoption and exact
   private buffer sizes, and tracks complete cleanup with no new allocations.
+  Its inference checks observe buffer choices and logical counts, poison spare
+  tails, inject partial-write failures at each layer, verify immediate stopping,
+  and check zero allocations/frees through success, failure, and recovery.
+- `model_run` checks hand-calculated network prefixes and probabilities,
+  consecutive Dense layers, activation-first/only models, single layers,
+  shrinking/widening vectors, input/parameter preservation, exact/spare capacity,
+  validation order, independent models, and repeated execution. Real arithmetic
+  overflow at early/middle/late layers preserves caller output and diagnostics.
 
 All runtime tests have ten-second timeouts. Their checks stay active in Release
 builds, where ordinary C `assert` checks could be disabled by `NDEBUG`.
@@ -390,11 +414,11 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | `src/tensor.c` | Tensor allocation, cleanup, checked access, matrix-vector multiplication, bias addition, ReLU, Softmax, and error reporting. |
 | `src/dense.c` | Dense creation, parameter copying, cleanup, and forward execution through tensor kernels. |
 | `src/layer.c` | Common constructors, metadata validation, cleanup, and Dense/ReLU/Softmax dispatch. |
-| `src/model.c` | Private model storage, ordered adoption, connection validation, buffer allocation, size getters, and cleanup. |
+| `src/model.c` | Private model storage, ordered adoption, connection validation, reusable buffers, sequential inference, size getters, and cleanup. |
 | `include/cinder/tensor.h` | Tensor representation and function declarations. |
 | `include/cinder/dense.h` | Dense representation and implemented create/free/forward API declarations. |
 | `include/cinder/layer.h` | Common layer tags, dimensions, payload, and implemented API declarations. |
-| `include/cinder/model.h` | Opaque model with implemented create/size/free APIs; run remains a declaration. |
+| `include/cinder/model.h` | Opaque model with implemented create/size/run/free APIs and ownership/execution contracts. |
 | `include/cinder/error.h` | Status codes and caller-owned error details. |
 | `docs/TENSOR.md` | Tensor layout, ownership, validation, and failure contract. |
 | `docs/DENSE.md` | Dense parameter shapes, ownership, public API, overlap, failures, and worked example. |
@@ -409,7 +433,8 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | `tests/test_layer.c` | Tests common dispatch, metadata, ownership, source/output preservation, errors, and saved NumPy references. |
 | `tests/test_layer_alloc_failures.c` | Forces wrapper/owned-data allocation failures and checks cleanup, recovery, and allocation-free execution. |
 | `tests/test_model.c` | Tests model construction, connection validation, ownership, dimension getters, and cleanup. |
-| `tests/test_model_alloc_failures.c` | Forces all four model allocation failures and checks rollback, ordered ownership, and private buffer capacities. |
+| `tests/test_model_alloc_failures.c` | Checks allocation rollback, ownership, buffer capacities/reuse, immediate failure stopping, and allocation-free inference. |
+| `tests/test_model_run.c` | Tests ordered results, validation, output preservation, arithmetic failures, recovery, and independent models. |
 | `tests/test_tensor_access.c` | Tests row-major access, bounds, finite values, and failure behavior. |
 | `tests/test_tensor_matvec.c` | Tests matrix-vector products, dimensions, output capacity, and numeric failures. |
 | `tests/test_tensor_bias.c` | Tests bias addition, vector lengths, numeric failures, and composed `Wx + b` results. |

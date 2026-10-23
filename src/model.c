@@ -1,7 +1,9 @@
 #include "cinder/model.h"
 
+#include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 /* Private representation: callers inspect dimensions through the accessors. */
 struct cinder_model {
@@ -134,6 +136,58 @@ size_t cinder_model_input_size(const cinder_model_t *model)
 size_t cinder_model_output_size(const cinder_model_t *model)
 {
     return model == NULL ? 0 : model->output_size;
+}
+
+cinder_status_t cinder_model_run(
+    cinder_model_t *model,
+    const float *input,
+    size_t input_count,
+    float *output,
+    size_t output_capacity,
+    cinder_error_t *error
+)
+{
+    if (model == NULL || input == NULL || output == NULL) {
+        return model_result(CINDER_ERROR_INVALID_ARGUMENT, error,
+                            "Model, input, and output must not be NULL.");
+    }
+    if (input_count != model->input_size) {
+        return model_result(CINDER_ERROR_DIMENSION_MISMATCH, error,
+                            "Input length must equal the model input size.");
+    }
+    if (output_capacity < model->output_size) {
+        return model_result(CINDER_ERROR_BUFFER_TOO_SMALL, error,
+                            "Output capacity must cover the model output size.");
+    }
+    for (size_t i = 0; i < input_count; ++i) {
+        if (!isfinite(input[i])) {
+            return model_result(CINDER_ERROR_NONFINITE, error,
+                                "Model inputs must be finite.");
+        }
+    }
+
+    /* Start in owned storage so even an activation-first model preserves input.
+     * Construction proved the vector fits and the byte count is representable. */
+    size_t current = 0;
+    size_t count = input_count;
+    memcpy(model->buffers[current], input, count * sizeof(*input));
+    for (size_t i = 0; i < model->layer_count; ++i) {
+        const cinder_layer_t *layer = model->layers[i];
+        /* Dense must read/write separate buffers; activations work in place. */
+        size_t next = layer->type == CINDER_LAYER_DENSE ? 1 - current : current;
+        cinder_status_t status = cinder_layer_forward(
+            layer, model->buffers[current], count,
+            model->buffers[next], model->buffer_capacity, error);
+        if (status != CINDER_OK) {
+            return status; /* Keep the first diagnostic and all caller output. */
+        }
+        current = next;
+        count = layer->output_size;
+    }
+
+    /* Publish only the final logical vector, after every layer has succeeded. */
+    memcpy(output, model->buffers[current], model->output_size * sizeof(*output));
+    return model_result(CINDER_OK, error, "");
 }
 
 void cinder_model_free(cinder_model_t *model)

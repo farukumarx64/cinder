@@ -106,18 +106,21 @@ void cinder_layer_free(cinder_layer_t *layer);
  * All validation completes before writes; validation failure preserves output.
  *
  * DENSE delegates to cinder_dense_forward. RELU/SOFTMAX validate all input values
- * before copying exactly input_size floats into output, then invoke the existing
- * in-place activation on output_size floats. Return kernel status/error details.
- * Output need not be initialized. Write exactly output_size results on success;
+ * before copying exactly input_size floats into output (skip the copy when
+ * input == output), then invoke the existing in-place activation on output_size
+ * floats. Return kernel status/error details.
+ * Separate output need not be initialized. Write output_size results on success;
  * spare capacity is untouched on every outcome. Arithmetic failure may leave
- * partial Dense/Softmax output: discard the result. Input and parameters remain
- * unchanged; failure does not invalidate a layer or retain caller buffers.
+ * partial Dense/Softmax output: discard the result. Separate input and parameters
+ * remain unchanged; in-place activation input is also its writable output.
+ * Failure does not invalidate a layer or retain caller buffers.
  *
- * For ALL types, full advertised output storage must be disjoint from input,
- * layer/Dense-owned storage, and optional error storage. Exact input/output
- * aliasing is also forbidden for activations. Read-only input may borrow Dense
- * parameter data; disjoint slices of one allocation are allowed. Error storage
- * must be disjoint from all sources/owners. These are caller preconditions, not
+ * Dense requires disjoint input/output ranges. RELU/SOFTMAX permit input == output
+ * or disjoint ranges; partial overlap is forbidden. Full advertised output
+ * storage must be disjoint from layer/Dense-owned storage and optional error
+ * storage. Read-only input may borrow Dense parameter data; disjoint slices of
+ * one allocation are allowed. Error storage must be disjoint from all
+ * sources/owners. These are caller preconditions, not
  * runtime overlap checks. Do not modify/free a layer or source during a call.
  * All status-returning functions follow error.h, including optional details,
  * bounded null-terminated failure messages, and cleared details on success.
