@@ -1,9 +1,10 @@
-# C loader contract
+# C loader — contract and implementation
 
-**Contract defined October 24, 2026. Implementation is the next scoped step.**
+**Contract and initial implementation completed October 24, 2026.**
 The declaration is in [`include/cinder/model.h`](../include/cinder/model.h), and
 the shared status codes are in [`include/cinder/error.h`](../include/cinder/error.h).
-There is no loader source, linkable loader function, or loading command yet.
+[`src/loader.c`](../src/loader.c) implements the linkable C API. The CLI still
+supports only `--version`; loading through CLI commands is later work.
 The [format specification](MODEL_FORMAT.md) remains authoritative for file bytes
 and resource bounds; this document defines the C API, file handling, ownership,
 failure behavior, and use of the existing constructors.
@@ -220,7 +221,7 @@ system close succeed. It does not cover abrupt process termination or invalid
 caller pointers. The `fclose` and short-read rules follow C11 draft N1570
 [sections 7.21.5.1 and 7.21.8.1](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf).
 
-## Caller example (syntax-checkable; requires the future implementation to link)
+## Caller example
 
 ```c
 #include "cinder/model.h"
@@ -256,16 +257,16 @@ int main(void)
 ```
 
 Printing here is caller behavior; the library itself does not print. The shape
-check protects the fixed two-element example buffers. Once implemented, this
-should produce the saved probabilities within the existing comparison tolerance.
+check protects the fixed two-element example buffers. This produces the saved
+probabilities within the existing comparison tolerance.
 
 ## Contract verification — October 24, 2026
 
 - Both changed headers passed standalone and repeated-inclusion syntax checks
   with `-std=c11 -Wall -Wextra -Wpedantic -Werror`.
 - Both C blocks above, including the complete caller example, passed the same
-  syntax checks. The example was not linked or run: the loader is still only
-  declared.
+  syntax checks. At the contract step, the example was not linked or run because
+  the loader was only declared.
 - Compile-time checks confirmed the function's exact pointer type, unchanged
   existing status values `0..7`, and appended status values `8..11`.
 - The ordinary Debug C build succeeded, and **19/19 existing CTest checks
@@ -276,13 +277,39 @@ No parser implementation, new runtime tests, CMake target, or sanitizer/hosted
 CI result was added by this contract step. File bytes and existing runtime
 implementations are unchanged.
 
-## Implementation verification plan
+## Implementation details
 
-The next step implements this contract with successful-load and malformed-file
-tests alongside the parser. Required coverage includes:
+The parser keeps a stream, measured size, byte offset, and current layer index
+in local state. Explicit unsigned shifts decode little-endian integers. Host
+representation probes compare known float encodings (including negative zero,
+subnormals, and finite extremes) before opening a file. Parameter words with an
+all-ones exponent fail before conversion; `memcpy` transfers other words into
+aligned float storage without unaligned accesses or pointer aliasing.
 
-- The saved 168-byte network, activation-only and non-square models; parameter
-  bit preservation, independent loads, and model use after deleting the file.
+The format bounds make dimension products and byte counts safe in `uint64_t`.
+Only after validating those counts does the loader narrow to `size_t`, checking
+native allocation extents first. Remaining-file checks use subtraction to avoid
+overflow in an end-offset addition. No whole-file buffer is allocated. Dense
+payloads are decoded with a 4 KiB byte scratch buffer into one temporary float
+array, then copied by the existing Dense constructor and immediately released.
+
+Layer constructors receive only validated metadata and decoded parameters.
+Activations map file IDs explicitly to runtime tags. After all records, the
+loader checks the measured boundary, probes clean EOF, and closes the stream.
+It then calls `cinder_model_create` to adopt the layers and allocate the existing
+two working buffers. The caller receives the model only after this succeeds.
+
+One cleanup path frees parameter staging, constructed layers, and the temporary
+pointer list, and attempts to close any still-open stream. Constructor failures
+retain their status and diagnostic cause. An earlier failure survives cleanup;
+a close failure on the successful parsing path prevents model publication.
+
+## Remaining verification
+
+The initial successful-load and malformed-file tests accompany the parser.
+The following broader coverage remains part of the subsequent Phase 3 audit:
+
+- Direct parameter-bit preservation checks across constructor ownership transfer.
 - Every mapped error category, all connection cases, truncation at each byte
   boundary, trailing data, unsupported versions, and exact resource boundaries.
 - Forced failure at every loader/constructor allocation and open/seek/size/read/
@@ -291,4 +318,67 @@ tests alongside the parser. Required coverage includes:
 - Full Python export -> C load -> inference comparisons against saved stages,
   followed by lifecycle, sanitizer/leak, and hosted macOS/Linux checks before M3.
 
-This contract step does not claim those loader behaviors have passed tests.
+Local results below describe only executed checks. Big-endian execution and
+unsupported host representations have not been exercised. Same-file mutation
+during loading remains outside the caller contract. M3 is still open.
+
+## Implementation verification — October 24, 2026
+
+[`tests/test_model_load.c`](../tests/test_model_load.c) is registered as
+`model_load` in CTest and links the normal `cinder_core` library. It reads the
+committed binary fixture and writes disposable files only in its build-directory
+test folder; no Python installation is needed for this C test.
+
+Successful-load checks cover:
+
+- The saved 168-byte `2 -> 4 -> 2` network, with ten deterministic inputs and
+  the shared shape, finite-value, and `atol = rtol = 1e-5` comparison checks.
+  Five passes across independent loads, file deletion, and failed-load recovery
+  compare **50 output vectors / 100 values**. Maximum absolute error:
+  **`5.96046448e-8`**. These compare final probabilities; the integrated file
+  round trip of every intermediate stage remains a later checklist item.
+- ReLU-only and Softmax-only files, an independently encoded non-square `2 -> 3`
+  Dense, and a `1 -> 1025` Dense whose payload spans three read blocks.
+- Acceptance of positive/negative zero, subnormal encodings, and finite extremes.
+  Acceptance is tested here; exact internal parameter-bit inspection remains
+  part of the broader audit.
+- Input preservation, untouched spare output capacity, independent model owners,
+  continued use after deleting the source file, no modification of input files,
+  and successful loading after earlier failures.
+
+The test exercises **206 rejection cases**, each with and without optional error
+storage: every one of the tiny fixture's 168 truncated prefixes, malformed
+magic/version/type/dimension/connection/payload fields, parameter NaNs/infinities
+(including a later decoding block), trailing zero/nonzero bytes, representative
+resource-limit and arithmetic-wrap attempts, invalid arguments, and a missing
+file. Rejections check status, bounded diagnostics, and NULL model output.
+Later-record failures exercise cleanup after earlier layers were constructed.
+
+Actual local checks on Apple Silicon with Apple Clang 21.0.0 / CMake 4.4.4:
+
+| Configuration/check | Result |
+| --- | --- |
+| Debug, fresh NumPy references and both Python exporter suites enabled | 24/24 CTest checks passed |
+| Release, ordinary C-only suite | 20/20 passed |
+| Combined ASan/UBSan Debug, ordinary C-only suite | 20/20 passed; no sanitizer diagnostics |
+| New source and test, C11 with `-Wall -Wextra -Wpedantic -Werror` | Passed |
+| Caller example above, compiled/linked/run | Printed `0.904650509 0.0953494608` |
+| macOS `leaks --atExit` on the loader test | Exit 0; 0 leaks / 0 leaked bytes reported |
+
+The native leak tool required execution outside the sandbox to inspect its child
+process. It also reported the normal restricted-process memory-content warning;
+the zero-leak result is evidence for this executed test, not a complete allocation
+failure audit. LeakSanitizer was not enabled on macOS. The existing Linux CI job
+enables it, but **hosted CI for these loader changes has not run**. The new
+C test is registered for the existing macOS, Linux, and Linux sanitizer jobs.
+
+To run the new test after configuring and building normally:
+
+```sh
+ctest --test-dir build -R '^model_load$' --output-on-failure -V
+```
+
+Next: exhaustively exercise resource boundaries, non-finite payload placements,
+and forced allocation/stdio failures, verifying ownership rollback, first-error
+preservation, and successful retry. Full intermediate-stage export/load/inference
+and final loaded-model lifecycle/CI verification remain separate M3 steps.

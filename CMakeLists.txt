@@ -47,7 +47,7 @@ function(cinder_configure_target target)
     endif()
 endfunction()
 
-add_library(cinder_core STATIC src/tensor.c src/dense.c src/layer.c src/model.c)
+add_library(cinder_core STATIC src/tensor.c src/dense.c src/layer.c src/model.c src/loader.c)
 target_include_directories(cinder_core PUBLIC "${PROJECT_SOURCE_DIR}/include")
 cinder_configure_target(cinder_core)
 # Unix toolchains provide exp through libm (part of the system library on macOS).
@@ -100,6 +100,17 @@ if(BUILD_TESTING)
     target_link_libraries(test_model_run PRIVATE cinder_core)
     cinder_configure_target(test_model_run)
     add_test(NAME model_run COMMAND test_model_run)
+
+    add_executable(test_model_load tests/test_model_load.c)
+    target_include_directories(test_model_load PRIVATE "${PROJECT_SOURCE_DIR}/tests/fixtures")
+    target_link_libraries(test_model_load PRIVATE cinder_core)
+    cinder_configure_target(test_model_load)
+    file(MAKE_DIRECTORY "${PROJECT_BINARY_DIR}/loader-test-files")
+    add_test(NAME model_load COMMAND test_model_load
+        "${PROJECT_SOURCE_DIR}/tests/fixtures/tiny/tiny.cnd"
+        "${PROJECT_BINARY_DIR}/loader-test-files/model.bin"
+    )
+    set_tests_properties(model_load PROPERTIES TIMEOUT 10)
 
     add_executable(test_tensor_access tests/test_tensor_access.c)
     target_link_libraries(test_tensor_access PRIVATE cinder_core)

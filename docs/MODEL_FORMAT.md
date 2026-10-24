@@ -2,8 +2,8 @@
 
 **Contract defined October 23, 2026.** This document specifies the `.cnd` file
 format for Cinder v0.1.0. [Python validation and binary export](EXPORTER.md) are
-implemented; the [C loader API contract](LOADER.md) is defined and its
-implementation remains a subsequent Phase 3 step. The format version is
+implemented, as is the [C loader API](LOADER.md), with initial successful-load
+and malformed-file tests. The format version is
 the integer `1`, independent of the runtime's `0.1.0-dev` version string.
 
 This is the authoritative byte layout. Writers must produce it and readers
@@ -186,7 +186,7 @@ is displayed as `Model: tiny.cnd`. Renaming a file changes that display label,
 not its model semantics. Example documentation supplies human descriptions and
 class meanings separately. Writers must not append such metadata to the file.
 
-A future loader must reject malformed or unsupported files, dimension
+The loader must reject malformed or unsupported files, dimension
 mismatches, resource-limit violations, non-finite parameters, allocation
 failures, and I/O failures with useful diagnostics. It must release all partial
 layers, parameter staging, model storage, and owned file resources, and leave
@@ -197,7 +197,7 @@ or borrowed file bytes. Construct through the existing ownership-transfer path.
 The [C loader contract](LOADER.md) now defines the public declaration, status
 mapping, validation sequence, seekable binary file handling, and cleanup.
 The function and file-related status codes are declared in the public headers;
-the loader implementation is still pending.
+[`src/loader.c`](../src/loader.c) implements the parser and construction path.
 No invalid file may be accepted regardless of which of its violations is
 reported first. File validation does not execute the network or weaken the
 model's inference, output-preservation, or concurrency rules.
@@ -330,7 +330,8 @@ inspection checked every header, offset, parameter, and EOF. Repeated regenerati
 matched the saved model, ten input files, and all expected stages byte for byte.
 See [the exporter guide](EXPORTER.md) for the API, file-failure policy, and tests.
 
-Next: implement the defined C loader contract with malformed-file and
-allocation-failure tests. Close M3 only after the complete C round trip,
+The C loader now loads the saved tiny network and compares final probabilities
+against the saved NumPy references. Next: complete malformed-file, exact-limit,
+and allocation/I/O-failure coverage. Close M3 only after the complete C round trip,
 lifecycle checks, sanitizers, supported leak checks, and macOS/Linux CI pass.
 Ordinary C tests must consume saved fixtures without requiring Python.

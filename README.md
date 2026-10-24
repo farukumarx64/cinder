@@ -31,9 +31,10 @@ is now defined, including exact byte layouts, limits, input files, and a worked
 checks supported PyTorch sequences and extracts independently owned CPU float32
 parameter snapshots. Binary export now writes the version 1 format, with a saved
 168-byte tiny model, ten inputs, and expected stage outputs verified against NumPy.
-The [C loader contract](docs/LOADER.md) now defines the public declaration,
-status mapping, file handling, and ownership/cleanup guarantees. Loading is
-not implemented yet; the next scoped step implements it with parser tests.
+The [C loader](docs/LOADER.md) now validates `.cnd` files and constructs executable
+models through the existing layer/model constructors. Tests cover successful
+loads, saved tiny-network probabilities, and basic malformed files. Broader
+failure injection and exact resource-boundary checks are the next scoped step.
 The project contains a CMake build and a CLI that supports `--version`.
 The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
 
@@ -165,13 +166,18 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
   under Linux ASan/UBSan/leak detection. Job statuses and test logs in
   [run 39984963408](https://github.com/farukumarx64/cinder/actions/runs/39984963408)
   were inspected on October 23, completing M2.
-- The loader API `cinder_model_load(path, &model, &error)` is declared in
-  `model.h`; it will return an independently owned model only after full file
+- The loader API `cinder_model_load(path, &model, &error)` is implemented and
+  declared in `model.h`; it returns an independently owned model only after full file
   validation and successful close. On failure it leaves the output NULL and
   cleans up staging and partial layers. Four new statuses distinguish I/O,
-  format, unsupported version/platform, and resource-limit failures. This is
-  a contract declaration, not a linkable implementation; see [the loader guide](docs/LOADER.md).
-- Model loading and the `info`, `run`, and `bench` commands are
+  format, unsupported version/platform, and resource-limit failures. Successful-load
+  and parser tests are included; see [the loader guide](docs/LOADER.md).
+- On October 24, loader implementation passed 24/24 Debug tests with NumPy and
+  exporter checks; C-only Release and ASan/UBSan passed 20/20 each. The loader test
+  covers 206 rejection cases and 50 repeated NumPy output comparisons, and
+  reported zero native leaks. Exact-limit/fault-injection coverage and hosted
+  verification of these loader changes remain pending.
+- The `info`, `run`, and `bench` commands are
   planned features; they are not implemented yet.
 
 See [the roadmap](ROADMAP.md#current-progress) for the current checklist and
@@ -528,16 +534,17 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | `src/dense.c` | Dense creation, parameter copying, cleanup, and forward execution through tensor kernels. |
 | `src/layer.c` | Common constructors, metadata validation, cleanup, and Dense/ReLU/Softmax dispatch. |
 | `src/model.c` | Private model storage, ordered adoption, connection validation, reusable buffers, sequential inference, size getters, and cleanup. |
+| `src/loader.c` | Checked `.cnd` decoding, file handling, layer/model construction, and partial-load cleanup. |
 | `include/cinder/tensor.h` | Tensor representation and function declarations. |
 | `include/cinder/dense.h` | Dense representation and implemented create/free/forward API declarations. |
 | `include/cinder/layer.h` | Common layer tags, dimensions, payload, and implemented API declarations. |
-| `include/cinder/model.h` | Opaque model with implemented create/size/run/free APIs and a declared, not-yet-implemented load contract. |
+| `include/cinder/model.h` | Opaque model with implemented create/load/size/run/free APIs. |
 | `include/cinder/error.h` | Status codes and caller-owned error details. |
 | `docs/TENSOR.md` | Tensor layout, ownership, validation, and failure contract. |
 | `docs/DENSE.md` | Dense parameter shapes, ownership, public API, overlap, failures, and worked example. |
 | `docs/LAYER.md` | Common layer representation, ownership, dimension validation, dispatch, and buffer/failure contract. |
 | `docs/MODEL.md` | Model ownership transfer, connections, dimensions, buffers, inference failures, and concurrency contract. |
-| `docs/LOADER.md` | Declared C loader API, file/status rules, constructor ownership, cleanup, and implementation test plan. |
+| `docs/LOADER.md` | C loader API, file/status rules, constructor ownership, cleanup, implementation results, and remaining checks. |
 | `docs/MODEL_FORMAT.md` | `.cnd` version 1 byte layout, layer IDs, limits, validation, input-file contract, and worked example. |
 | `docs/EXPORTER.md` | Python model validation, binary writing, file replacement, fixtures, dependencies, and tests. |
 | `docs/NUMPY_TESTS.md` | Reference calculations, fixtures, tolerances, regeneration, and verification results. |
@@ -552,6 +559,7 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | `tests/test_model.c` | Tests model construction, connection validation, ownership, dimension getters, and cleanup. |
 | `tests/test_model_alloc_failures.c` | Checks allocation rollback, ownership, buffer capacities/reuse, immediate failure stopping, and allocation-free inference. |
 | `tests/test_model_run.c` | Tests ordered results, validation, output preservation, arithmetic failures, recovery, and independent models. |
+| `tests/test_model_load.c` | Tests saved/generated binary loads, reference outputs, independent owners, truncation, malformed fields, and recovery. |
 | `tests/test_tensor_access.c` | Tests row-major access, bounds, finite values, and failure behavior. |
 | `tests/test_tensor_matvec.c` | Tests matrix-vector products, dimensions, output capacity, and numeric failures. |
 | `tests/test_tensor_bias.c` | Tests bias addition, vector lengths, numeric failures, and composed `Wx + b` results. |
@@ -594,8 +602,9 @@ The complete example network matches NumPy at every stage, and lifecycle checks
 pass locally and in hosted macOS/Linux CI. M2 closed on October 23, 2026.
 The Phase 3 `.cnd` format contract, Python validation, and binary export are
 implemented, with reproducible tiny-network fixtures.
-The C loader API and its ownership/cleanup contract are also defined.
-Next: implement loading with successful-load and malformed-file tests.
+The C loader API is implemented with successful-load and basic malformed-file
+tests. Next: complete parser resource-boundary and forced-failure coverage,
+then verify every saved stage through the full export/load/inference path.
 
 The v0.1.0 scope excludes training, GPU execution, convolutional layers,
 quantization, SIMD, multithreading, and arbitrary computation graphs.

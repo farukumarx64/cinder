@@ -6,8 +6,8 @@
 #include "cinder/layer.h"
 
 /*
- * Construction, connection validation, size accessors, inference, and cleanup
- * are implemented. File loading is declared below but not yet implemented.
+ * Construction, connection validation, size accessors, file loading, inference,
+ * and cleanup are implemented.
  * A model executes a fixed, nonempty sequence of layers on one float32 vector.
  * Its representation is private: it owns the layer list, every layer, and two
  * reusable working buffers. Public size accessors expose immutable dimensions.
@@ -61,9 +61,8 @@ cinder_status_t cinder_model_create(
 );
 
 /*
- * CONTRACT ONLY: load one complete .cnd v1 model from a seekable binary file.
- * There is no implementation/linkable loader symbol yet. See docs/LOADER.md
- * for the validation sequence, status mapping, and constructor/cleanup plan.
+ * Load one complete .cnd v1 model from a seekable binary file. See docs/LOADER.md
+ * for the validation sequence, status mapping, and constructor/cleanup rules.
  *
  * NULL out_model -> INVALID_ARGUMENT; otherwise clear *out_model first.
  * NULL/empty path -> INVALID_ARGUMENT. A non-NULL path must be a readable,

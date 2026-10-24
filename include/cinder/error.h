@@ -1,8 +1,7 @@
 #ifndef CINDER_ERROR_H
 #define CINDER_ERROR_H
 
-/* Status codes shared by the tensor, Dense, common layer, and model APIs.
- * Loader statuses are declared for the contract; loading is not implemented.
+/* Status codes shared by the tensor, Dense, common layer, model, and loader APIs.
  * Append new codes so existing values remain unchanged. These are not file IDs.
  */
 typedef enum {

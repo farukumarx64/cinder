@@ -3,8 +3,9 @@
 [`tools/export_model.py`](../tools/export_model.py) validates supported models
 and writes the [`.cnd` version 1 format](MODEL_FORMAT.md).
 `validate_model()` returns an in-memory snapshot; `export_model()` validates a
-source model and writes its complete binary representation. Checkpoint loading,
-a general exporter CLI, and the C loader are not implemented.
+source model and writes its complete binary representation. The [C loader](LOADER.md)
+is implemented separately. Checkpoint loading and a general exporter CLI remain
+later work.
 
 ## Public function and result
 
@@ -376,16 +377,18 @@ On the same macOS Python 3.12.14 / PyTorch 2.14.1 environment:
 
 These changes have not been pushed, so hosted macOS/Linux CI remains pending.
 The existing Linux exporter option automatically registers both Python suites.
-No C loader or new sanitizer/leak result is claimed. Big-endian execution and
+The binary-export step did not include C loader or new sanitizer/leak results.
+Big-endian execution and
 crash/power-loss behavior were not tested; explicit little-endian encoding and
 the filesystem limitations above define the intended behavior.
 
 ## Next step and references
 
-The [C loader contract](LOADER.md) now defines the API, statuses, file handling,
-and ownership/cleanup rules. The next scoped step implements that contract with
-successful-load and malformed-file tests. Binary export and independent Python
-inspection are implemented; these tests do not claim a C load/inference round trip.
+The [C loader](LOADER.md) now implements the API, statuses, file handling,
+and ownership/cleanup rules, with successful-load and basic malformed-file tests.
+The C test loads the saved exported tiny network and compares final probabilities
+with NumPy. Broader parser failure coverage and an integrated export/load test
+of every saved intermediate stage remain subsequent scoped steps.
 
 The supported semantics were checked against the official PyTorch documentation
 for [Sequential](https://docs.pytorch.org/docs/2.14/generated/torch.nn.Sequential.html),
