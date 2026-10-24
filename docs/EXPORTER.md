@@ -382,9 +382,10 @@ the filesystem limitations above define the intended behavior.
 
 ## Next step and references
 
-The next scoped step is defining the C loader API, statuses, file handling, and
-ownership/cleanup contract. Binary export and independent Python inspection are
-implemented; these tests do not claim a C export/load/inference round trip.
+The [C loader contract](LOADER.md) now defines the API, statuses, file handling,
+and ownership/cleanup rules. The next scoped step implements that contract with
+successful-load and malformed-file tests. Binary export and independent Python
+inspection are implemented; these tests do not claim a C load/inference round trip.
 
 The supported semantics were checked against the official PyTorch documentation
 for [Sequential](https://docs.pytorch.org/docs/2.14/generated/torch.nn.Sequential.html),

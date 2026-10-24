@@ -59,8 +59,10 @@ passed; hosted verification of these additions is pending a future push.
 Binary export was also completed locally on October 24: the 168-byte tiny
 model matches the format's byte example, and all twelve model/input/reference
 files regenerate identically. The 50 Python tests and combined 23-test CTest
-suite passed. **Next scoped step: define the C loader API and its
-ownership/cleanup contract.**
+suite passed. The [C loader contract](docs/LOADER.md) is now defined: public
+declaration, status mapping, seekable binary file handling, and cleanup using
+existing layer/model constructors. **Next scoped step: implement loading with
+successful-load and malformed-file tests.** The declaration is not yet linkable.
 Implement and verify one scoped step at a time.
 
 ### Phase 0 checklist
@@ -131,7 +133,7 @@ above. Remaining platform/concurrency limits are recorded in the M2 report.
 - [x] Define the `.cnd` version 1 contract before implementing export/load: a 16-byte file header, 16-byte layer headers, stable IDs, exact Dense payload sizes, dimension connections, little-endian binary32 encoding, finite parameters, resource limits, strict EOF, filename-based display names, and the separate input/preprocessing contract. On October 23, the complete 168-byte example, offsets, 22 parameters, input bytes, and stage results were checked against the existing tiny-network fixtures with Python's standard library. See [the specification](docs/MODEL_FORMAT.md). No exporter or loader is implemented by this step.
 - [x] Implement exporter model validation: accept supported flat PyTorch Sequential models, validate every connection and format limit, and extract independent contiguous CPU float32 parameter snapshots. Unsupported layers, configurations, hooks, shapes, dtypes/devices, and non-finite parameters produce contextual errors before any file-writing stage. On October 24, 2026, all 33 Python tests passed, including ten saved NumPy inputs at four stages (40 vectors / 120 values, `atol = rtol = 1e-5`). The C-only suite passed 19/19 tests; the combined suite with fresh NumPy references and exporter validation passed 22/22. The Linux CI job now enables the exporter tests; hosted results remain pending a future push. See [the exporter guide and verification results](docs/EXPORTER.md#verification--october-24-2026). Binary writing is still separate work.
 - [x] Implement binary export and reproducible tiny-network fixtures: `export_model(model, path, *, input_size=None)` validates before file creation, writes explicit little-endian headers and bit-preserved float32 parameters, and publishes only a complete flushed/synced/closed temporary file. On October 24, 2026, all 17 binary-export tests and 33 validation tests passed; combined CTest with fresh NumPy references passed 23/23. The saved 168-byte model matches the specification exactly, all ten inputs and 40 expected stage vectors are preserved, and two regenerations match all twelve fixture files byte for byte. Independently decoded parameters reproduce 120 NumPy stage values within `atol = rtol = 1e-5`. File/allocation failure injection verifies destination preservation, cleanup, and retry. See [binary-export verification](docs/EXPORTER.md#binary-export-verification--october-24-2026). Hosted CI and the C loader round trip remain pending.
-- [ ] Define the C loader API, error statuses, file handling, and ownership/cleanup contract.
+- [x] Define the C loader contract on October 24, 2026: declare `cinder_model_load` and append IO/FORMAT/UNSUPPORTED/LIMIT statuses without changing existing values. Specify seekable read-only binary file handling, full format/resource/connection checks, exact EOF and successful close before model creation, per-record Dense staging copied by existing constructors, all-or-nothing ownership, NULL output/full cleanup on failure, first-error preservation, and independent repeated/concurrent loads. Headers, declaration, and caller example passed C11 syntax checks with warnings as errors; status values/signature checks passed, and the rebuilt Debug C suite passed 19/19. See [the loader contract and verification](docs/LOADER.md#contract-verification--october-24-2026). Implementation and behavioral tests are the next step.
 - [ ] Implement loading and model construction with successful-load and malformed-file tests alongside the parser.
 - [ ] Complete malformed-file, size-limit, non-finite-data, and forced allocation-failure coverage; verify partial cleanup and recovery.
 - [ ] Verify Python export -> `.cnd` -> C load -> inference against every saved tiny-network stage, using matching shapes, finite values, and `atol = rtol = 1e-5`.
@@ -368,8 +370,8 @@ cinder_status_t cinder_model_run(
 void cinder_model_free(cinder_model_t *model);
 ```
 
-Phase 3 will separately specify and implement file loading, using this proposed
-entry point; it is not declared by the current model header:
+Phase 3's [loader contract](docs/LOADER.md) declares this entry point in the
+model header. Its implementation and linkable symbol are still pending:
 
 ```c
 cinder_status_t cinder_model_load(
@@ -385,7 +387,7 @@ API requirements:
 - Require the exact model input count and enough output capacity before computation begins. As in any pointer-based C API, the caller must report the actual available buffer sizes.
 - Return `CINDER_OK` on success and a specific status on failure. Define status codes and caller-owned error details in `error.h`; avoid relying on printed messages or global error state.
 - Model construction sets `*out_model` to NULL before validation. Failure leaves all source slots/layers unchanged and caller-owned. Success adopts every layer, clears the source slots, and publishes the model. Empty lists, NULL/duplicate entries, invalid layer metadata, and incompatible adjacent dimensions are rejected before allocation or inference.
-- Future model loading must set `*out_model` to NULL on failure and free any partially loaded state it owns.
+- Model loading is specified to set `*out_model` to NULL on failure and free all partial state it owns; its implementation remains pending.
 - The model owns its layers, weights, biases, and reusable working buffers. The caller owns the input/output arrays; the runtime does not retain those pointers after a run.
 - Input and output buffers must be separate from each other, error storage, and model-owned storage. Every layer writes into one of two private buffers; only after all layers succeed does inference copy the logical result to caller output. Every returned failure preserves the entire caller output, and spare capacity is always untouched.
 - Inference on one instance must be sequential and non-reentrant because working buffers are shared. The caller must serialize whole calls with an external lock or use independently owned models. There is no internal lock or concurrency error status; destruction must not race any call.
@@ -888,7 +890,8 @@ Completed October 23, 2026; see [M2 verification](docs/M2_VERIFICATION.md).
 The dates in this section are the original planning targets. The format
 contract was completed on October 23, 2026, and exporter validation and binary
 writing on October 24; the Phase 3 checklist in Current Progress records the
-actual status. The C loader API and ownership/cleanup contract are next.
+actual status. The C loader API and ownership/cleanup contract were also defined
+on October 24. Loader implementation with parser tests is next.
 
 Replace the hard-coded application path with model loading, while retaining the tiny network as a test fixture.
 
@@ -976,6 +979,10 @@ Export the existing tiny `2 → 4 → 2` network first. MNIST integration comes 
 ## October 17
 
 Implement the C model loader and its malformed-file tests together. Validate every field before using it for allocation, indexing, or payload reads; ensure partial-load failures release all allocated memory.
+
+The API and ownership/error/file rules are defined in [docs/LOADER.md](docs/LOADER.md).
+The declared loader must close the validated file before using the existing
+model constructor to adopt the loader-owned layers and publish the result.
 
 Conceptually:
 
@@ -1692,7 +1699,7 @@ Documentation + release
 CINDER v0.1.0
 ```
 
-Follow these milestones in order even if individual daily targets shift. M0, M1, and M2 are complete. The full tiny network matches NumPy, and the lifecycle audit passes locally and in hosted macOS/Linux CI. Revision `f5424a4`, including the NumPy/lifecycle tests, passed all three CI jobs, closing M2 on October 23, 2026. See the M2 verification report for actual results and limitations. Phase 3's format contract, exporter validation, binary writing, and reproducible tiny-network fixtures are implemented; the C loader API and ownership/cleanup contract are the next scoped task.
+Follow these milestones in order even if individual daily targets shift. M0, M1, and M2 are complete. The full tiny network matches NumPy, and the lifecycle audit passes locally and in hosted macOS/Linux CI. Revision `f5424a4`, including the NumPy/lifecycle tests, passed all three CI jobs, closing M2 on October 23, 2026. See the M2 verification report for actual results and limitations. Phase 3's format contract, exporter validation, binary writing, and reproducible tiny-network fixtures are implemented; the C loader contract is defined. Loader implementation with successful-load and malformed-file tests is the next scoped task.
 
 The **October 25 deadline is the internal deadline**.
 

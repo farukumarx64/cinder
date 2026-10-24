@@ -2,7 +2,8 @@
 
 **Contract defined October 23, 2026.** This document specifies the `.cnd` file
 format for Cinder v0.1.0. [Python validation and binary export](EXPORTER.md) are
-implemented; the C loader remains a subsequent Phase 3 step. The format version is
+implemented; the [C loader API contract](LOADER.md) is defined and its
+implementation remains a subsequent Phase 3 step. The format version is
 the integer `1`, independent of the runtime's `0.1.0-dev` version string.
 
 This is the authoritative byte layout. Writers must produce it and readers
@@ -193,9 +194,10 @@ the caller's model output slot NULL. Successful loading yields independently
 owned runtime layers and parameters; inference must not depend on an open file
 or borrowed file bytes. Construct through the existing ownership-transfer path.
 
-Exact loader declarations, status additions/mappings, validation precedence,
-and file-resource handling belong to the separate loader API contract step.
-The current API has no file-loading function or file-specific status codes.
+The [C loader contract](LOADER.md) now defines the public declaration, status
+mapping, validation sequence, seekable binary file handling, and cleanup.
+The function and file-related status codes are declared in the public headers;
+the loader implementation is still pending.
 No invalid file may be accepted regardless of which of its violations is
 reported first. File validation does not execute the network or weaken the
 model's inference, output-preservation, or concurrency rules.
@@ -328,7 +330,7 @@ inspection checked every header, offset, parameter, and EOF. Repeated regenerati
 matched the saved model, ten input files, and all expected stages byte for byte.
 See [the exporter guide](EXPORTER.md) for the API, file-failure policy, and tests.
 
-Next: define the C loader API and implement loading with malformed-file and
+Next: implement the defined C loader contract with malformed-file and
 allocation-failure tests. Close M3 only after the complete C round trip,
 lifecycle checks, sanitizers, supported leak checks, and macOS/Linux CI pass.
 Ordinary C tests must consume saved fixtures without requiring Python.

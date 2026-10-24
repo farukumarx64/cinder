@@ -59,9 +59,10 @@ non-NULL pointers must identify live models; getters cannot diagnose dangling
 or invented pointers. Accessors allocate nothing and do not use error storage.
 
 Phase 3's [`.cnd` version 1 format contract](MODEL_FORMAT.md) defines the file
-layout, validation rules, and resource limits. File loading is not implemented,
-and there is no `cinder_model_load` declaration yet. Its future implementation
-can construct layers and use this same validated construction path.
+layout, validation rules, and resource limits. `cinder_model_load` is now declared
+in the model header and specified in [the loader contract](LOADER.md); it is
+not implemented or linkable yet. It will construct layers, close the validated
+file, and use this same model-construction path before publishing ownership.
 
 ## Ownership transfer and construction
 
@@ -512,5 +513,6 @@ ASan/UBSan/leak detection in
 [run 39984963408](https://github.com/farukumarx64/cinder/actions/runs/39984963408).
 M2 closed on October 23, 2026. The report records exact evidence and limitations.
 The [`.cnd` model-format contract](MODEL_FORMAT.md) is defined and
-[Python validation and binary export](EXPORTER.md) are implemented. The C loader
-API and ownership/cleanup contract are next; loading and MNIST remain later work.
+[Python validation and binary export](EXPORTER.md) are implemented, and the
+[C loader contract](LOADER.md) is defined. Loader implementation with successful
+and malformed-file tests is next; MNIST remains later work.

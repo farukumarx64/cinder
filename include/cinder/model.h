@@ -7,7 +7,7 @@
 
 /*
  * Construction, connection validation, size accessors, inference, and cleanup
- * are implemented.
+ * are implemented. File loading is declared below but not yet implemented.
  * A model executes a fixed, nonempty sequence of layers on one float32 vector.
  * Its representation is private: it owns the layer list, every layer, and two
  * reusable working buffers. Public size accessors expose immutable dimensions.
@@ -56,6 +56,64 @@ typedef struct cinder_model cinder_model_t;
 cinder_status_t cinder_model_create(
     cinder_layer_t **layers,
     size_t layer_count,
+    cinder_model_t **out_model,
+    cinder_error_t *error
+);
+
+/*
+ * CONTRACT ONLY: load one complete .cnd v1 model from a seekable binary file.
+ * There is no implementation/linkable loader symbol yet. See docs/LOADER.md
+ * for the validation sequence, status mapping, and constructor/cleanup plan.
+ *
+ * NULL out_model -> INVALID_ARGUMENT; otherwise clear *out_model first.
+ * NULL/empty path -> INVALID_ARGUMENT. A non-NULL path must be a readable,
+ * unchanged NUL-terminated string for the call. The writable output slot must
+ * not already own a live model; it, error storage, and path must be disjoint.
+ * Relative paths use the process working directory; suffix is not checked.
+ * No stdin convention, caller FILE *, or memory-buffer loading API is provided.
+ *
+ * Check host binary32 representation, open once with "rb", and establish the
+ * size on that stream before model-data allocations. Enforce MODEL_FORMAT.md's
+ * v1 bounds and validate fields before dependent arithmetic, allocation, or
+ * reads. Check every read, every layer connection, finite parameter bits, and
+ * exact EOF. The caller must keep file contents stable during this blocking
+ * call; there is no file lock or snapshot guarantee. The loader never writes
+ * to the file, executes layers, retains path/file bytes, or prints diagnostics.
+ *
+ * FORMAT: bad magic/record ID, zero dimensions/count, wrong payload length,
+ * truncation, or trailing bytes. UNSUPPORTED: version != 1 or unsupported host
+ * encoding. LIMIT: .cnd layer/vector/parameter/file cap exceeded. IO: open,
+ * seek/size, read, or close failure (including non-seekable input). OVERFLOW:
+ * host counts/extents cannot be represented. DIMENSION_MISMATCH: header/first
+ * layer, adjacent layers, or activation lengths disagree. NONFINITE: NaN/Inf
+ * parameter. ALLOCATION: loader/constructor allocation failure. Constructors'
+ * returned errors propagate. Short reads with ferror -> IO, clean early EOF
+ * -> FORMAT. Preserve the first error; cleanup must not overwrite it.
+ *
+ * The loader owns its temporary pointer list, parameter staging, and every
+ * constructed layer until model creation succeeds. Decode one Dense payload
+ * into aligned float staging, then use cinder_layer_create_dense to copy it;
+ * release staging after the call. Map file activation IDs explicitly and call
+ * cinder_layer_create_activation. Never build runtime structs from raw bytes.
+ * Close the file successfully AFTER exact EOF and BEFORE cinder_model_create.
+ * Call model_create into a private candidate; it adopts all layers and clears
+ * the temporary slots only on success. Release the empty temporary list and
+ * publish *out_model only when no fallible work remains.
+ *
+ * Every returned failure leaves *out_model NULL and frees all partial loader
+ * allocations/layers; any opened stream gets exactly one fclose attempt. A
+ * close error prevents success, but does not replace an earlier failure. Do
+ * not retry fclose or reuse the stream afterward, even if fclose failed.
+ * On success the caller exclusively owns a normal model, including its layers,
+ * parameter copies, and two work buffers, and frees it with cinder_model_free.
+ * The file may then be changed/removed without affecting the model. Repeated
+ * loads own independent storage. Concurrent loads need distinct output/error
+ * storage; loaded models obey the existing run/free synchronization contract.
+ * Optional error details follow error.h, with bounded messages and no diagnostic
+ * allocation. No global last-error or errno value is part of this API contract.
+ */
+cinder_status_t cinder_model_load(
+    const char *path,
     cinder_model_t **out_model,
     cinder_error_t *error
 );
