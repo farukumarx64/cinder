@@ -28,9 +28,10 @@ CI, including failure recovery and caller-managed concurrency. See
 results, and limitations. Phase 3's [`.cnd` version 1 contract](docs/MODEL_FORMAT.md)
 is now defined, including exact byte layouts, limits, input files, and a worked
 168-byte tiny-network example. [Exporter model validation](docs/EXPORTER.md)
-now checks supported PyTorch sequences and extracts independently owned CPU
-float32 parameter snapshots. Binary writing and loading are still to be implemented;
-the next scoped step is binary export and reproducible fixtures.
+checks supported PyTorch sequences and extracts independently owned CPU float32
+parameter snapshots. Binary export now writes the version 1 format, with a saved
+168-byte tiny model, ten inputs, and expected stage outputs verified against NumPy.
+The next scoped step is the C loader API and ownership/cleanup contract.
 The project contains a CMake build and a CLI that supports `--version`.
 The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
 
@@ -336,7 +337,7 @@ clearly if NumPy is missing or testing is disabled. See
 [NumPy reference verification](docs/NUMPY_TESTS.md) for the formulas, fixture
 generation command, reproducibility policy, and recorded results.
 
-### Validate Python models for export
+### Validate and export Python models
 
 `tools.export_model.validate_model(model, *, input_size=None)` checks a flat
 `torch.nn.Sequential` of biased Linear, ReLU, and `Softmax(dim=-1)` layers and
@@ -346,12 +347,25 @@ limits before any file-writing stage. It performs no model execution or file I/O
 See [the exporter guide](docs/EXPORTER.md) for the keyword-only input size,
 supported subset, result ownership, and diagnostics.
 
+`tools.export_model.export_model(model, path, *, input_size=None)` validates the
+source model and writes the complete `.cnd` file. It writes a temporary file in
+the destination directory, verifies its length, flushes/syncs/closes it, then
+replaces the destination. Failed validation or writing preserves an existing
+destination. The parent directory must already exist. See the exporter guide
+for replacement, permissions, and cleanup details.
+
+```python
+from tools.export_model import export_model
+
+export_model(model, "model.cnd")
+```
+
 Using Python 3.11 or newer, set up the optional environment on macOS:
 
 ```sh
 python3.12 -m venv .venv
 .venv/bin/python -m pip install -r tools/requirements-exporter.txt
-.venv/bin/python -m unittest discover -s tests -p test_export_model.py -v
+.venv/bin/python -m unittest discover -s tests -p 'test_export_*.py' -v
 ```
 
 On Linux, use the official CPU-wheel index for that installation:
@@ -373,7 +387,17 @@ ctest --test-dir build-exporter --output-on-failure
 
 The option defaults to `OFF`. CMake requires an importable PyTorch and enabled
 testing when it is selected, and does not install Python dependencies. The
-validator tests consume saved reference arrays without requiring NumPy.
+exporter tests consume saved reference arrays without requiring NumPy.
+
+The fixed binary model, ten raw float32 input files, and exact expected stage
+outputs are saved under [`tests/fixtures/tiny`](tests/fixtures/tiny).
+Regenerate them explicitly or check for drift without changing saved files:
+
+```sh
+.venv/bin/python tests/generate_cnd_fixtures.py
+.venv/bin/python tests/generate_cnd_fixtures.py --check
+xxd -g 1 tests/fixtures/tiny/tiny.cnd
+```
 
 ## Sanitizer builds
 
@@ -462,7 +486,7 @@ requests, and manual dispatch from the repository's Actions tab.
 
 | Job | Runner | Checks |
 | --- | --- | --- |
-| Linux build | Ubuntu 24.04 | Debug configuration, compilation, and CTest, including freshly generated NumPy references and Python exporter validation. |
+| Linux build | Ubuntu 24.04 | Debug configuration, compilation, and CTest, including freshly generated NumPy references, model validation, and binary export tests. |
 | macOS build | macOS 15 | Debug configuration, compilation, and CTest. |
 | Linux sanitizers | Ubuntu 24.04 with Clang | Debug build with ASan and UBSan, then CTest with leak detection enabled. |
 
@@ -506,7 +530,7 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | `docs/LAYER.md` | Common layer representation, ownership, dimension validation, dispatch, and buffer/failure contract. |
 | `docs/MODEL.md` | Model ownership transfer, connections, dimensions, buffers, inference failures, and concurrency contract. |
 | `docs/MODEL_FORMAT.md` | `.cnd` version 1 byte layout, layer IDs, limits, validation, input-file contract, and worked example. |
-| `docs/EXPORTER.md` | Python model validation, supported subset, extracted parameter ownership, dependencies, and tests. |
+| `docs/EXPORTER.md` | Python model validation, binary writing, file replacement, fixtures, dependencies, and tests. |
 | `docs/NUMPY_TESTS.md` | Reference calculations, fixtures, tolerances, regeneration, and verification results. |
 | `docs/M2_VERIFICATION.md` | Lifecycle/allocation audit, local and hosted evidence, M2 closure, and limitations. |
 | `tests/check_version.cmake` | Checks the version command's exit status and output. |
@@ -532,7 +556,11 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | `tests/fixtures/numpy_fixtures.h` | Saved input arrays and NumPy expected results, tracked in Git. |
 | `tests/requirements-numpy.txt` | Pinned optional NumPy dependency for reference generation. |
 | `tests/test_export_model.py` | Real PyTorch validation, extraction, rejection, resource-boundary, and saved-reference tests. |
-| `tools/export_model.py` | Validates supported PyTorch models and extracts independent CPU float32 parameter snapshots. |
+| `tests/test_export_binary.py` | Exact encoding, independent decoding, reference comparisons, regeneration, and I/O failure tests. |
+| `tests/cnd_fixture_support.py` | Shared saved NumPy array reader and fixed PyTorch network construction. |
+| `tests/generate_cnd_fixtures.py` | Reproduces or checks the tiny binary model, inputs, and saved expected stages. |
+| `tests/fixtures/tiny/` | The 168-byte `.cnd` model, ten eight-byte inputs, and a reference JSON manifest. |
+| `tools/export_model.py` | Validates supported PyTorch models and exports complete `.cnd` version 1 files. |
 | `tools/requirements-exporter.txt` | Pinned optional PyTorch dependency for exporter validation. |
 | `tests/test_tensor_alloc_failures.c` | Forces allocation failures and tracks cleanup with test-only allocator substitutions. |
 | `.github/workflows/ci.yml` | macOS/Linux build jobs and the Linux sanitizer job. |
@@ -555,8 +583,9 @@ sequential-model contract is defined, and construction, connection validation,
 size accessors, cleanup, reusable buffers, and sequential inference are implemented.
 The complete example network matches NumPy at every stage, and lifecycle checks
 pass locally and in hosted macOS/Linux CI. M2 closed on October 23, 2026.
-The Phase 3 `.cnd` format contract and Python model validation are implemented.
-Next: binary export and reproducible tiny-network fixtures.
+The Phase 3 `.cnd` format contract, Python validation, and binary export are
+implemented, with reproducible tiny-network fixtures.
+Next: define the C loader API and its ownership/cleanup contract.
 
 The v0.1.0 scope excludes training, GPU execution, convolutional layers,
 quantization, SIMD, multithreading, and arbitrary computation graphs.

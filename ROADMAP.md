@@ -56,7 +56,11 @@ limits, strict EOF, input preprocessing, and the worked tiny-network bytes.
 supported PyTorch sequences are checked and their parameters copied into an
 independent snapshot. All 33 Python tests and the combined 22-test CTest suite
 passed; hosted verification of these additions is pending a future push.
-**Next scoped step: implement binary export and reproducible tiny-network fixtures.**
+Binary export was also completed locally on October 24: the 168-byte tiny
+model matches the format's byte example, and all twelve model/input/reference
+files regenerate identically. The 50 Python tests and combined 23-test CTest
+suite passed. **Next scoped step: define the C loader API and its
+ownership/cleanup contract.**
 Implement and verify one scoped step at a time.
 
 ### Phase 0 checklist
@@ -126,7 +130,7 @@ above. Remaining platform/concurrency limits are recorded in the M2 report.
 
 - [x] Define the `.cnd` version 1 contract before implementing export/load: a 16-byte file header, 16-byte layer headers, stable IDs, exact Dense payload sizes, dimension connections, little-endian binary32 encoding, finite parameters, resource limits, strict EOF, filename-based display names, and the separate input/preprocessing contract. On October 23, the complete 168-byte example, offsets, 22 parameters, input bytes, and stage results were checked against the existing tiny-network fixtures with Python's standard library. See [the specification](docs/MODEL_FORMAT.md). No exporter or loader is implemented by this step.
 - [x] Implement exporter model validation: accept supported flat PyTorch Sequential models, validate every connection and format limit, and extract independent contiguous CPU float32 parameter snapshots. Unsupported layers, configurations, hooks, shapes, dtypes/devices, and non-finite parameters produce contextual errors before any file-writing stage. On October 24, 2026, all 33 Python tests passed, including ten saved NumPy inputs at four stages (40 vectors / 120 values, `atol = rtol = 1e-5`). The C-only suite passed 19/19 tests; the combined suite with fresh NumPy references and exporter validation passed 22/22. The Linux CI job now enables the exporter tests; hosted results remain pending a future push. See [the exporter guide and verification results](docs/EXPORTER.md#verification--october-24-2026). Binary writing is still separate work.
-- [ ] Implement binary export and reproducible tiny-network fixtures according to the specification; verify exact bytes and preserve reference inputs/outputs.
+- [x] Implement binary export and reproducible tiny-network fixtures: `export_model(model, path, *, input_size=None)` validates before file creation, writes explicit little-endian headers and bit-preserved float32 parameters, and publishes only a complete flushed/synced/closed temporary file. On October 24, 2026, all 17 binary-export tests and 33 validation tests passed; combined CTest with fresh NumPy references passed 23/23. The saved 168-byte model matches the specification exactly, all ten inputs and 40 expected stage vectors are preserved, and two regenerations match all twelve fixture files byte for byte. Independently decoded parameters reproduce 120 NumPy stage values within `atol = rtol = 1e-5`. File/allocation failure injection verifies destination preservation, cleanup, and retry. See [binary-export verification](docs/EXPORTER.md#binary-export-verification--october-24-2026). Hosted CI and the C loader round trip remain pending.
 - [ ] Define the C loader API, error statuses, file handling, and ownership/cleanup contract.
 - [ ] Implement loading and model construction with successful-load and malformed-file tests alongside the parser.
 - [ ] Complete malformed-file, size-limit, non-finite-data, and forced allocation-failure coverage; verify partial cleanup and recovery.
@@ -207,8 +211,8 @@ That is enough for a strong `v0.1.0`.
 - [x] Softmax activation
 - [x] Sequential neural networks (in-memory single-vector API)
 - [ ] Model loading from disk
-- [x] Custom Cinder model-format contract (version 1; exporter/loader implementation remains)
-- [ ] Python model exporter
+- [x] Custom Cinder model-format contract (version 1; C loader implementation remains)
+- [x] Python model exporter (validation and binary writing; tiny fixtures verified locally)
 - [ ] CLI inference
 - [ ] CLI model inspection
 - [ ] Benchmark command
@@ -455,7 +459,8 @@ has no checksum or authenticity mechanism.
 
 The specification includes the complete 168-byte encoding of our fixed
 `2 -> 4 -> 2` network, exact offsets, sample input bytes, and expected stages.
-The exporter and loader must later reproduce and validate this fixture.
+The exporter now reproduces this fixture exactly; the C loader must later
+validate and execute it against the preserved reference cases.
 
 ### Input File Contract
 
@@ -881,9 +886,9 @@ Completed October 23, 2026; see [M2 verification](docs/M2_VERIFICATION.md).
 ## Model Serialization
 
 The dates in this section are the original planning targets. The format
-contract was completed on October 23, 2026, and exporter model validation on
-October 24; the Phase 3 checklist in Current Progress records the actual status.
-Binary export and reproducible tiny-network fixtures are next.
+contract was completed on October 23, 2026, and exporter validation and binary
+writing on October 24; the Phase 3 checklist in Current Progress records the
+actual status. The C loader API and ownership/cleanup contract are next.
 
 Replace the hard-coded application path with model loading, while retaining the tiny network as a test fixture.
 
@@ -947,12 +952,12 @@ update the specification, exporter, loader, and fixtures together.
 
 Build the Python serializer in `tools/export_model.py` with a small callable interface.
 
-The validation API, `validate_model(model, *, input_size=None)`, was implemented
-and verified locally on October 24, 2026. See [the exporter guide](docs/EXPORTER.md)
-for supported configurations, snapshot ownership, and tests. The file-writing
-API below remains planned.
+The validation API, `validate_model(model, *, input_size=None)`, and binary API,
+`export_model(model, path, *, input_size=None)`, were implemented and verified
+locally on October 24, 2026. See [the exporter guide](docs/EXPORTER.md) for
+supported configurations, snapshot ownership, file failures, fixtures, and tests.
 
-Planned usage from Python after constructing or training a supported model:
+Usage from Python after constructing or training a supported model:
 
 ```python
 from tools.export_model import export_model
@@ -1431,7 +1436,7 @@ Cinder `v0.1.0` is finished when:
 - [x] ReLU works
 - [x] Softmax works
 - [ ] `.cnd` models load from disk
-- [ ] Python exporter works
+- [x] Python exporter works for the supported subset; tiny model and fixtures verified locally
 - [ ] MNIST model executes successfully
 - [ ] Tiny exported-network fixture matches each reference layer before MNIST integration
 - [ ] Results satisfy documented absolute and relative tolerances with matching shapes and finite values
@@ -1687,7 +1692,7 @@ Documentation + release
 CINDER v0.1.0
 ```
 
-Follow these milestones in order even if individual daily targets shift. M0, M1, and M2 are complete. The full tiny network matches NumPy, and the lifecycle audit passes locally and in hosted macOS/Linux CI. Revision `f5424a4`, including the NumPy/lifecycle tests, passed all three CI jobs, closing M2 on October 23, 2026. See the M2 verification report for actual results and limitations. Phase 3's `.cnd` model-format contract and exporter model validation are implemented; binary export and reproducible tiny-network fixtures are the next scoped task.
+Follow these milestones in order even if individual daily targets shift. M0, M1, and M2 are complete. The full tiny network matches NumPy, and the lifecycle audit passes locally and in hosted macOS/Linux CI. Revision `f5424a4`, including the NumPy/lifecycle tests, passed all three CI jobs, closing M2 on October 23, 2026. See the M2 verification report for actual results and limitations. Phase 3's format contract, exporter validation, binary writing, and reproducible tiny-network fixtures are implemented; the C loader API and ownership/cleanup contract are the next scoped task.
 
 The **October 25 deadline is the internal deadline**.
 

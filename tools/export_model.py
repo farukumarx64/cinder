@@ -1,12 +1,18 @@
-"""Validate supported PyTorch models before Cinder binary export.
+"""Validate and export supported PyTorch models in Cinder format version 1.
 
-There is no file writer yet. validate_model() returns independent CPU float32
-parameter snapshots without executing forward(), changing the source, or doing
-file I/O. See docs/EXPORTER.md for supported configurations and ownership.
+validate_model() returns independent CPU float32 parameter snapshots without
+file I/O. export_model() validates first, then atomically replaces a destination
+with the complete binary file. Neither executes forward() or changes the source.
+See docs/EXPORTER.md for supported configurations, ownership, and file handling.
 """
 
 from dataclasses import dataclass
 from enum import IntEnum
+import os
+from pathlib import Path
+import struct
+import tempfile
+from typing import BinaryIO
 
 import torch
 from torch import nn
@@ -20,6 +26,7 @@ MAX_VECTOR_SIZE = 65536
 MAX_PARAMETER_BYTES = 64 * 1024 * 1024
 FILE_HEADER_BYTES = 16
 LAYER_HEADER_BYTES = 16
+_PARAMETER_CHUNK_WORDS = 4096
 
 
 class LayerType(IntEnum):
@@ -237,3 +244,64 @@ def validate_model(
             bias = _snapshot(bias, f"{context} bias")
         layers.append(ValidatedLayer(kind, ins, outs, weight, bias))
     return ValidatedModel(input_size, tuple(layers))
+
+
+def _write_exact(stream: BinaryIO, data: bytes) -> None:
+    if stream.write(data) != len(data):
+        raise OSError("incomplete write while exporting Cinder model")
+
+
+def _write_parameters(stream: BinaryIO, values: torch.Tensor) -> None:
+    # Reinterpret binary32 bits, rather than converting float values. Packing
+    # those words explicitly little-endian preserves signed zero/subnormals and
+    # does not depend on native byte order or require NumPy.
+    words = values.view(torch.int32).reshape(-1)
+    for start in range(0, words.numel(), _PARAMETER_CHUNK_WORDS):
+        chunk = words[start:start + _PARAMETER_CHUNK_WORDS].tolist()
+        _write_exact(stream, struct.pack(f"<{len(chunk)}i", *chunk))
+
+
+def _write_snapshot(stream: BinaryIO, snapshot: ValidatedModel) -> None:
+    # Private: only consume a fresh snapshot owned by export_model().
+    _write_exact(stream, struct.pack("<4sIII", b"CNDR", FORMAT_VERSION,
+                                     snapshot.input_size, len(snapshot.layers)))
+    for layer in snapshot.layers:
+        _write_exact(stream, struct.pack("<IIII", layer.type_id, layer.input_size,
+                                         layer.output_size, layer.payload_bytes))
+        if layer.type_id == LayerType.DENSE:
+            _write_parameters(stream, layer.weights)
+            _write_parameters(stream, layer.bias)
+
+
+def export_model(
+    model: nn.Sequential, path: str | os.PathLike[str], *, input_size: int | None = None
+) -> None:
+    """Validate and write a complete .cnd v1 file, replacing path on success.
+
+    The parent directory must exist. Validation finishes before file creation.
+    Write a private temporary file in the destination directory, verify length,
+    flush/fsync/close it, then publish with os.replace(). Errors propagate and
+    temporary files are removed on ordinary failures; an existing destination
+    is preserved unless replacement succeeds. A destination symlink itself is
+    replaced, not followed. This is not a power-loss durability guarantee.
+
+    The path does not need a .cnd suffix. No checkpoint loading or forward pass
+    occurs. The caller must not mutate the model during validation.
+    """
+    snapshot = validate_model(model, input_size=input_size)
+    destination = Path(path)
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="wb", prefix=".cinder-", suffix=".tmp",
+                                         dir=destination.parent, delete=False) as stream:
+            temporary = Path(stream.name)
+            _write_snapshot(stream, snapshot)
+            if stream.tell() != snapshot.file_bytes:
+                raise OSError("incorrect byte count while exporting Cinder model")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, destination)
+        temporary = None
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)

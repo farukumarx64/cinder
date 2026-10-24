@@ -1,10 +1,10 @@
-# Python exporter — model validation
+# Python exporter — validation and binary writing
 
-[`tools/export_model.py`](../tools/export_model.py) implements the validation
-and parameter-extraction step for the [`.cnd` version 1 contract](MODEL_FORMAT.md).
-It returns an in-memory snapshot. Binary writing, checkpoint loading, and an
-exporter command-line interface are later work; `export_model(model, path)` is
-not implemented yet.
+[`tools/export_model.py`](../tools/export_model.py) validates supported models
+and writes the [`.cnd` version 1 format](MODEL_FORMAT.md).
+`validate_model()` returns an in-memory snapshot; `export_model()` validates a
+source model and writes its complete binary representation. Checkpoint loading,
+a general exporter CLI, and the C loader are not implemented.
 
 ## Public function and result
 
@@ -51,8 +51,112 @@ bytes. Each `ValidatedLayer` exposes:
 The records have frozen metadata, and the layer collection is a tuple. PyTorch
 tensors themselves remain mutable, so consumers must treat snapshot tensors as
 read-only. These objects are validation results, not a separate public input
-format for constructing arbitrary models. The future writer will validate a
-source model and consume its fresh snapshot.
+format for constructing arbitrary models. The writer validates a source model
+and consumes its fresh, privately owned snapshot.
+
+## Binary export API and encoding
+
+```python
+from tools.export_model import export_model
+
+export_model(model, "model.cnd")
+# An explicit input size is checked, including for activation-only models:
+export_model(model, "model.cnd", input_size=2)
+```
+
+The signature is `export_model(model, path, *, input_size=None) -> None`.
+`path` is a string or string-valued path-like object. The parent directory must
+exist; `.cnd` is conventional but the suffix is not enforced. Successful export
+returns `None`. Validation errors retain `ModelValidationError`; file and
+allocation errors propagate as their original exceptions.
+
+After all validation and parameter copying succeeds, the writer emits:
+
+1. `struct.pack("<4sIII", b"CNDR", 1, input_size, layer_count)` — the 16-byte header.
+2. `struct.pack("<IIII", type_id, input_size, output_size, payload_bytes)` for
+   each layer — the 16-byte layer record header.
+3. For each Dense, row-major weights followed by biases. Activations have no
+   payload. The final record ends the file with no footer or extra bytes.
+
+The `<` prefix selects little-endian fixed-width fields without alignment
+padding. Parameter tensors are viewed as 32-bit integer bit patterns, then
+packed little-endian in chunks of at most 4,096 words / 16 KiB. This preserves
+signed zeros, subnormals, and finite extremes without converting through Python
+floating-point arithmetic or depending on the host's byte order. NumPy is not
+required. Each encoded write is at most 16 KiB; temporary Python integer lists
+add their own overhead, and the validated snapshot still occupies its own storage.
+
+Every write checks its byte count. Before publishing, the writer also verifies
+that the total length equals the size derived from the validated records. File
+bytes contain no path, model name, clock value, or random data. The same ordered
+dimensions and parameter bits produce identical output bytes.
+
+## Destination ownership and failures
+
+Validation finishes before any output file is created. The exporter then
+creates a private `.cinder-*.tmp` file in the destination directory, writes it,
+checks its length, flushes Python buffering, calls `fsync`, and closes it.
+Only then does `os.replace` publish it at the requested path. Creating the
+temporary file beside the destination keeps replacement on the same filesystem.
+
+Existing destinations are overwritten only on successful replacement. Validation,
+encoding, allocation, write, flush, sync, close, or replacement failures leave
+the original destination intact (or absent if it did not exist). Ordinary
+exception paths close and remove the temporary file. If the operating system
+also refuses cleanup, that cleanup error propagates and the temporary file may
+remain; forced process termination can likewise leave an unpublished temporary.
+No parent directory is created by this API.
+
+Replacement replaces a destination symlink itself, leaving its target untouched.
+The new file has the temporary file's permissions; existing permissions and
+other inode metadata are not preserved. On the supported macOS/Linux systems,
+temporary files start readable/writable by their owner only. Concurrent exports
+to one path publish complete files, with the last successful replacement winning.
+The directory is not synced, so this is atomic publication, not a guarantee
+against power loss. These are filesystem rules, separate from the `.cnd` bytes.
+
+## Saved tiny-network fixtures
+
+[`tests/fixtures/tiny/tiny.cnd`](../tests/fixtures/tiny/tiny.cnd) is the fixed
+`2 -> 4 -> 2` model: 168 bytes, four records, and 22 parameters / 88 payload bytes.
+Its SHA-256 is:
+
+```text
+3f6f2942084b334e2c9e8b59a1b0e702057554f4253473ae86ffd7cde7d86fa5
+```
+
+| Record | Header offset | Payload offset | Payload bytes | Next offset |
+| --- | ---: | ---: | ---: | ---: |
+| Dense `2 -> 4` | 16 | 32 | 48 | 80 |
+| ReLU `4 -> 4` | 80 | 96 | 0 | 96 |
+| Dense `4 -> 2` | 96 | 112 | 40 | 152 |
+| Softmax `2 -> 2` | 152 | 168 | 0 | 168 / EOF |
+
+The directory also holds ten `inputs/<case>.f32` files, each exactly eight bytes,
+and [`references.json`](../tests/fixtures/tiny/references.json). The JSON names
+the cases and files, records the model hash, dimensions and comparison tolerance,
+and preserves all four expected stage vectors per case as exact hexadecimal
+float strings. Read a stage value with `float.fromhex(value)` and convert to
+float32. Shape and finite-value checks precede `atol = rtol = 1e-5` comparisons.
+The hash is external fixture metadata, not an embedded format checksum.
+
+The generator reads existing saved NumPy arrays from `numpy_fixtures.h`.
+Parameters construct a plain PyTorch model and pass through the public exporter;
+reference outputs are copied from NumPy fixtures, never recomputed by the
+exporter. The original C arrays remain available for future C loader tests.
+
+```sh
+.venv/bin/python tests/generate_cnd_fixtures.py
+.venv/bin/python tests/generate_cnd_fixtures.py --check
+xxd -g 1 tests/fixtures/tiny/tiny.cnd
+```
+
+Generation overwrites the twelve known fixture files. `--output <directory>`
+chooses another destination; `--check` generates in temporary storage and
+compares all file names and bytes without modifying the saved directory. Drift,
+missing files, and extra files fail the check. Regeneration is tested twice
+against the saved set, including JSON and every input file. CTest writes only
+to temporary directories; it never silently refreshes the saved fixtures.
 
 ## Accepted structure and configurations
 
@@ -140,7 +244,7 @@ matrix. Counts and file size are derived from validated dimensions.
    and check the copied values for finiteness. Return the complete snapshot.
 
 This avoids copying earlier weights when a later layer already has invalid
-metadata. Finiteness is checked on the copy that a future writer would consume.
+metadata. Finiteness is checked on the copy that the writer consumes.
 Diagnostics identify a violation; when several exist, callers should not rely
 on one particular error being reported before every other category.
 
@@ -167,7 +271,7 @@ From the project root on macOS:
 ```sh
 python3 -m venv .venv
 .venv/bin/python -m pip install -r tools/requirements-exporter.txt
-.venv/bin/python -m unittest discover -s tests -p test_export_model.py -v
+.venv/bin/python -m unittest discover -s tests -p 'test_export_*.py' -v
 ```
 
 On Linux, install the same requirement from the official CPU wheel index:
@@ -194,7 +298,7 @@ ctest --test-dir build-exporter --output-on-failure
 CMake requires Python 3.11+, an importable PyTorch, and `BUILD_TESTING=ON` when
 this option is enabled. It does not install dependencies. With the option off,
 the C build and its saved-fixture tests require no Python or PyTorch. The Linux
-CI build enables exporter validation alongside fresh NumPy references; the
+CI build enables validation and binary export tests alongside fresh NumPy references; the
 macOS C job and Linux C sanitizer job retain their saved-fixture configuration.
 
 ## Coverage
@@ -206,6 +310,17 @@ parameters, activation-first/only models, scalar and repeated layers, snapshot
 independence, noncontiguous storage, finite edge values, invalid configurations,
 connections, hooks, resource boundaries, and failure/retry behavior. It also
 blocks file/checkpoint APIs and forward calls while validation runs.
+
+[`tests/test_export_binary.py`](../tests/test_export_binary.py) checks the exact
+168 bytes against an independent literal, the specification's hex dump, and the
+saved binary. A test-only decoder checks headers, offsets, parameters, and exact
+EOF before running all ten inputs against saved NumPy stages. Other cases cover
+activation-only/shared layers, noncontiguous storage, bit-preserving finite edge
+values, chunk boundaries, deterministic regeneration, and replacement semantics.
+Fault injection covers every tiny-network write boundary, allocation failures
+during writing, short writes, temporary creation, flush, sync, close, incorrect
+total lengths, and replacement. Original destinations and temporary cleanup are
+checked after failures, followed by a successful retry.
 
 ## Verification — October 24, 2026
 
@@ -237,14 +352,47 @@ are pending a future push. No C runtime implementation changed in this step;
 the sanitizer/leak results in [the M2 report](M2_VERIFICATION.md) belong to that
 earlier verified revision, not a new sanitizer run for the Python exporter.
 
+## Binary-export verification — October 24, 2026
+
+On the same macOS Python 3.12.14 / PyTorch 2.14.1 environment:
+
+- All 17 binary-export unittest methods passed, alongside the existing 33
+  validation methods: 50 Python tests in total.
+- The Debug build with fresh NumPy references and both exporter suites passed
+  **23/23 CTest checks** (19 ordinary C tests, two fresh-reference tests, and
+  two Python suites).
+- The exported file matched all 168 bytes of the specification and the saved
+  fixture, including every header/parameter offset and strict EOF. `xxd -g 1`
+  inspection showed the same bytes; SHA-256 matched the recorded hash above.
+- All 40 vectors / 120 stage values calculated from independently decoded
+  parameters matched the saved NumPy references at `atol = rtol = 1e-5`, with
+  matching shapes and finite values. All ten raw inputs and all stored expected
+  outputs preserved their original binary32 representations exactly.
+- Two complete regenerations matched all twelve saved files byte for byte.
+  The standalone `--check` command passed; a deliberately changed model was
+  detected without modifying that changed fixture.
+- Failure injection confirmed unchanged/absent destinations, closed resources,
+  temporary cleanup, and successful retry under the tested filesystem conditions.
+
+These changes have not been pushed, so hosted macOS/Linux CI remains pending.
+The existing Linux exporter option automatically registers both Python suites.
+No C loader or new sanitizer/leak result is claimed. Big-endian execution and
+crash/power-loss behavior were not tested; explicit little-endian encoding and
+the filesystem limitations above define the intended behavior.
+
 ## Next step and references
 
-The next scoped step is binary writing and reproducible `.cnd` fixtures using
-this validated representation. These tests do not claim export/load round-trip
-coverage; the writer and C loader are still to be implemented.
+The next scoped step is defining the C loader API, statuses, file handling, and
+ownership/cleanup contract. Binary export and independent Python inspection are
+implemented; these tests do not claim a C export/load/inference round trip.
 
 The supported semantics were checked against the official PyTorch documentation
 for [Sequential](https://docs.pytorch.org/docs/2.14/generated/torch.nn.Sequential.html),
 [Linear](https://docs.pytorch.org/docs/2.14/generated/torch.nn.Linear.html),
 [ReLU](https://docs.pytorch.org/docs/2.14/generated/torch.nn.ReLU.html), and
 [Softmax](https://docs.pytorch.org/docs/2.14/generated/torch.nn.Softmax.html).
+Binary encoding and replacement use Python's documented
+[struct formats](https://docs.python.org/3/library/struct.html) and
+[os.replace](https://docs.python.org/3/library/os.html#os.replace), with
+[Tensor.view(dtype)](https://docs.pytorch.org/docs/2.14/generated/torch.Tensor.view.html)
+for bit reinterpretation.

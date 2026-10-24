@@ -215,10 +215,12 @@ execution paths makes **80 vector comparisons / 240 values** per executable.
 
 The saved `numpy_tiny_network` record holds dimensions and parameters once;
 `numpy_network_cases` holds stable case names, inputs, and all four stage outputs.
-Future export/load tests can serialize these parameters, reload the network,
-and reuse the same inputs and expected outputs. The [`.cnd` version 1 contract](MODEL_FORMAT.md#worked-tiny-network)
-uses these same parameters for its worked byte layout. The fixtures remain C
-reference arrays; binary export and loading are subsequent implementation steps.
+The [binary exporter tests](EXPORTER.md) now serialize these parameters, inspect
+the file independently, and reuse the same inputs and expected outputs. The
+[`.cnd` version 1 contract](MODEL_FORMAT.md#worked-tiny-network) uses these same
+parameters for its worked byte layout. The original C arrays are retained;
+[`tests/fixtures/tiny`](../tests/fixtures/tiny) also preserves the binary model,
+ten raw input files, and all expected stages. C loading is a subsequent step.
 
 ## Comparison rule and failure diagnostics
 
@@ -296,8 +298,9 @@ passed hosted CI at M2 closure; see the results below.
 This completes the local Phase 1 math verification. Phase 2's standalone
 [Dense API](DENSE.md) and [common layer dispatch](LAYER.md) are now also verified
 against the saved references.
-Sequential model verification is recorded below. Serialized models, an exporter,
-and MNIST remain future verification steps.
+Sequential model verification is recorded below. Python binary-export checks
+are recorded in [the exporter guide](EXPORTER.md); C loading and MNIST remain
+future verification steps.
 
 ## Complete-network verification — October 23, 2026
 

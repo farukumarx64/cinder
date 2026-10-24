@@ -1,8 +1,6 @@
 """Real PyTorch validation tests; no exporter files are written."""
 
-from collections import OrderedDict
 from dataclasses import FrozenInstanceError
-from pathlib import Path
 import re
 import unittest
 from unittest.mock import patch
@@ -12,6 +10,8 @@ from torch import nn
 from torch.nn.modules import module as module_hooks
 from torch.nn.utils import parametrize, prune
 
+from cnd_fixture_support import FIXTURES, fixture, tiny_network
+
 from tools.export_model import (
     LayerType,
     MAX_LAYERS,
@@ -20,32 +20,6 @@ from tools.export_model import (
     ModelValidationError,
     validate_model,
 )
-
-
-FIXTURES = (Path(__file__).parent / "fixtures" / "numpy_fixtures.h").read_text()
-
-
-def fixture(name):
-    match = re.search(r"static const float " + name + r"\[\] = \{(.*?)\};", FIXTURES, re.S)
-    if match is None:
-        raise ValueError(f"Missing saved fixture: {name}")
-    values = [float.fromhex(value.strip().removesuffix("f"))
-              for value in match.group(1).split(",") if value.strip()]
-    return torch.tensor(values, dtype=torch.float32)
-
-
-def tiny_network():
-    model = nn.Sequential(OrderedDict([
-        ("hidden", nn.Linear(2, 4)),
-        ("relu", nn.ReLU()),
-        ("logits", nn.Linear(4, 2)),
-        ("probabilities", nn.Softmax(dim=-1)),
-    ]))
-    with torch.no_grad():
-        for layer, number in ((model[0], 1), (model[2], 2)):
-            layer.weight.copy_(fixture(f"tiny_network_weights{number}").reshape_as(layer.weight))
-            layer.bias.copy_(fixture(f"tiny_network_bias{number}"))
-    return model
 
 
 def broadcast_linear(ins, outs):
