@@ -110,7 +110,24 @@ if(BUILD_TESTING)
         "${PROJECT_SOURCE_DIR}/tests/fixtures/tiny/tiny.cnd"
         "${PROJECT_BINARY_DIR}/loader-test-files/model.bin"
     )
-    set_tests_properties(model_load PROPERTIES TIMEOUT 10)
+    set_tests_properties(model_load PROPERTIES TIMEOUT 60)
+
+    # Compile the real loader and ownership chain with test-only allocation and
+    # stdio substitutions. Do not link a second runtime copy from cinder_core.
+    add_executable(test_loader_failures tests/test_loader_failures.c)
+    target_include_directories(test_loader_failures PRIVATE
+        "${PROJECT_SOURCE_DIR}/include" "${PROJECT_SOURCE_DIR}/tests/fixtures"
+    )
+    cinder_configure_target(test_loader_failures)
+    if(UNIX)
+        target_link_libraries(test_loader_failures PRIVATE m)
+    endif()
+    file(MAKE_DIRECTORY "${PROJECT_BINARY_DIR}/loader-audit-files")
+    add_test(NAME loader_failures COMMAND test_loader_failures
+        "${PROJECT_SOURCE_DIR}/tests/fixtures/tiny/tiny.cnd"
+        "${PROJECT_BINARY_DIR}/loader-audit-files/model.bin"
+    )
+    set_tests_properties(loader_failures PROPERTIES TIMEOUT 60)
 
     add_executable(test_tensor_access tests/test_tensor_access.c)
     target_link_libraries(test_tensor_access PRIVATE cinder_core)

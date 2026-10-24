@@ -306,17 +306,11 @@ a close failure on the successful parsing path prevents model publication.
 
 ## Remaining verification
 
-The initial successful-load and malformed-file tests accompany the parser.
-The following broader coverage remains part of the subsequent Phase 3 audit:
-
-- Direct parameter-bit preservation checks across constructor ownership transfer.
-- Every mapped error category, all connection cases, truncation at each byte
-  boundary, trailing data, unsupported versions, and exact resource boundaries.
-- Forced failure at every loader/constructor allocation and open/seek/size/read/
-  EOF-probe/close operations, with NULL output, complete cleanup, preserved first
-  diagnostics, optional error storage, and successful retry.
-- Full Python export -> C load -> inference comparisons against saved stages,
-  followed by lifecycle, sanitizer/leak, and hosted macOS/Linux checks before M3.
+The rejection/cleanup audit below now covers parser categories, exact resource
+boundaries, parameter-bit preservation, and forced allocation/stdio failures.
+Remaining Phase 3 work is the full Python export -> C load -> inference comparison
+against every saved stage, followed by loaded-model lifecycle and final hosted
+macOS/Linux sanitizer/leak checks before M3 closure.
 
 Local results below describe only executed checks. Big-endian execution and
 unsupported host representations have not been exercised. Same-file mutation
@@ -340,13 +334,13 @@ Successful-load checks cover:
 - ReLU-only and Softmax-only files, an independently encoded non-square `2 -> 3`
   Dense, and a `1 -> 1025` Dense whose payload spans three read blocks.
 - Acceptance of positive/negative zero, subnormal encodings, and finite extremes.
-  Acceptance is tested here; exact internal parameter-bit inspection remains
-  part of the broader audit.
+  Acceptance was tested in the implementation step; the later audit below adds
+  exact internal parameter-bit inspection.
 - Input preservation, untouched spare output capacity, independent model owners,
   continued use after deleting the source file, no modification of input files,
   and successful loading after earlier failures.
 
-The test exercises **206 rejection cases**, each with and without optional error
+At the initial implementation step, the test exercised **206 rejection cases**, each with and without optional error
 storage: every one of the tiny fixture's 168 truncated prefixes, malformed
 magic/version/type/dimension/connection/payload fields, parameter NaNs/infinities
 (including a later decoding block), trailing zero/nonzero bytes, representative
@@ -378,7 +372,137 @@ To run the new test after configuring and building normally:
 ctest --test-dir build -R '^model_load$' --output-on-failure -V
 ```
 
-Next: exhaustively exercise resource boundaries, non-finite payload placements,
-and forced allocation/stdio failures, verifying ownership rollback, first-error
-preservation, and successful retry. Full intermediate-stage export/load/inference
-and final loaded-model lifecycle/CI verification remain separate M3 steps.
+## Rejection and cleanup audit — October 24, 2026
+
+This step expands `test_model_load.c` and adds
+[`tests/test_loader_failures.c`](../tests/test_loader_failures.c). The production
+loader and public API needed no changes. The ordinary test links `cinder_core`;
+the audit compiles the same real loader/tensor/Dense/layer/model sources with
+allocator and stdio substitutions confined to its own translation unit. It
+reuses the complete ordinary test suite so malformed cases run against both the
+normal library and tracked implementation. There is no production fault switch.
+
+### Parser and resource coverage
+
+The ordinary suite now has **709 rejection cases**, each run with and without
+error storage, plus its successful loads and 50 repeated NumPy comparisons.
+The additions cover:
+
+- Unknown/zero type IDs at every layer position; additional unsupported version
+  words; zero, over-limit, and `UINT32_MAX` input/output dimensions in every record;
+  incorrect payload byte counts, including lengths not divisible by four.
+- All nine Dense/ReLU/Softmax adjacency combinations with mismatched connections.
+- Eight non-finite encodings at each of the 22 tiny-network parameter positions:
+  both infinities, both signs of quiet/signaling NaNs, and varied NaN payloads.
+- All 256 possible one-byte suffixes and concatenated valid models. Existing
+  coverage retains every truncated prefix of the tiny fixture and arithmetic
+  wrap attempts. Unknown record types return `FORMAT`; versions other than one
+  return `UNSUPPORTED`, following the contract.
+- A valid 1,024-layer activation model with 65,536-element vectors, and a fully
+  present 1,025th layer rejected by the count limit.
+- Real Dense payloads with cumulative parameter sizes of **67,108,860**,
+  **67,108,864**, and **67,108,868** bytes: one float below the budget, exactly at
+  it, and one float above. The over-budget case has individually valid layers
+  and enough file bytes; it fails only after the first large Dense exists.
+- A file at the **67,125,264-byte** maximum with 64 MiB of parameters and 1,024
+  layer headers. Removing its last header byte yields `FORMAT` at max minus one;
+  adding one byte to the valid maximum yields `LIMIT` at max plus one.
+
+Large fixtures are written in bounded zero-filled chunks, loaded through the
+real file API, and removed after the tests. They are generated in separate
+ignored build directories, never committed. The largest Dense requires about
+128 MiB for staging plus owned parameter copies while loading; sanitizer and
+allocator bookkeeping can increase process memory. CTest gives each executable
+60 seconds to accommodate these boundary cases on CI.
+
+### Allocation ownership and forced failures
+
+The audit tracks every explicit `malloc`, `calloc`, and `free` in the complete
+runtime ownership chain. Each failing call must leave exactly the same existing
+live blocks and byte total as before the call, a NULL output model, and no open
+loader stream. Any untracked/double free fails immediately. Successful model
+destruction must also return the allocation ledger to zero.
+
+The saved tiny network makes **21 explicit allocation attempts**:
+
+| Owner | Attempts |
+| --- | --- |
+| Loader's temporary layer-pointer list | 1 |
+| Two Dense staging arrays | 2 |
+| Two Dense layers, including tensor structs/data and wrappers | 12 |
+| ReLU and Softmax wrappers | 2 |
+| Final model, private pointer list, and two working buffers | 4 |
+
+Each attempt is forced to fail individually, both with and without diagnostics.
+Checks require `ALLOCATION`, an immediate stop at the selected attempt, balanced
+successful allocations/frees, one file close, no published model, and successful
+reload/inference afterward. The four model-construction failures occur after
+the file has closed and exercise cleanup of the complete layer sequence.
+
+### File errors, diagnostic preservation, and exact bits
+
+There are **29 injected file-failure scenarios**, each with and without error
+storage and followed by successful reload/inference:
+
+- Open, both seeks, size discovery, and final close.
+- Each of the tiny model's seven reads returning short with an error indicator,
+  clean EOF, or neither indicator. The error case sets both error and EOF flags
+  to confirm that `IO` takes precedence over truncation.
+- Final EOF probing with an error, an extra byte, or unconfirmed EOF.
+
+The close wrapper actually consumes the stream before reporting an injected
+failure. This detects retries, double closes, and use of a closed stream. The
+model-constructor observer requires the stream to be closed before adoption.
+Pairing a late malformed record or each of the 17 pre-close allocation failures
+with a close failure confirms that the original status and message survive.
+
+Native allocation-extent overflow is unreachable for valid v1 files on the
+supported 32/64-bit size ranges because the format caps are smaller. Three
+test-only lower `SIZE_MAX` ceilings exercise the loader's vector, pointer-list,
+and parameter-staging overflow guards, with and without error storage. This
+tests guard behavior and cleanup; it does **not** claim execution on a different
+ABI. Actual malformed large dimension products still run with native bounds.
+
+Private test-only inspection verifies exact weight/bias bits for 12 finite
+encodings, including both zeros, signed subnormals, normal boundaries, asymmetric
+bit patterns, and signed finite extremes, after staging and the source file are
+gone. No public model-inspection API was added. Successful recovery inference
+also confirms zero allocation/free attempts during execution.
+
+In total, the audit checks cleanup after **1,562 rejected calls**, including the
+shared parser cases, allocation failures, file failures, combined failures, and
+simulated native-size guards. The ledger covers explicit runtime allocations;
+stdio's internal allocations remain covered by normal close behavior and the
+external sanitizer/leak checks, rather than a claim to intercept libc internals.
+
+### Executed verification
+
+On October 24, 2026, Apple Silicon / Apple Clang 21.0.0 / CMake 4.4.4:
+
+| Check | Result |
+| --- | --- |
+| Debug with fresh NumPy references and both exporter suites | **25/25 CTest checks passed** |
+| Release, C-only suite | **21/21 passed** |
+| Combined ASan/UBSan Debug, C-only suite | **21/21 passed**, no sanitizer diagnostics |
+| Both changed test translation units with C11 warnings as errors | Passed |
+| Native macOS `leaks --atExit`, ordinary loader test | Exit 0; **0 leaks / 0 leaked bytes** |
+| Native macOS `leaks --atExit`, tracked failure audit | Exit 0; **0 leaks / 0 leaked bytes** |
+
+Both native leak runs required execution outside the sandbox for child-process
+inspection and reported the restricted-process memory-content warning described
+above. LeakSanitizer was not enabled on macOS. These tests are registered for
+the existing macOS/Linux CI jobs and Linux ASan/UBSan/leak job, but no hosted run
+for this step is claimed.
+
+Run both loader tests after building with:
+
+```sh
+ctest --test-dir build -R '^(model_load|loader_failures)$' --output-on-failure -V
+```
+
+Next: verify every saved intermediate stage through the complete
+Python export -> `.cnd` -> C load -> inference path. M3 remains open pending that
+round trip and the loaded-model lifecycle/hosted CI step. Big-endian execution,
+a different native ABI, and unsupported-host representation behavior remain
+unexecuted platform paths; file mutation during loading remains outside the
+caller contract.

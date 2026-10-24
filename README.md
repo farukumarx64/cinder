@@ -33,8 +33,9 @@ parameter snapshots. Binary export now writes the version 1 format, with a saved
 168-byte tiny model, ten inputs, and expected stage outputs verified against NumPy.
 The [C loader](docs/LOADER.md) now validates `.cnd` files and constructs executable
 models through the existing layer/model constructors. Tests cover successful
-loads, saved tiny-network probabilities, and basic malformed files. Broader
-failure injection and exact resource-boundary checks are the next scoped step.
+loads, saved tiny-network probabilities, malformed files, exact resource limits,
+and forced allocation/file failures. The next scoped step compares every saved
+intermediate stage through the complete export/load/inference path.
 The project contains a CMake build and a CLI that supports `--version`.
 The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
 
@@ -174,9 +175,13 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
   and parser tests are included; see [the loader guide](docs/LOADER.md).
 - On October 24, loader implementation passed 24/24 Debug tests with NumPy and
   exporter checks; C-only Release and ASan/UBSan passed 20/20 each. The loader test
-  covers 206 rejection cases and 50 repeated NumPy output comparisons, and
-  reported zero native leaks. Exact-limit/fault-injection coverage and hosted
-  verification of these loader changes remain pending.
+  initially covered 206 rejection cases and 50 repeated NumPy output comparisons,
+  and reported zero native leaks. The subsequent rejection/cleanup audit expands
+  this to 709 cases, forces all 21 tiny-model allocations and 29 file-failure
+  scenarios, and checks cleanup after 1,562 rejected calls. Debug passed 25/25
+  tests; C-only Release and ASan/UBSan passed 21/21 each. Both loader executables
+  reported zero native leaks; hosted verification remains pending. See the dated results
+  and platform limitations in the [loader guide](docs/LOADER.md#rejection-and-cleanup-audit--october-24-2026).
 - The `info`, `run`, and `bench` commands are
   planned features; they are not implemented yet.
 
@@ -560,6 +565,7 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | `tests/test_model_alloc_failures.c` | Checks allocation rollback, ownership, buffer capacities/reuse, immediate failure stopping, and allocation-free inference. |
 | `tests/test_model_run.c` | Tests ordered results, validation, output preservation, arithmetic failures, recovery, and independent models. |
 | `tests/test_model_load.c` | Tests saved/generated binary loads, reference outputs, independent owners, truncation, malformed fields, and recovery. |
+| `tests/test_loader_failures.c` | Reuses loader cases with allocation/stream tracking, forced allocation/stdio failures, overflow guards, exact parameter bits, and retry checks. |
 | `tests/test_tensor_access.c` | Tests row-major access, bounds, finite values, and failure behavior. |
 | `tests/test_tensor_matvec.c` | Tests matrix-vector products, dimensions, output capacity, and numeric failures. |
 | `tests/test_tensor_bias.c` | Tests bias addition, vector lengths, numeric failures, and composed `Wx + b` results. |
@@ -602,9 +608,9 @@ The complete example network matches NumPy at every stage, and lifecycle checks
 pass locally and in hosted macOS/Linux CI. M2 closed on October 23, 2026.
 The Phase 3 `.cnd` format contract, Python validation, and binary export are
 implemented, with reproducible tiny-network fixtures.
-The C loader API is implemented with successful-load and basic malformed-file
-tests. Next: complete parser resource-boundary and forced-failure coverage,
-then verify every saved stage through the full export/load/inference path.
+The C loader API is implemented with successful-load, parser resource-boundary,
+and forced-failure cleanup tests. Next: verify every saved stage through the
+full export/load/inference path, then complete loaded-model lifecycle and CI checks.
 
 The v0.1.0 scope excludes training, GPU execution, convolutional layers,
 quantization, SIMD, multithreading, and arbitrary computation graphs.

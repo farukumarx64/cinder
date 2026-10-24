@@ -387,8 +387,8 @@ the filesystem limitations above define the intended behavior.
 The [C loader](LOADER.md) now implements the API, statuses, file handling,
 and ownership/cleanup rules, with successful-load and basic malformed-file tests.
 The C test loads the saved exported tiny network and compares final probabilities
-with NumPy. Broader parser failure coverage and an integrated export/load test
-of every saved intermediate stage remain subsequent scoped steps.
+with NumPy. Parser limits and forced-failure cleanup now pass locally. Next is
+an integrated export/load test of every saved intermediate stage.
 
 The supported semantics were checked against the official PyTorch documentation
 for [Sequential](https://docs.pytorch.org/docs/2.14/generated/torch.nn.Sequential.html),

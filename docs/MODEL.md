@@ -514,6 +514,6 @@ ASan/UBSan/leak detection in
 M2 closed on October 23, 2026. The report records exact evidence and limitations.
 The [`.cnd` model-format contract](MODEL_FORMAT.md) is defined and
 [Python validation and binary export](EXPORTER.md) are implemented, and the
-[C loader](LOADER.md) is implemented with successful-load and basic malformed-file
-tests. Broader parser/failure coverage and the full stage-by-stage file round trip
-are next; MNIST remains later work.
+[C loader](LOADER.md) is implemented with successful-load, exact-limit, malformed-file,
+and forced-failure cleanup tests. The full stage-by-stage file round trip is
+next; MNIST remains later work.

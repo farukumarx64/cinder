@@ -284,6 +284,189 @@ static void check_chunked_payload(const char *path)
     reject(path, CINDER_ERROR_NONFINITE, NULL);
 }
 
+static void check_rejection_matrix(const char *path, const unsigned char *tiny,
+                                    cinder_model_t *sentinel)
+{
+    unsigned char bytes[336];
+    const size_t records[] = {16, 80, 96, 152};
+    const uint32_t bad_versions[] = {0, 2, 256, 65536, UINT32_MAX};
+    const uint32_t bad_types[] = {0, 4, 256, UINT32_MAX};
+    const uint32_t bad_dimensions[] = {0, 65537, UINT32_MAX};
+    for (size_t i = 0; i < COUNT(bad_versions); ++i) {
+        memcpy(bytes, tiny, 168);
+        put_u32(bytes, 4, bad_versions[i]);
+        write_file(path, bytes, 168);
+        reject(path, CINDER_ERROR_UNSUPPORTED, sentinel);
+    }
+    for (size_t r = 0; r < COUNT(records); ++r) {
+        for (size_t i = 0; i < COUNT(bad_types); ++i) {
+            memcpy(bytes, tiny, 168);
+            put_u32(bytes, records[r], bad_types[i]);
+            write_file(path, bytes, 168);
+            reject(path, CINDER_ERROR_FORMAT, sentinel);
+        }
+        for (size_t field = 4; field <= 8; field += 4) {
+            for (size_t i = 0; i < COUNT(bad_dimensions); ++i) {
+                memcpy(bytes, tiny, 168);
+                put_u32(bytes, records[r] + field, bad_dimensions[i]);
+                write_file(path, bytes, 168);
+                reject(path, i == 0 ? CINDER_ERROR_FORMAT : CINDER_ERROR_LIMIT, sentinel);
+            }
+        }
+        const uint32_t payload = r == 0 ? 48 : r == 2 ? 40 : 0;
+        const uint32_t wrong_lengths[] = {payload + 1, payload + 4, UINT32_MAX};
+        for (size_t i = 0; i < COUNT(wrong_lengths); ++i) {
+            memcpy(bytes, tiny, 168);
+            put_u32(bytes, records[r] + 12, wrong_lengths[i]);
+            write_file(path, bytes, 168);
+            reject(path, CINDER_ERROR_FORMAT, sentinel);
+        }
+    }
+    /* Both infinities, quiet/signaling NaNs, both signs and varied payloads,
+     * at every one of the 22 weight/bias positions, including the final word. */
+    const uint32_t nonfinite[] = {0x7f800000, 0xff800000, 0x7fc00000, 0xffc00000,
+                                  0x7f800001, 0xff800001, 0x7fffffff, 0xffffffff};
+    for (size_t parameter = 0; parameter < 22; ++parameter) {
+        size_t offset = parameter < 12 ? 32 + 4 * parameter : 112 + 4 * (parameter - 12);
+        for (size_t i = 0; i < COUNT(nonfinite); ++i) {
+            memcpy(bytes, tiny, 168);
+            put_u32(bytes, offset, nonfinite[i]);
+            write_file(path, bytes, 168);
+            reject(path, CINDER_ERROR_NONFINITE, sentinel);
+        }
+    }
+    /* Strict EOF rejects every possible one-byte suffix, even padding. */
+    memcpy(bytes, tiny, 168);
+    for (unsigned int suffix = 0; suffix <= 255; ++suffix) {
+        bytes[168] = (unsigned char)suffix;
+        write_file(path, bytes, 169);
+        reject(path, CINDER_ERROR_FORMAT, sentinel);
+    }
+    memcpy(bytes + 168, tiny, 168);
+    write_file(path, bytes, sizeof(bytes));
+    reject(path, CINDER_ERROR_FORMAT, sentinel); /* Concatenated valid models. */
+
+    /* Test all nine type-to-type connections, with valid payloads on each side. */
+    for (uint32_t first = 1; first <= 3; ++first) {
+        for (uint32_t second = 1; second <= 3; ++second) {
+            memset(bytes, 0, sizeof(bytes));
+            make_header(bytes, 2, 2);
+            uint32_t payload1 = first == 1 ? 24 : 0;
+            uint32_t payload2 = second == 1 ? 48 : 0;
+            size_t next = 32 + payload1;
+            make_record(bytes, 16, first, 2, 2, payload1);
+            make_record(bytes, next, second, 3, 3, payload2);
+            write_file(path, bytes, next + 16 + payload2);
+            reject(path, CINDER_ERROR_DIMENSION_MISMATCH, sentinel);
+        }
+    }
+}
+
+static void write_zeros(FILE *file, uint64_t count)
+{
+    const unsigned char zeros[65536] = {0};
+    while (count != 0) {
+        size_t chunk = count > sizeof(zeros) ? sizeof(zeros) : (size_t)count;
+        CHECK(fwrite(zeros, 1, chunk, file) == chunk);
+        count -= chunk;
+    }
+}
+
+static void write_dense_record(FILE *file, uint32_t input, uint32_t output)
+{
+    unsigned char record[16];
+    uint64_t payload = ((uint64_t)input + 1) * output * 4;
+    CHECK(payload <= UINT32_MAX);
+    make_record(record, 0, 1, input, output, (uint32_t)payload);
+    CHECK(fwrite(record, 1, sizeof(record), file) == sizeof(record));
+    write_zeros(file, payload);
+}
+
+static void check_limits(const char *path, cinder_model_t *sentinel)
+{
+    unsigned char header[16], record[16];
+    /* Inclusive vector and layer limits, including an activation-only network. */
+    make_header(header, 65536, 1024);
+    make_record(record, 0, 2, 65536, 65536, 0);
+    FILE *file = fopen(path, "wb");
+    CHECK(file != NULL);
+    CHECK(fwrite(header, 1, sizeof(header), file) == sizeof(header));
+    for (size_t i = 0; i < 1024; ++i) {
+        CHECK(fwrite(record, 1, sizeof(record), file) == sizeof(record));
+    }
+    CHECK(fclose(file) == 0);
+    cinder_model_t *model = load_ok(path, true);
+    CHECK(cinder_model_input_size(model) == 65536);
+    CHECK(cinder_model_output_size(model) == 65536);
+    cinder_model_free(model);
+    file = fopen(path, "r+b");
+    CHECK(file != NULL);
+    make_header(header, 65536, 1025);
+    CHECK(fwrite(header, 1, sizeof(header), file) == sizeof(header));
+    CHECK(fseek(file, 0, SEEK_END) == 0);
+    CHECK(fwrite(record, 1, sizeof(record), file) == sizeof(record));
+    CHECK(fclose(file) == 0);
+    reject(path, CINDER_ERROR_LIMIT, sentinel);
+
+    /* Cumulative Dense parameter budget at -4, exactly, and +4 bytes.
+     * Every layer payload fits individually; the last case must fail on the
+     * cumulative check after the first large Dense has been constructed. */
+    const struct { uint32_t input, output; uint64_t bytes; } budgets[] = {
+        {65279, 255, UINT64_C(67108860)},
+        {65278, 256, UINT64_C(67108864)},
+        {65534, 1, UINT64_C(67108868)}
+    };
+    for (size_t i = 0; i < COUNT(budgets); ++i) {
+        uint64_t total = ((uint64_t)budgets[i].input + 1) * 256 * 4 +
+                         ((uint64_t)256 + 1) * budgets[i].output * 4;
+        CHECK(total == budgets[i].bytes);
+        make_header(header, budgets[i].input, 2);
+        file = fopen(path, "wb");
+        CHECK(file != NULL);
+        CHECK(fwrite(header, 1, sizeof(header), file) == sizeof(header));
+        write_dense_record(file, budgets[i].input, 256);
+        write_dense_record(file, 256, budgets[i].output);
+        CHECK(fclose(file) == 0);
+        if (i == 2) {
+            reject(path, CINDER_ERROR_LIMIT, sentinel);
+        } else {
+            model = load_ok(path, i == 0);
+            CHECK(cinder_model_input_size(model) == budgets[i].input);
+            CHECK(cinder_model_output_size(model) == budgets[i].output);
+            cinder_model_free(model);
+        }
+    }
+
+    /* Largest legal file: 64 MiB of parameters plus all 1024 record headers.
+     * Generate real bytes instead of mocking the limits or allocating a huge
+     * test-side buffer. This also exercises cleanup of 1024 constructed layers. */
+    make_header(header, 65535, 1024);
+    make_record(record, 0, 2, 256, 256, 0);
+    file = fopen(path, "wb");
+    CHECK(file != NULL);
+    CHECK(fwrite(header, 1, sizeof(header), file) == sizeof(header));
+    write_dense_record(file, 65535, 256);
+    for (size_t i = 0; i < 1022; ++i) {
+        CHECK(fwrite(record, 1, sizeof(record), file) == sizeof(record));
+    }
+    CHECK(fwrite(record, 1, sizeof(record) - 1, file) == sizeof(record) - 1);
+    CHECK(ftell(file) == 67125263L);
+    CHECK(fclose(file) == 0);
+    reject(path, CINDER_ERROR_FORMAT, sentinel); /* One missing final header byte. */
+    file = fopen(path, "ab");
+    CHECK(file != NULL);
+    CHECK(fputc(0, file) == 0);
+    CHECK(ftell(file) == 67125264L);
+    CHECK(fclose(file) == 0);
+    model = load_ok(path, true);
+    cinder_model_free(model);
+    file = fopen(path, "ab");
+    CHECK(file != NULL);
+    CHECK(fputc(0, file) == 0);
+    CHECK(fclose(file) == 0);
+    reject(path, CINDER_ERROR_LIMIT, sentinel);
+}
+
 int main(int argc, char **argv)
 {
     CHECK(argc == 3);
@@ -320,6 +503,8 @@ int main(int argc, char **argv)
     check_small_models(scratch_path);
     check_chunked_payload(scratch_path);
     check_malformed(scratch_path, tiny, original);
+    check_rejection_matrix(scratch_path, tiny, original);
+    check_limits(scratch_path, original);
     check_tiny(original); /* Failed loads never invalidate an independent owner. */
     write_file(scratch_path, tiny, sizeof(tiny));
     first = load_ok(scratch_path, true); /* Recovery after the malformed files. */
