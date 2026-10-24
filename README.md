@@ -27,8 +27,10 @@ CI, including failure recovery and caller-managed concurrency. See
 [the verification report](docs/M2_VERIFICATION.md) for the exact revision,
 results, and limitations. Phase 3's [`.cnd` version 1 contract](docs/MODEL_FORMAT.md)
 is now defined, including exact byte layouts, limits, input files, and a worked
-168-byte tiny-network example. The next scoped step is exporter model validation;
-binary writing and loading are still to be implemented.
+168-byte tiny-network example. [Exporter model validation](docs/EXPORTER.md)
+now checks supported PyTorch sequences and extracts independently owned CPU
+float32 parameter snapshots. Binary writing and loading are still to be implemented;
+the next scoped step is binary export and reproducible fixtures.
 The project contains a CMake build and a CLI that supports `--version`.
 The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
 
@@ -174,9 +176,11 @@ next scoped task.
   setup uses Make from the Xcode Command Line Tools.
 - Git for version control.
 
-Python and NumPy are optional for the C build and its saved reference tests.
+Python, NumPy, and PyTorch are optional for the C build and its saved reference tests.
 Regenerating references requires Python 3.11+ and NumPy; the tested dependency
 is pinned in `tests/requirements-numpy.txt`.
+Exporter validation requires Python 3.11+ and PyTorch, pinned separately in
+`tools/requirements-exporter.txt`; see [the exporter guide](docs/EXPORTER.md).
 Softmax requires `double` to have wider range and precision than `float`,
 checked at compile time. CMake links the system math library (`m`) on Unix
 for exponentiation; no extra third-party library is needed.
@@ -332,6 +336,45 @@ clearly if NumPy is missing or testing is disabled. See
 [NumPy reference verification](docs/NUMPY_TESTS.md) for the formulas, fixture
 generation command, reproducibility policy, and recorded results.
 
+### Validate Python models for export
+
+`tools.export_model.validate_model(model, *, input_size=None)` checks a flat
+`torch.nn.Sequential` of biased Linear, ReLU, and `Softmax(dim=-1)` layers and
+returns independent contiguous CPU float32 parameter copies. It validates
+dimensions, connections, finite values, supported configurations, and format
+limits before any file-writing stage. It performs no model execution or file I/O.
+See [the exporter guide](docs/EXPORTER.md) for the keyword-only input size,
+supported subset, result ownership, and diagnostics.
+
+Using Python 3.11 or newer, set up the optional environment on macOS:
+
+```sh
+python3.12 -m venv .venv
+.venv/bin/python -m pip install -r tools/requirements-exporter.txt
+.venv/bin/python -m unittest discover -s tests -p test_export_model.py -v
+```
+
+On Linux, use the official CPU-wheel index for that installation:
+
+```sh
+.venv/bin/python -m pip install --index-url https://download.pytorch.org/whl/cpu \
+  -r tools/requirements-exporter.txt
+```
+
+To include the Python suite in CTest:
+
+```sh
+cmake -S . -B build-exporter -DCMAKE_BUILD_TYPE=Debug \
+  -DCINDER_ENABLE_EXPORTER_TESTS=ON \
+  -DPython3_EXECUTABLE="$PWD/.venv/bin/python"
+cmake --build build-exporter --parallel
+ctest --test-dir build-exporter --output-on-failure
+```
+
+The option defaults to `OFF`. CMake requires an importable PyTorch and enabled
+testing when it is selected, and does not install Python dependencies. The
+validator tests consume saved reference arrays without requiring NumPy.
+
 ## Sanitizer builds
 
 Sanitizers add checks that run while the program executes. Use a GCC or Clang
@@ -419,7 +462,7 @@ requests, and manual dispatch from the repository's Actions tab.
 
 | Job | Runner | Checks |
 | --- | --- | --- |
-| Linux build | Ubuntu 24.04 | Debug configuration, compilation, and CTest, including freshly generated NumPy references. |
+| Linux build | Ubuntu 24.04 | Debug configuration, compilation, and CTest, including freshly generated NumPy references and Python exporter validation. |
 | macOS build | macOS 15 | Debug configuration, compilation, and CTest. |
 | Linux sanitizers | Ubuntu 24.04 with Clang | Debug build with ASan and UBSan, then CTest with leak detection enabled. |
 
@@ -429,8 +472,10 @@ are registered. Jobs have a ten-minute limit, and newer runs replace older runs
 for the same branch or pull request.
 
 All jobs test the saved NumPy fixtures. The ordinary Linux job additionally
-creates a Python virtual environment, installs the pinned reference dependency,
-and enables `CINDER_ENABLE_NUMPY_TESTS`. The M2 revision passed all three jobs:
+creates a Python virtual environment, installs the pinned NumPy and CPU PyTorch
+dependencies, and enables `CINDER_ENABLE_NUMPY_TESTS` and
+`CINDER_ENABLE_EXPORTER_TESTS`. Hosted verification of the exporter additions
+requires a future push. The M2 revision passed all three jobs:
 19 macOS tests, 21 Linux tests, and 19 Linux sanitizer tests. See
 [the verified run](https://github.com/farukumarx64/cinder/actions/runs/39984963408).
 
@@ -461,6 +506,7 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | `docs/LAYER.md` | Common layer representation, ownership, dimension validation, dispatch, and buffer/failure contract. |
 | `docs/MODEL.md` | Model ownership transfer, connections, dimensions, buffers, inference failures, and concurrency contract. |
 | `docs/MODEL_FORMAT.md` | `.cnd` version 1 byte layout, layer IDs, limits, validation, input-file contract, and worked example. |
+| `docs/EXPORTER.md` | Python model validation, supported subset, extracted parameter ownership, dependencies, and tests. |
 | `docs/NUMPY_TESTS.md` | Reference calculations, fixtures, tolerances, regeneration, and verification results. |
 | `docs/M2_VERIFICATION.md` | Lifecycle/allocation audit, local and hosted evidence, M2 closure, and limitations. |
 | `tests/check_version.cmake` | Checks the version command's exit status and output. |
@@ -485,6 +531,9 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | `tests/generate_numpy_fixtures.py` | Generates independent float32 NumPy references with fixed inputs and seed. |
 | `tests/fixtures/numpy_fixtures.h` | Saved input arrays and NumPy expected results, tracked in Git. |
 | `tests/requirements-numpy.txt` | Pinned optional NumPy dependency for reference generation. |
+| `tests/test_export_model.py` | Real PyTorch validation, extraction, rejection, resource-boundary, and saved-reference tests. |
+| `tools/export_model.py` | Validates supported PyTorch models and extracts independent CPU float32 parameter snapshots. |
+| `tools/requirements-exporter.txt` | Pinned optional PyTorch dependency for exporter validation. |
 | `tests/test_tensor_alloc_failures.c` | Forces allocation failures and tracks cleanup with test-only allocator substitutions. |
 | `.github/workflows/ci.yml` | macOS/Linux build jobs and the Linux sanitizer job. |
 | `ROADMAP.md` | Scope, implementation decisions, milestones, and progress. |
@@ -506,8 +555,8 @@ sequential-model contract is defined, and construction, connection validation,
 size accessors, cleanup, reusable buffers, and sequential inference are implemented.
 The complete example network matches NumPy at every stage, and lifecycle checks
 pass locally and in hosted macOS/Linux CI. M2 closed on October 23, 2026.
-The Phase 3 `.cnd` format contract is defined. Next: validate supported Python
-models for export, before implementing binary writing.
+The Phase 3 `.cnd` format contract and Python model validation are implemented.
+Next: binary export and reproducible tiny-network fixtures.
 
 The v0.1.0 scope excludes training, GPU execution, convolutional layers,
 quantization, SIMD, multithreading, and arbitrary computation graphs.

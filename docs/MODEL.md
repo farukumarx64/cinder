@@ -511,5 +511,6 @@ tests on macOS, 21/21 on Linux with fresh references, and 19/19 with Linux
 ASan/UBSan/leak detection in
 [run 39984963408](https://github.com/farukumarx64/cinder/actions/runs/39984963408).
 M2 closed on October 23, 2026. The report records exact evidence and limitations.
-The [`.cnd` model-format contract](MODEL_FORMAT.md) is now defined. Exporter
-model validation is next; binary export, file loading, and MNIST remain later work.
+The [`.cnd` model-format contract](MODEL_FORMAT.md) is defined and
+[exporter model validation](EXPORTER.md) is implemented. Binary export is next;
+file loading and MNIST remain later work.

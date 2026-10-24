@@ -1,8 +1,8 @@
 # Cinder model format — version 1
 
 **Contract defined October 23, 2026.** This document specifies the `.cnd` file
-format for Cinder v0.1.0. The exporter and loader are subsequent Phase 3 steps;
-they are not implemented by this documentation change. The format version is
+format for Cinder v0.1.0. [Exporter model validation](EXPORTER.md) is implemented;
+binary writing and the loader remain subsequent Phase 3 steps. The format version is
 the integer `1`, independent of the runtime's `0.1.0-dev` version string.
 
 This is the authoritative byte layout. Writers must produce it and readers
@@ -322,8 +322,8 @@ results were checked against the existing saved fixtures. The resource-limit
 arithmetic and planned MNIST parameter count were also checked. This validates
 the specification's example, not an exporter/loader implementation.
 
-Next: implement exporter model validation, followed by binary writing and
-reproducible fixtures. Then define the loader API and implement loading with
-malformed-file and allocation-failure tests. Close M3 only after the complete
+Exporter model validation is implemented and described in [the exporter guide](EXPORTER.md).
+Next: binary writing and reproducible fixtures. Then define the loader API and
+implement loading with malformed-file and allocation-failure tests. Close M3 only after the complete
 round trip, lifecycle checks, sanitizers, supported leak checks, and macOS/Linux
 CI pass. Ordinary C tests must consume saved fixtures without requiring Python.

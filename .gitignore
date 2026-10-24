@@ -15,7 +15,7 @@ compile_commands.json
 *.o
 *.obj
 
-# Local NumPy fixture-generation environment and Python bytecode.
+# Local Python tools/reference environment and bytecode.
 /.venv/
 __pycache__/
 *.pyc

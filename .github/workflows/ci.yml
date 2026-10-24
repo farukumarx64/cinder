@@ -36,12 +36,15 @@ jobs:
       - name: Configure
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON
 
-      - name: Enable fresh NumPy references (Linux)
+      - name: Enable fresh NumPy references and exporter tests (Linux)
         if: runner.os == 'Linux'
         run: |
           python3 -m venv .venv
           .venv/bin/python -m pip install -r tests/requirements-numpy.txt
+          .venv/bin/python -m pip install --index-url https://download.pytorch.org/whl/cpu \
+            -r tools/requirements-exporter.txt
           cmake -S . -B build -DCINDER_ENABLE_NUMPY_TESTS=ON \
+            -DCINDER_ENABLE_EXPORTER_TESTS=ON \
             -DPython3_EXECUTABLE="$GITHUB_WORKSPACE/.venv/bin/python"
 
       - name: Build
