@@ -1,9 +1,11 @@
 # Reproducible MNIST reference training
 
-Phase 4 starts with this external Python example. The training script and its
-offline synthetic tests are implemented; a full MNIST training/evaluation run,
-trained `.cnd` export, and real-image C comparisons remain subsequent steps.
-No digit-recognition accuracy is claimed by the synthetic tests.
+Phase 4 starts with this external Python example. The reference model has now
+been trained on the 60,000 official training images and achieved **97.48% test
+accuracy (9,748/10,000)**. Parameters, settings, and verification evidence are
+preserved under [`reference/`](reference/); see [the measured results](RESULTS.md).
+Trained `.cnd` export and real-image C comparisons remain subsequent steps.
+The separate offline synthetic tests do not measure digit-recognition accuracy.
 
 ## Model and preprocessing
 
@@ -101,8 +103,7 @@ or backends are not guaranteed; see PyTorch's
 
 ## Run and reload
 
-The following command performs real MNIST training; it has **not** been run as
-part of the script-implementation step:
+The following command was run on October 25, 2026, using the fixed defaults:
 
 ```sh
 .venv/bin/python examples/mnist/train.py --download \
@@ -113,6 +114,9 @@ part of the script-implementation step:
 Omit `--download` to require cached files. Use `--data-dir PATH` to select a
 different cache. Defaults are anchored to the script directory, so direct
 execution also works outside the repository. `--help` lists the options.
+For another run on this checkout, choose a new directory such as
+`examples/mnist/runs/reproduce`; the original experiment directory already
+exists. The preserved reference checkpoint is independent of the ignored runs.
 
 The output directory must not already exist. This preserves previous runs and
 forces explicit names for new experiments. A completed run writes:
@@ -139,7 +143,7 @@ From the repository root, reload for reference inference with:
 import torch
 from examples.mnist.train import build_model
 
-checkpoint = torch.load("examples/mnist/runs/reference/checkpoint.pt",
+checkpoint = torch.load("examples/mnist/reference/checkpoint.pt",
                         map_location="cpu", weights_only=True)
 model = build_model()
 model.load_state_dict(checkpoint["model_state_dict"], strict=True)
@@ -191,9 +195,17 @@ Python 3.12.14, and PyTorch 2.14.1. The combined suite also used NumPy 2.3.5.
 | MNIST option with `BUILD_TESTING=OFF` | Configuration rejected with the expected diagnostic |
 | Python source compilation and whitespace checks | Passed |
 
-The independent-process test reproduced every parameter tensor and all recorded
-metadata exactly in this environment. Download behavior was tested with mocked
-responses; no live MNIST download or full-dataset training was performed.
-Hosted CI for this addition remains pending a future authorized commit/push.
-Next: run real MNIST training/evaluation and record the measured results before
-exporting a trained model or claiming M4 completion.
+The independent-process synthetic test reproduced every parameter tensor and
+all recorded metadata exactly in this environment. Those implementation checks
+used mocked downloads and no real dataset.
+
+The subsequent full-data run on the same date downloaded and validated all four
+official archives, trained for five epochs, and measured test accuracy of
+97.48% with loss `0.0826597822714597`. Fresh-process checkpoint evaluation
+reproduced both metrics exactly. A second full training run reproduced all
+101,770 parameter values bit for bit and all recorded metadata exactly. See
+[RESULTS.md](RESULTS.md) for evidence, saved artifacts, and reproduction commands.
+The script implementation is committed locally; hosted CI remains pending an
+authorized push. This training/results step changes artifacts and documentation,
+not the training implementation or C runtime.
+Next: export the saved checkpoint with inference Softmax; M4 remains open.

@@ -38,8 +38,10 @@ and forced allocation/file failures. The [complete round trip](docs/ROUND_TRIP.m
 now compares every saved stage from both committed fixtures and fresh Python
 exports. [Loaded-model lifecycle verification](docs/M3_VERIFICATION.md) also
 passes locally and in all three hosted CI jobs, closing M3. Phase 4's
-[reproducible MNIST training script](examples/mnist/README.md) is now implemented
-and tested offline. Training/evaluating the real dataset is the next scoped step.
+[reproducible MNIST reference model](examples/mnist/README.md) is now trained:
+**97.48% accuracy on the official 10,000-image test split**, with saved parameters
+and [measured results](examples/mnist/RESULTS.md). Exporting the trained checkpoint
+with inference Softmax is the next scoped step.
 The project contains a CMake build and a CLI that supports `--version`.
 The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
 
@@ -203,8 +205,10 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
 - The external MNIST example implements CPU float32 `784 -> 128 -> 10` training,
   logits with CrossEntropyLoss, shared row-major `/255` preprocessing, fixed
   seeds/settings, checked IDX data loading, and checkpoint/metadata saving.
-  Tests use synthetic data; a full MNIST training run and measured digit accuracy
-  remain pending. See [the example guide](examples/mnist/README.md).
+  The fixed five-epoch run trained on 60,000 official training images and scored
+  9,748/10,000 (97.48%) on the held-out test split. Fresh-process reload and repeat
+  training checks reproduced the results. The offline tests still use synthetic
+  data; see [the measured results and saved checkpoint](examples/mnist/RESULTS.md).
 - The `info`, `run`, and `bench` commands are
   planned features; they are not implemented yet.
 
@@ -637,6 +641,8 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | `examples/mnist/data.py` | Checked original IDX archives, explicit optional downloads, and shared float32 row-major preprocessing. |
 | `examples/mnist/requirements.txt` | Reuses the exporter's pinned PyTorch dependency. |
 | `examples/mnist/README.md` | Architecture, settings, reproduction/reload commands, offline verification, and remaining MNIST steps. |
+| `examples/mnist/RESULTS.md` | Measured full-data training/test results, split isolation, repeatability evidence, and reproduction commands. |
+| `examples/mnist/reference/` | Preserved trained checkpoint, exact configuration/metrics, training log, and artifact verification record. |
 | `tests/test_mnist_training.py` | Offline synthetic training, preprocessing/IDX checks, independent-process repeatability, and checkpoint/CLI failures. |
 | `tests/test_tensor_alloc_failures.c` | Forces allocation failures and tracks cleanup with test-only allocator substitutions. |
 | `.github/workflows/ci.yml` | macOS/Linux build jobs and the Linux sanitizer job. |
@@ -665,8 +671,9 @@ The C loader API is implemented with successful-load, parser resource-boundary,
 and forced-failure cleanup tests. Every saved stage now passes through the full
 export/load/inference path. Loaded-model lifecycle, local sanitizer/leak checks,
 and all three hosted jobs pass for `5ad7dc4`, closing M3 on October 25, 2026.
-Phase 4's reproducible Python training script is implemented and tested offline.
-Next: train/evaluate the actual MNIST reference model and record its measured results.
+Phase 4's Python reference model is trained and saved, with 97.48% official test
+accuracy and verified reload/repeatability results.
+Next: export the saved parameters with inference Softmax to `mnist.cnd`.
 
 The v0.1.0 scope excludes training, GPU execution, convolutional layers,
 quantization, SIMD, multithreading, and arbitrary computation graphs.

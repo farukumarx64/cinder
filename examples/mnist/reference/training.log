@@ -1,0 +1,6 @@
+epoch 1/5: training loss=0.346304, accuracy=90.78%
+epoch 2/5: training loss=0.156702, accuracy=95.42%
+epoch 3/5: training loss=0.110276, accuracy=96.73%
+epoch 4/5: training loss=0.083715, accuracy=97.50%
+epoch 5/5: training loss=0.066678, accuracy=97.99%
+test accuracy=97.48%; saved examples/mnist/runs/reference

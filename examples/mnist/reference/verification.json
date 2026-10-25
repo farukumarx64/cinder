@@ -1,0 +1,110 @@
+{
+  "files": {
+    "checkpoint.pt": {
+      "bytes": 414587,
+      "sha256": "f388dd5d4a058f6b62013685b9f41c4cb6994a8de5d04d2e8b1c00be2b4aeaea"
+    },
+    "run.json": {
+      "bytes": 6111,
+      "sha256": "a3a7f0490b9ce54677cdd25662842c13a0ed09f030c298052ec206faf66d88e1"
+    },
+    "training.log": {
+      "bytes": 313,
+      "sha256": "8cb72464ac09261368722922ad00bbaef1dec31bc21494cde660e3c07a713d23"
+    }
+  },
+  "format_version": 1,
+  "fresh_process_checkpoint_evaluation": {
+    "all_logits_finite": true,
+    "batch_size": 256,
+    "batches": 40,
+    "checkpoint_metadata_matches_run_json": true,
+    "data_read": [
+      "t10k-images-idx3-ubyte.gz",
+      "t10k-labels-idx1-ubyte.gz"
+    ],
+    "gradients_absent": true,
+    "metrics_exactly_match_training_report": true,
+    "parameter_count": 101770,
+    "parameter_tensors": {
+      "hidden.bias": [
+        128
+      ],
+      "hidden.weight": [
+        128,
+        784
+      ],
+      "logits.bias": [
+        10
+      ],
+      "logits.weight": [
+        10,
+        128
+      ]
+    },
+    "parameters_finite_float32_cpu": true,
+    "parameters_unchanged_by_evaluation": true,
+    "source_hashes_match": true,
+    "test": {
+      "accuracy": 0.9748,
+      "correct": 9748,
+      "loss": 0.0826597822714597,
+      "samples": 10000
+    }
+  },
+  "fresh_process_training_repeat": {
+    "checkpoint_container_bytes_compared": false,
+    "environment": {
+      "machine": "arm64",
+      "platform": "macOS-27.0.1-arm64-arm-64bit",
+      "python": "3.12.14",
+      "torch": "2.14.1",
+      "torch_build": "PyTorch built with:\n  - GCC 4.2\n  - C++ Version: 202002\n  - clang 21.0.0\n  - OpenMP 202011\n  - LAPACK is enabled (usually provided by MKL)\n  - NNPACK is enabled\n  - CPU capability usage: DEFAULT\n  - Build settings: BLAS_INFO=accelerate, BUILD_TYPE=Release, COMMIT_SHA=5c4886908584029761b579af026dcfb627c84070, CUDA_FLAGS= -DLIBCUDACXX_ENABLE_SIMPLIFIED_COMPLEX_OPERATIONS -Xfatbin -compress-all  -Wno-deprecated-gpu-targets --expt-extended-lambda -DCUB_WRAPPED_NAMESPACE=at_cuda_detail -DDISABLE_CUSPARSE_DEPRECATED -DCUDA_HAS_FP16=1 -D__CUDA_NO_HALF_OPERATORS__ -D__CUDA_NO_HALF_CONVERSIONS__ -D__CUDA_NO_HALF2_OPERATORS__ -D__CUDA_NO_BFLOAT16_CONVERSIONS__ -DC10_NODEPRECATED, CXX_COMPILER=/usr/bin/c++, CXX_FLAGS= -fvisibility-inlines-hidden -DUSE_PTHREADPOOL -DNDEBUG -DUSE_KINETO -DUSE_PYTORCH_QNNPACK -DAT_BUILD_ARM_VEC256_WITH_SLEEF -DUSE_PYTORCH_METAL_EXPORT -DSYMBOLICATE_MOBILE_DEBUG_HANDLE -DUSE_COREML_DELEGATE -O2 -fPIC -DC10_NODEPRECATED -Wall -Wextra -Werror=return-type -Werror=non-virtual-dtor -Werror=braced-scalar-init -Werror=range-loop-construct -Werror=bool-operation -Wnarrowing -Wno-missing-field-initializers -Wno-unknown-pragmas -Wno-unused-parameter -Wno-strict-overflow -Wno-strict-aliasing -Wvla-extension -Wsuggest-override -Wnewline-eof -Winconsistent-missing-override -Winconsistent-missing-destructor-override -Wno-pass-failed -Wno-error=old-style-cast -Wconstant-conversion -Qunused-arguments -faligned-new -fno-math-errno -fno-trapping-math -Werror=format -fclang-abi-compat=17 -DUSE_MPS -Wno-missing-braces, LAPACK_INFO=accelerate, TORCH_VERSION=2.14.1, USE_CUDA=OFF, USE_CUDNN=OFF, USE_CUSPARSELT=OFF, USE_EIGEN_FOR_BLAS=ON, USE_GFLAGS=OFF, USE_GLOG=OFF, USE_GLOO=ON, USE_HIPSPARSELT=OFF, USE_MKL=OFF, USE_MKLDNN=OFF, USE_MPI=OFF, USE_NCCL=OFF, USE_NNPACK=ON, USE_OPENMP=ON, USE_ROCM=OFF, USE_ROCM_KERNEL_ASSERT=OFF, USE_XCCL=OFF, USE_XPU=OFF, \n"
+    },
+    "metadata_exactly_equal": true,
+    "parameter_values_bitwise_equal": true,
+    "parameters_compared": 101770,
+    "run_json_bytes_equal": true,
+    "tensors_compared": 4
+  },
+  "limitations": [
+    "Python reference only; no trained .cnd export or C MNIST comparison yet.",
+    "Full-data training/reload/repeat verified only on the recorded macOS arm64 environment.",
+    "Same-environment repeatability does not establish equality across other platforms or dependency versions.",
+    "Official test split was not used for optimizer updates, hyperparameter changes, early stopping, or checkpoint selection."
+  ],
+  "recorded_on": "2026-10-25",
+  "repeat_training_command": [
+    ".venv/bin/python",
+    "-u",
+    "examples/mnist/train.py",
+    "--seed",
+    "20261025",
+    "--epochs",
+    "5",
+    "--batch-size",
+    "64",
+    "--learning-rate",
+    "0.001",
+    "--output-dir",
+    "examples/mnist/runs/reference-repeat"
+  ],
+  "selection": "First completed run, final epoch; settings fixed before test evaluation. Repeat used only to check reproducibility.",
+  "training_command": [
+    ".venv/bin/python",
+    "-u",
+    "examples/mnist/train.py",
+    "--download",
+    "--seed",
+    "20261025",
+    "--epochs",
+    "5",
+    "--batch-size",
+    "64",
+    "--learning-rate",
+    "0.001",
+    "--output-dir",
+    "examples/mnist/runs/reference"
+  ],
+  "training_source_revision": "e8ebcfc528731aa6e33e2000747376d9b2884bee"
+}

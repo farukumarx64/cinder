@@ -1,0 +1,159 @@
+{
+  "architecture": [
+    "Dense(784,128,bias=True)",
+    "ReLU",
+    "Dense(128,10,bias=True)"
+  ],
+  "config": {
+    "batch_size": 64,
+    "epochs": 5,
+    "learning_rate": 0.001,
+    "seed": 20261025
+  },
+  "dataset": {
+    "evaluation_split": "official test split",
+    "files": [
+      {
+        "bytes": 9912422,
+        "filename": "train-images-idx3-ubyte.gz",
+        "md5": "f68b3c2dcbeaaa9fbdd348bbdeb94873",
+        "samples": 60000,
+        "sha256": "440fcabf73cc546fa21475e81ea370265605f56be210a4024d2ca8f203523609",
+        "url": "https://ossci-datasets.s3.amazonaws.com/mnist/train-images-idx3-ubyte.gz"
+      },
+      {
+        "bytes": 28881,
+        "filename": "train-labels-idx1-ubyte.gz",
+        "md5": "d53e105ee54ea40749a09fcbcd1e9432",
+        "samples": 60000,
+        "sha256": "3552534a0a558bbed6aed32b30c495cca23d567ec52cac8be1a0730e8010255c",
+        "url": "https://ossci-datasets.s3.amazonaws.com/mnist/train-labels-idx1-ubyte.gz"
+      },
+      {
+        "bytes": 1648877,
+        "filename": "t10k-images-idx3-ubyte.gz",
+        "md5": "9fb629c4189551a2d022fa330f9573f3",
+        "samples": 10000,
+        "sha256": "8d422c7b0a1c1c79245a5bcf07fe86e33eeafee792b84584aec276f5a2dbc4e6",
+        "url": "https://ossci-datasets.s3.amazonaws.com/mnist/t10k-images-idx3-ubyte.gz"
+      },
+      {
+        "bytes": 4542,
+        "filename": "t10k-labels-idx1-ubyte.gz",
+        "md5": "ec29112dd5afa0611ce80d1b7f02629c",
+        "samples": 10000,
+        "sha256": "f7ae60f92e00ec6debd23a6088c31dbd2371eca3ffa0defaefb259924204aec6",
+        "url": "https://ossci-datasets.s3.amazonaws.com/mnist/t10k-labels-idx1-ubyte.gz"
+      }
+    ],
+    "name": "MNIST",
+    "training_split": "official training split"
+  },
+  "environment": {
+    "machine": "arm64",
+    "platform": "macOS-27.0.1-arm64-arm-64bit",
+    "python": "3.12.14",
+    "torch": "2.14.1",
+    "torch_build": "PyTorch built with:\n  - GCC 4.2\n  - C++ Version: 202002\n  - clang 21.0.0\n  - OpenMP 202011\n  - LAPACK is enabled (usually provided by MKL)\n  - NNPACK is enabled\n  - CPU capability usage: DEFAULT\n  - Build settings: BLAS_INFO=accelerate, BUILD_TYPE=Release, COMMIT_SHA=5c4886908584029761b579af026dcfb627c84070, CUDA_FLAGS= -DLIBCUDACXX_ENABLE_SIMPLIFIED_COMPLEX_OPERATIONS -Xfatbin -compress-all  -Wno-deprecated-gpu-targets --expt-extended-lambda -DCUB_WRAPPED_NAMESPACE=at_cuda_detail -DDISABLE_CUSPARSE_DEPRECATED -DCUDA_HAS_FP16=1 -D__CUDA_NO_HALF_OPERATORS__ -D__CUDA_NO_HALF_CONVERSIONS__ -D__CUDA_NO_HALF2_OPERATORS__ -D__CUDA_NO_BFLOAT16_CONVERSIONS__ -DC10_NODEPRECATED, CXX_COMPILER=/usr/bin/c++, CXX_FLAGS= -fvisibility-inlines-hidden -DUSE_PTHREADPOOL -DNDEBUG -DUSE_KINETO -DUSE_PYTORCH_QNNPACK -DAT_BUILD_ARM_VEC256_WITH_SLEEF -DUSE_PYTORCH_METAL_EXPORT -DSYMBOLICATE_MOBILE_DEBUG_HANDLE -DUSE_COREML_DELEGATE -O2 -fPIC -DC10_NODEPRECATED -Wall -Wextra -Werror=return-type -Werror=non-virtual-dtor -Werror=braced-scalar-init -Werror=range-loop-construct -Werror=bool-operation -Wnarrowing -Wno-missing-field-initializers -Wno-unknown-pragmas -Wno-unused-parameter -Wno-strict-overflow -Wno-strict-aliasing -Wvla-extension -Wsuggest-override -Wnewline-eof -Winconsistent-missing-override -Winconsistent-missing-destructor-override -Wno-pass-failed -Wno-error=old-style-cast -Wconstant-conversion -Qunused-arguments -faligned-new -fno-math-errno -fno-trapping-math -Werror=format -fclang-abi-compat=17 -DUSE_MPS -Wno-missing-braces, LAPACK_INFO=accelerate, TORCH_VERSION=2.14.1, USE_CUDA=OFF, USE_CUDNN=OFF, USE_CUSPARSELT=OFF, USE_EIGEN_FOR_BLAS=ON, USE_GFLAGS=OFF, USE_GLOG=OFF, USE_GLOO=ON, USE_HIPSPARSELT=OFF, USE_MKL=OFF, USE_MKLDNN=OFF, USE_MPI=OFF, USE_NCCL=OFF, USE_NNPACK=ON, USE_OPENMP=ON, USE_ROCM=OFF, USE_ROCM_KERNEL_ASSERT=OFF, USE_XCCL=OFF, USE_XPU=OFF, \n"
+  },
+  "execution": {
+    "checkpoint_selection": "final epoch; no test-set selection",
+    "deterministic_algorithms": true,
+    "device": "cpu",
+    "drop_last": false,
+    "dtype": "float32",
+    "evaluation_batch_size": 256,
+    "label_smoothing": 0.0,
+    "loss": "CrossEntropyLoss(mean)",
+    "num_workers": 0,
+    "shuffle": true,
+    "shuffle_seed": 20261025,
+    "threads": 1
+  },
+  "format_version": 1,
+  "optimizer": {
+    "amsgrad": false,
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "capturable": false,
+    "decoupled_weight_decay": false,
+    "differentiable": false,
+    "eps": 1e-08,
+    "foreach": false,
+    "fused": false,
+    "lr": 0.001,
+    "maximize": false,
+    "name": "Adam",
+    "weight_decay": 0.0
+  },
+  "outputs": "logits; no Softmax during training",
+  "parameter_count": 101770,
+  "preprocessing": {
+    "augmentation": "none",
+    "input_dtype": "uint8",
+    "input_shape": [
+      28,
+      28
+    ],
+    "operation": "cast to float32, then divide by float32 255.0",
+    "order": "row-major",
+    "output_dtype": "float32",
+    "output_shape": [
+      784
+    ],
+    "range": [
+      0.0,
+      1.0
+    ]
+  },
+  "source_sha256": {
+    "data.py": "970b17710a1d4adc8357c11dff872e08dccef207e2fb30d368483c6cb416aa72",
+    "requirements.txt": "b2da29efe7734fa2ccc8bfdb9a05388ac6377a4f74c219d7c4918ea7534892b0",
+    "train.py": "dabd5ad49f7333ec2b6823bd75ec9ffe50a04a3577880b107c62a1885fe7cf28"
+  },
+  "test": {
+    "accuracy": 0.9748,
+    "correct": 9748,
+    "loss": 0.0826597822714597,
+    "samples": 10000
+  },
+  "training_history": [
+    {
+      "accuracy": 0.9078166666666667,
+      "correct": 54469,
+      "epoch": 1,
+      "loss": 0.3463040715018908,
+      "samples": 60000
+    },
+    {
+      "accuracy": 0.9542166666666667,
+      "correct": 57253,
+      "epoch": 2,
+      "loss": 0.15670240020950635,
+      "samples": 60000
+    },
+    {
+      "accuracy": 0.9673,
+      "correct": 58038,
+      "epoch": 3,
+      "loss": 0.1102760811706384,
+      "samples": 60000
+    },
+    {
+      "accuracy": 0.9750166666666666,
+      "correct": 58501,
+      "epoch": 4,
+      "loss": 0.08371467551290988,
+      "samples": 60000
+    },
+    {
+      "accuracy": 0.9799333333333333,
+      "correct": 58796,
+      "epoch": 5,
+      "loss": 0.06667769661545754,
+      "samples": 60000
+    }
+  ]
+}
