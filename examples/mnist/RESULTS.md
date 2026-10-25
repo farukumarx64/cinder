@@ -6,8 +6,9 @@ mean cross-entropy loss **0.0826597822714597**. These are measured results from
 the saved final-epoch checkpoint, not estimates from synthetic tests.
 
 The model is `Dense(784,128) -> ReLU -> Dense(128,10)`, with biases and 101,770
-float32 parameters. Its outputs are logits. This step does not yet export a
-trained `.cnd` model or measure MNIST inference in Cinder.
+float32 parameters. Its outputs are logits. These measurements concern Python
+training/evaluation. The subsequent [export step](EXPORT.md) produces a trained
+`.cnd` model with Softmax; MNIST inference in Cinder is still a later step.
 
 ## Fixed settings and split isolation
 
@@ -186,9 +187,9 @@ PY
 
 ## Remaining work
 
-Next, export these saved parameters with inference Softmax to `mnist.cnd` and
-verify deterministic export from this checkpoint. Real-image stage fixtures,
-the `cinder run` CLI, C/Python numerical comparisons, and larger-model lifecycle
-verification follow as separate steps. M4 remains open. Ordinary C tests still
-need neither Python nor MNIST downloads. No hosted CI or full C rebuild was
-run for this artifact/documentation-only step.
+The subsequent [trained export](EXPORT.md) is now implemented and verified from
+this checkpoint. Real-image stage fixtures, the `cinder run` CLI, C/Python
+numerical comparisons, and larger-model lifecycle verification remain separate
+steps. M4 remains open. Ordinary C tests still need neither Python nor MNIST
+downloads. No hosted CI or full C rebuild was run for the original
+artifact/documentation-only training step; export checks are recorded separately.

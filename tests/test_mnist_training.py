@@ -325,7 +325,9 @@ class MnistTrainingTests(unittest.TestCase):
         self.assertIn("--download", result.stdout)
         for arguments, message in ((["--epochs", "0"], "positive integer"),
                                    (["--data-dir", str(self.directory)], "--download")):
-            result = subprocess.run([sys.executable, script, *arguments], cwd=self.directory,
+            # Real training may already have populated the default run path.
+            result = subprocess.run([sys.executable, script, *arguments,
+                                     "--output-dir", str(self.directory / "new-run")], cwd=self.directory,
                                     capture_output=True, text=True, timeout=30)
             self.assertEqual(result.returncode, 1, result.stderr)
             self.assertIn(message, result.stderr)

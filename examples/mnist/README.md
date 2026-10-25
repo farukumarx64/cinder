@@ -4,7 +4,9 @@ Phase 4 starts with this external Python example. The reference model has now
 been trained on the 60,000 official training images and achieved **97.48% test
 accuracy (9,748/10,000)**. Parameters, settings, and verification evidence are
 preserved under [`reference/`](reference/); see [the measured results](RESULTS.md).
-Trained `.cnd` export and real-image C comparisons remain subsequent steps.
+The trained [`mnist.cnd`](mnist.cnd) now includes inference Softmax and passes
+[byte-for-byte export verification](EXPORT.md). Real-image reference fixtures
+and C comparisons remain subsequent steps.
 The separate offline synthetic tests do not measure digit-recognition accuracy.
 
 ## Model and preprocessing
@@ -20,8 +22,8 @@ named layers are `hidden`, `relu`, and `logits`. Flattening is outside the model
 so its modules are already supported by Cinder's existing exporter.
 
 Training uses `CrossEntropyLoss` on unnormalized logits and integer labels
-`0..9`. There is no Softmax in the training model. A future export step will
-append `Softmax(dim=-1)` to produce probabilities. This follows PyTorch's
+`0..9`. There is no Softmax in the training model. The export wrapper appends
+`Softmax(dim=-1)` to produce probabilities. This follows PyTorch's
 [CrossEntropyLoss contract](https://docs.pytorch.org/docs/2.14/generated/torch.nn.CrossEntropyLoss.html).
 
 `data.preprocess_images` implements the existing
@@ -152,7 +154,16 @@ model.eval()  # Returns logits; probabilities are added at the export step.
 
 See PyTorch's [state-dictionary guidance](https://docs.pytorch.org/tutorials/beginner/saving_loading_models.html).
 Reproducibility checks compare tensors and recorded results; `.pt` container
-bytes are not the reproducibility contract.
+bytes are not the reproducibility contract. The exported `.cnd` file does have
+an exact byte-regeneration check:
+
+```sh
+.venv/bin/python examples/mnist/export.py --check
+```
+
+See [the export guide](EXPORT.md) for the wrapper, saved binary, byte layout,
+failure behavior, and verification. Export requires only the checkpoint and
+PyTorch; it never downloads data or reruns training.
 
 ## Offline tests
 
@@ -173,12 +184,13 @@ To register the suite with CTest independently of exporter/NumPy tests:
 cmake -S . -B build-mnist -DCMAKE_BUILD_TYPE=Debug \
   -DCINDER_ENABLE_MNIST_TESTS=ON -DPython3_EXECUTABLE="$PWD/.venv/bin/python"
 cmake --build build-mnist --parallel
-ctest --test-dir build-mnist -R '^mnist_training$' --output-on-failure
+ctest --test-dir build-mnist -R '^mnist_(training|export)$' --output-on-failure
 ```
 
 The new option defaults to OFF, requires `BUILD_TESTING=ON` and an importable
-PyTorch, and installs nothing. Ordinary C builds still need no Python. The
-Linux CI job enables the offline suite alongside the existing Python checks;
+PyTorch, and installs nothing. It registers the 18-test synthetic training suite
+and the 11-test saved-checkpoint export suite. Ordinary C builds still need no
+Python. The Linux CI job enables both offline suites alongside the existing Python checks;
 it does not download MNIST or run full training.
 
 ## Verification — October 25, 2026
@@ -205,7 +217,8 @@ official archives, trained for five epochs, and measured test accuracy of
 reproduced both metrics exactly. A second full training run reproduced all
 101,770 parameter values bit for bit and all recorded metadata exactly. See
 [RESULTS.md](RESULTS.md) for evidence, saved artifacts, and reproduction commands.
-The script implementation is committed locally; hosted CI remains pending an
-authorized push. This training/results step changes artifacts and documentation,
-not the training implementation or C runtime.
-Next: export the saved checkpoint with inference Softmax; M4 remains open.
+The subsequent [export step](EXPORT.md) adds the inference wrapper, trained
+binary, and export tests while preserving the training implementation and its
+reference records. Hosted verification for the export addition remains pending
+an authorized commit/push.
+Next: generate real-image reference fixtures from the saved model; M4 remains open.
