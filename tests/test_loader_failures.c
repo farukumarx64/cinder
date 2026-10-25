@@ -20,7 +20,7 @@
 
 typedef struct { void *pointer; size_t size; } audit_block_t;
 static audit_block_t audit_blocks[2048];
-static size_t audit_live, audit_bytes, audit_allocations, audit_frees;
+static size_t audit_live, audit_bytes, audit_allocations, audit_frees, audit_free_attempts;
 static size_t audit_fail_allocation;
 static const size_t audit_native_size_max = SIZE_MAX;
 static size_t audit_size_max = SIZE_MAX;
@@ -54,6 +54,7 @@ static void *audit_calloc(size_t count, size_t size)
 
 static void audit_free(void *pointer)
 {
+    ++audit_free_attempts;
     if (pointer == NULL) {
         return;
     }
@@ -247,7 +248,7 @@ cinder_status_t cinder_model_load(const char *path, cinder_model_t **model, cind
 static void audit_reset(void)
 {
     AUDIT_CHECK(audit_live == 0 && audit_bytes == 0 && audit_stream == NULL);
-    audit_allocations = audit_frees = audit_fail_allocation = 0;
+    audit_allocations = audit_frees = audit_free_attempts = audit_fail_allocation = 0;
     audit_opens = audit_closes = audit_seeks = audit_reads = audit_probes = 0;
     audit_model_creates = 0;
     audit_fail_open = audit_fail_tell = audit_fail_close = false;
@@ -426,6 +427,130 @@ static void audit_parameter_bits(const char *scratch)
     AUDIT_CHECK(audit_allocations == audit_frees);
 }
 
+static void audit_loaded_parameters(const cinder_model_t *model)
+{
+    const numpy_network_fixture_t *n = &numpy_tiny_network;
+    AUDIT_CHECK(model->layer_count == 4 && model->buffer_capacity == 4);
+    const cinder_dense_t *first = model->layers[0]->dense;
+    const cinder_dense_t *second = model->layers[2]->dense;
+    AUDIT_CHECK(memcmp(first->weights->data, n->weights1.data, n->weights1.count * sizeof(float)) == 0);
+    AUDIT_CHECK(memcmp(first->bias->data, n->bias1.data, n->bias1.count * sizeof(float)) == 0);
+    AUDIT_CHECK(memcmp(second->weights->data, n->weights2.data, n->weights2.count * sizeof(float)) == 0);
+    AUDIT_CHECK(memcmp(second->bias->data, n->bias2.data, n->bias2.count * sizeof(float)) == 0);
+}
+
+static void audit_poison_workspaces(cinder_model_t *model)
+{
+    for (size_t buffer = 0; buffer < 2; ++buffer) {
+        for (size_t i = 0; i < model->buffer_capacity; ++i) {
+            model->buffers[buffer][i] = NAN;
+        }
+    }
+}
+
+static void audit_loaded_run(cinder_model_t *model, size_t index)
+{
+    size_t allocations = audit_allocations, frees = audit_free_attempts;
+    size_t opens = audit_opens, closes = audit_closes, reads = audit_reads;
+    /* Any unexpected inference allocation would immediately fail. */
+    AUDIT_CHECK(audit_fail_allocation == 0);
+    audit_fail_allocation = allocations + 1;
+    audit_loaded_parameters(model);
+    audit_poison_workspaces(model);
+    cinder_error_t error;
+    float input[2], output[] = {91, 92, NAN}, saved[3];
+    const numpy_network_case_t *fixture = &numpy_network_cases[index % COUNT(numpy_network_cases)];
+    memcpy(input, fixture->input.data, sizeof(input));
+    AUDIT_CHECK(cinder_model_run(model, input, 2, output, 3, &error) == CINDER_OK);
+    check_status(CINDER_OK, CINDER_OK, &error);
+    AUDIT_CHECK(compare_vector(NULL, fixture->name, "loaded/poisoned", output, 2, fixture->softmax, true));
+    AUDIT_CHECK(memcmp(input, fixture->input.data, sizeof(input)) == 0 && isnan(output[2]));
+    /* The final two-value result must never consume the poisoned input tail. */
+    AUDIT_CHECK(isnan(model->buffers[0][2]) && isnan(model->buffers[0][3]));
+    memcpy(saved, output, sizeof(saved));
+
+    const float bad[][2] = {{2, -1}, {2, -1}, {NAN, 0},
+                            {FLT_MAX, FLT_MAX}, {FLT_MAX / 4, FLT_MAX / 4}};
+    size_t kind = (index / COUNT(numpy_network_cases)) % COUNT(bad);
+    cinder_status_t expected = kind == 0 ? CINDER_ERROR_DIMENSION_MISMATCH :
+                               kind == 1 ? CINDER_ERROR_BUFFER_TOO_SMALL : CINDER_ERROR_NONFINITE;
+    audit_poison_workspaces(model);
+    cinder_status_t status = cinder_model_run(model, bad[kind], kind == 0 ? 1 : 2,
+                                             output, kind == 1 ? 1 : 3, &error);
+    check_status(status, expected, &error);
+    AUDIT_CHECK(memcmp(output, saved, sizeof(saved)) == 0);
+    if (kind == 4) {
+        /* Finite Dense1 + ReLU completed; the second Dense overflows. */
+        for (size_t i = 0; i < 4; ++i) {
+            AUDIT_CHECK(isfinite(model->buffers[1][i]));
+        }
+        AUDIT_CHECK(model->buffers[1][0] > 0 && model->buffers[1][1] == 0);
+    }
+    fixture = &numpy_network_cases[(index + 3) % COUNT(numpy_network_cases)];
+    memcpy(input, fixture->input.data, sizeof(input));
+    /* Recover on a different input without clearing the failed working state. */
+    AUDIT_CHECK(cinder_model_run(model, input, 2, output, 3, &error) == CINDER_OK);
+    check_status(CINDER_OK, CINDER_OK, &error);
+    AUDIT_CHECK(compare_vector(NULL, fixture->name, "loaded/recovered", output, 2, fixture->softmax, true));
+    AUDIT_CHECK(memcmp(input, fixture->input.data, sizeof(input)) == 0 && isnan(output[2]));
+    audit_loaded_parameters(model);
+    AUDIT_CHECK(audit_allocations == allocations && audit_free_attempts == frees);
+    AUDIT_CHECK(audit_opens == opens && audit_closes == closes && audit_reads == reads);
+    audit_fail_allocation = 0;
+}
+
+static void audit_loaded_lifecycle(const char *path)
+{
+    audit_reset();
+    cinder_model_t *models[] = {load_ok(path, true), load_ok(path, false)};
+    AUDIT_CHECK(audit_allocations == 42 && audit_live == 36);
+    for (size_t i = 0; i < 2; ++i) {
+        AUDIT_CHECK(models[i]->buffers[0] != models[i]->buffers[1]);
+        for (size_t j = 0; j < 2; ++j) {
+            AUDIT_CHECK(models[0]->buffers[i] != models[1]->buffers[j]);
+        }
+    }
+    for (size_t i = 0; i < 4; ++i) {
+        AUDIT_CHECK(models[0]->layers[i] != models[1]->layers[i]);
+        if (models[0]->layers[i]->type == CINDER_LAYER_DENSE) {
+            const cinder_dense_t *a = models[0]->layers[i]->dense;
+            const cinder_dense_t *b = models[1]->layers[i]->dense;
+            AUDIT_CHECK(a != b && a->weights->data != b->weights->data && a->bias->data != b->bias->data);
+        }
+    }
+    for (size_t i = 0; i < 100; ++i) {
+        audit_loaded_run(models[0], i);
+        audit_loaded_run(models[1], i + 7);
+    }
+    cinder_model_free(models[1]);
+    size_t retained = audit_live, retained_bytes = audit_bytes;
+    AUDIT_CHECK(retained == 18);
+    size_t failed_allocations = 0;
+    for (size_t fail = 1; fail <= 21; ++fail) {
+        for (int details = 0; details < 2; ++details) {
+            audit_fail_allocation = audit_allocations + fail;
+            cinder_model_t *attempt = models[0]; /* Borrowed sentinel, not a transfer. */
+            cinder_error_t error;
+            cinder_status_t status = cinder_model_load(path, &attempt, details ? &error : NULL);
+            check_status(status, CINDER_ERROR_ALLOCATION, details ? &error : NULL);
+            ++failed_allocations;
+            AUDIT_CHECK(attempt == NULL && audit_live == retained && audit_bytes == retained_bytes);
+            audit_fail_allocation = 0;
+            audit_loaded_run(models[0], fail + (size_t)details);
+            attempt = load_ok(path, details != 0);
+            audit_loaded_run(attempt, fail + 3);
+            cinder_model_free(attempt);
+            AUDIT_CHECK(audit_live == retained && audit_bytes == retained_bytes);
+        }
+    }
+    cinder_model_free(models[0]);
+    AUDIT_CHECK(failed_allocations == 42 && audit_allocations == audit_frees + failed_allocations);
+    AUDIT_CHECK(audit_live == 0 && audit_bytes == 0 && audit_stream == NULL);
+    puts("Audit: loaded lifecycle passed: 284 poisoned-buffer success/failure/recovery cycles "
+         "(852 inference calls), zero inference allocations/frees or loader I/O, "
+         "unchanged parameters, and 42 allocation failures with a surviving model and successful retry.");
+}
+
 int main(int argc, char **argv)
 {
     AUDIT_CHECK(argc == 3);
@@ -437,6 +562,7 @@ int main(int argc, char **argv)
     audit_first_error(argv[1], argv[2]);
     audit_native_overflow(argv[1]);
     audit_parameter_bits(argv[2]);
+    audit_loaded_lifecycle(argv[1]);
     audit_reset();
     printf("Audit: %zu rejected calls checked for NULL output, unchanged prior owners, zero new live blocks, and no retained stream.\n",
            audit_rejections);

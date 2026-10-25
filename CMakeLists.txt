@@ -186,7 +186,12 @@ if(BUILD_TESTING)
         target_link_libraries(test_model_lifecycle PRIVATE cinder_core Threads::Threads)
         cinder_configure_target(test_model_lifecycle)
         add_test(NAME model_lifecycle COMMAND test_model_lifecycle)
-        set_tests_properties(model_lifecycle PROPERTIES TIMEOUT 10)
+        file(MAKE_DIRECTORY "${PROJECT_BINARY_DIR}/loaded-lifecycle-files")
+        add_test(NAME model_loaded_lifecycle COMMAND test_model_lifecycle
+            "${PROJECT_SOURCE_DIR}/tests/fixtures/tiny/tiny.cnd"
+            "${PROJECT_BINARY_DIR}/loaded-lifecycle-files/model.bin"
+        )
+        set_tests_properties(model_lifecycle model_loaded_lifecycle PROPERTIES TIMEOUT 10)
     endif()
 
     if(CINDER_ENABLE_NUMPY_TESTS)

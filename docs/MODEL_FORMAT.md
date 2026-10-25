@@ -334,6 +334,7 @@ The C loader now loads the saved tiny network and compares final probabilities
 against the saved NumPy references. Malformed-file, exact-limit, and allocation/I/O
 failure cleanup tests now pass locally. Every saved stage also passes through
 the [complete file round trip](ROUND_TRIP.md), with committed files and fresh
-Python exports. Close M3 after the remaining loaded-model lifecycle checks,
-sanitizers, supported leak checks, and macOS/Linux CI verification.
+Python exports. [Loaded-model lifecycle checks](M3_VERIFICATION.md), local
+sanitizers, and native leak checks also pass. Final macOS/Linux CI verification
+of these additions remains required before M3 closes.
 Ordinary C tests must consume saved fixtures without requiring Python.

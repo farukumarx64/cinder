@@ -36,7 +36,8 @@ models through the existing layer/model constructors. Tests cover successful
 loads, saved tiny-network probabilities, malformed files, exact resource limits,
 and forced allocation/file failures. The [complete round trip](docs/ROUND_TRIP.md)
 now compares every saved stage from both committed fixtures and fresh Python
-exports. Loaded-model lifecycle and final hosted M3 verification are next.
+exports. [Loaded-model lifecycle verification](docs/M3_VERIFICATION.md) also
+passes locally; final hosted verification is required before M3 closes.
 The project contains a CMake build and a CLI that supports `--version`.
 The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
 
@@ -189,6 +190,13 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
   `5.96046448e-8` with `atol = rtol = 1e-5`. The default C test uses committed
   files without Python; the exporter option adds live export and nine deliberate
   fixture-change rejection checks. See [round-trip verification](docs/ROUND_TRIP.md).
+- On October 25, loaded lifecycle tests passed 502 successful loads, 100 rejected
+  loads, and 14,160 inference calls. The tracked audit additionally verifies
+  poisoned workspaces, no inference allocation/free attempts, unchanged parameters,
+  and recovery from all 21 allocation failures while another model remains alive.
+  Debug and ASan/UBSan passed 28/28 tests; C-only Release passed 23/23. Both native
+  leak checks reported zero leaks. See [M3 verification](docs/M3_VERIFICATION.md)
+  for details and the pending hosted verification requirement.
 - The `info`, `run`, and `bench` commands are
   planned features; they are not implemented yet.
 
@@ -337,6 +345,12 @@ The runtime tests cover tensor math and memory, layers, model ownership, and inf
   prefixes, reads the ten raw input files, and compares every stage with saved
   NumPy references through the public model API. It checks shapes, finiteness,
   tolerance, unchanged inputs, and spare output capacity without needing Python.
+- `model_loaded_lifecycle` repeats the lifecycle checks with file-loaded models,
+  adds repeated and concurrent load/run/free cycles, and verifies recovery after
+  failed loads and continued use after deleting the source file. The tracked
+  `loader_failures` test also checks loaded-model buffer/parameter independence,
+  zero inference allocation/free attempts, and construction rollback while an
+  existing owner remains usable.
 
 Most runtime tests have ten-second timeouts; the two loader boundary/failure
 suites allow 60 seconds for their large fixtures. Checks stay active in Release
@@ -571,6 +585,7 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | `docs/NUMPY_TESTS.md` | Reference calculations, fixtures, tolerances, regeneration, and verification results. |
 | `docs/ROUND_TRIP.md` | Saved and freshly exported model-prefix comparisons through C loading/inference, dependencies, and measured results. |
 | `docs/M2_VERIFICATION.md` | Lifecycle/allocation audit, local and hosted evidence, M2 closure, and limitations. |
+| `docs/M3_VERIFICATION.md` | Loaded-model lifecycle, allocation/recovery audit, actual verification results, and M3 closure requirements. |
 | `tests/check_version.cmake` | Checks the version command's exit status and output. |
 | `tests/test_tensor.c` | Tests the core library's allocation and cleanup API. |
 | `tests/test_dense.c` | Tests Dense shapes, validation, copied parameters, and independent ownership/lifetimes. |
@@ -592,7 +607,7 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | `tests/test_model_numpy.c` | Compares all tiny-network stages through layers and model prefixes against NumPy. |
 | `tests/test_model_round_trip.c` | Loads exported model prefixes and raw inputs, then compares all stages against saved NumPy outputs. |
 | `tests/check_model_round_trip.py` | Exports fresh fixtures, invokes the C comparator, and verifies rejection of nine deliberate fixture changes. |
-| `tests/test_model_lifecycle.c` | Exercises repeated/recovering inference and independent or externally serialized model use. |
+| `tests/test_model_lifecycle.c` | Exercises constructed/loaded models, repeated/concurrent loading, recovery, source-file independence, and caller-serialized model use. |
 | `tests/numpy_compare.h` | Shared shape/finite checks, tolerance rule, diagnostics, and statistics for reference tests. |
 | `tests/generate_numpy_fixtures.py` | Generates independent float32 NumPy references with fixed inputs and seed. |
 | `tests/fixtures/numpy_fixtures.h` | Saved input arrays and NumPy expected results, tracked in Git. |
@@ -629,7 +644,8 @@ The Phase 3 `.cnd` format contract, Python validation, and binary export are
 implemented, with reproducible tiny-network fixtures.
 The C loader API is implemented with successful-load, parser resource-boundary,
 and forced-failure cleanup tests. Every saved stage now passes through the full
-export/load/inference path. Next: complete loaded-model lifecycle and final CI checks.
+export/load/inference path. Loaded-model lifecycle and local sanitizer/leak checks
+also pass. Next: verify the final revision in hosted CI before closing M3.
 
 The v0.1.0 scope excludes training, GPU execution, convolutional layers,
 quantization, SIMD, multithreading, and arbitrary computation graphs.

@@ -396,8 +396,9 @@ and ownership/cleanup rules, with successful-load and basic malformed-file tests
 The C test loads the saved exported tiny network and compares final probabilities
 with NumPy. Parser limits and forced-failure cleanup pass locally. The
 [integrated round trip](ROUND_TRIP.md) now compares every saved intermediate
-stage from fresh Python exports and committed C-only fixtures. Next is the
-loaded-model lifecycle and final hosted M3 verification step.
+stage from fresh Python exports and committed C-only fixtures. The
+[loaded-model lifecycle audit](M3_VERIFICATION.md) also passes locally. Final
+hosted verification for these additions is required before M3 closes.
 
 The supported semantics were checked against the official PyTorch documentation
 for [Sequential](https://docs.pytorch.org/docs/2.14/generated/torch.nn.Sequential.html),

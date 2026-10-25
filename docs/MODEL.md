@@ -516,5 +516,5 @@ The [`.cnd` model-format contract](MODEL_FORMAT.md) is defined and
 [Python validation and binary export](EXPORTER.md) are implemented, and the
 [C loader](LOADER.md) is implemented with successful-load, exact-limit, malformed-file,
 and forced-failure cleanup tests. The [full stage-by-stage file round trip](ROUND_TRIP.md)
-also passes locally. Loaded-model lifecycle and final hosted M3 verification are
-next; MNIST remains later work.
+also passes locally, as does the [loaded-model lifecycle audit](M3_VERIFICATION.md).
+Final hosted M3 verification is next; MNIST remains later work.

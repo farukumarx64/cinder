@@ -309,9 +309,10 @@ a close failure on the successful parsing path prevents model publication.
 The rejection/cleanup audit below now covers parser categories, exact resource
 boundaries, parameter-bit preservation, and forced allocation/stdio failures.
 The [full export/load/inference comparison](ROUND_TRIP.md) now passes against
-every saved stage, both from committed files and fresh Python exports. Remaining
-Phase 3 work is loaded-model lifecycle and final hosted macOS/Linux sanitizer/leak
-verification before M3 closure.
+every saved stage, both from committed files and fresh Python exports. The
+[loaded-model lifecycle audit](M3_VERIFICATION.md) also passes locally, including
+Debug/Release, sanitizers, and native leak checks. Final hosted macOS/Linux
+verification remains required before M3 closure.
 
 Local results below describe only executed checks. Big-endian execution and
 unsupported host representations have not been exercised. Same-file mutation
@@ -502,7 +503,9 @@ ctest --test-dir build -R '^(model_load|loader_failures)$' --output-on-failure -
 ```
 
 The [complete round trip](ROUND_TRIP.md) now compares every saved intermediate
-stage. M3 remains open pending the loaded-model lifecycle/hosted CI step. Big-endian execution,
+stage. The [M3 report](M3_VERIFICATION.md) records the subsequent loaded-model
+lifecycle checks, expanded allocation audit (1,604 rejected calls), and local
+results; hosted CI for the final additions remains pending. Big-endian execution,
 a different native ABI, and unsupported-host representation behavior remain
 unexecuted platform paths; file mutation during loading remains outside the
 caller contract.
