@@ -20,5 +20,9 @@ compile_commands.json
 __pycache__/
 *.pyc
 
+# Downloaded MNIST archives and generated training checkpoints/reports.
+/examples/mnist/data/
+/examples/mnist/runs/
+
 # macOS metadata.
 .DS_Store

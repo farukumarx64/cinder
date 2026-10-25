@@ -72,8 +72,12 @@ pass locally. **M3 is complete as of October 25, 2026:** revision `5ad7dc4`
 passed 23/23 macOS tests, 28/28 Linux tests, and 23/23 Linux sanitizer/leak tests
 in [run 40192296107](https://github.com/farukumarx64/cinder/actions/runs/40192296107).
 See [the M3 report](docs/M3_VERIFICATION.md) for evidence and limitations.
-**Next scoped step: begin Phase 4's MNIST demonstration with a reproducible
-external Python reference model.**
+Phase 4's [reproducible external training script](examples/mnist/README.md) is
+implemented: CPU float32 `784 -> 128 -> 10`, shared row-major `/255`
+preprocessing, seeded training, logits/CrossEntropyLoss, and saved parameters
+with settings/environment/data records. Offline tests use synthetic data.
+**Next scoped step: train and evaluate the reference model on real MNIST,
+then record the checkpoint, configuration, and measured test accuracy.**
 Implement and verify one scoped step at a time.
 
 ### Phase 0 checklist
@@ -154,6 +158,19 @@ Earlier checklist entries record the results at each implementation step. All
 Phase 3 additions are included in the successful hosted revision above; M3 has
 no outstanding verification requirement. Platform and concurrency limitations
 remain documented in the M3 report.
+
+### Phase 4 checklist
+
+- [x] Create the reproducible Python training script on October 25, 2026: implement CPU float32 Dense(784 -> 128), ReLU, Dense(128 -> 10), logits with CrossEntropyLoss, exact row-major float32 division by 255, fixed seeds and a separate shuffle generator, deterministic algorithms, and one intra-op thread. Read/check original MNIST IDX archives, download only on explicit request, and save a final checkpoint plus settings, data hashes, dependency/environment details, and metrics in a new run directory. The 18 offline tests use synthetic data and include fresh-process parameter/result repeatability; the combined Debug suite passed 29/29, the C-only Release suite passed 23/23, and the independent MNIST CTest option passed. No real dataset was downloaded or trained in this step. See [the example and verification](examples/mnist/README.md).
+- [ ] Train and evaluate the reference model on real MNIST. Save the parameters/settings and report accuracy on the official held-out test split.
+- [ ] Export the saved model with inference Softmax to `mnist.cnd`; verify deterministic export from the same checkpoint.
+- [ ] Generate deterministic reference fixtures for at least 100 fixed test images: dataset indices, labels, raw preprocessed inputs, Dense1/ReLU/logits/probabilities, and a regeneration script.
+- [ ] Define the `cinder run <model.cnd> <input.bin>` contract: prediction format, class indices, exit statuses, and errors.
+- [ ] Implement exact-length finite float32 little-endian input-file reading, including malformed-file and I/O checks.
+- [ ] Implement `cinder run` by connecting model loading, input reading, inference, prediction printing, and cleanup; test successful and failed commands.
+- [ ] Validate every saved MNIST stage against Python using shape/finite checks and `atol = rtol = 1e-5`. Report numerical error and prediction agreement separately from classification accuracy.
+- [ ] Verify larger-model lifecycle behavior, Debug/Release, sanitizers, supported leaks, and macOS/Linux CI. Ordinary C tests must not need Python or MNIST downloads.
+- [ ] Document measured results, reproduction commands, sample output, and limitations; close M4 only after required verification passes.
 
 ---
 
@@ -1085,6 +1102,11 @@ Do not begin MNIST integration until this checkpoint passes. At this point Cinde
 
 ## MNIST Demonstration
 
+The October 19–22 dates below are the original planning targets. M3 closed on
+October 25, 2026. The reproducible training script was implemented and verified
+offline on October 25; real MNIST training/evaluation is the next scoped step.
+The Phase 4 checklist above records actual progress.
+
 Create a simple MNIST classifier externally.
 
 Architecture:
@@ -1718,7 +1740,7 @@ Documentation + release
 CINDER v0.1.0
 ```
 
-Follow these milestones in order even if individual daily targets shift. M0 through M3 are complete. The full tiny network matches NumPy, and the lifecycle audit passes locally and in hosted macOS/Linux CI. Revision `f5424a4`, including the NumPy/lifecycle tests, passed all three CI jobs, closing M2 on October 23, 2026. See the M2 verification report for actual results and limitations. Phase 3's format contract, exporter validation, binary writing, reproducible tiny-network fixtures, and C loader are implemented. Loader rejection, resource-boundary, forced-failure cleanup, complete stage-by-stage export/load/inference, and loaded-model lifecycle checks pass locally. Hosted revision `5ad7dc4` passed all three jobs, closing M3 on October 25, 2026; see the M3 verification report. Phase 4's MNIST demonstration is next.
+Follow these milestones in order even if individual daily targets shift. M0 through M3 are complete. The full tiny network matches NumPy, and the lifecycle audit passes locally and in hosted macOS/Linux CI. Revision `f5424a4`, including the NumPy/lifecycle tests, passed all three CI jobs, closing M2 on October 23, 2026. See the M2 verification report for actual results and limitations. Phase 3's format contract, exporter validation, binary writing, reproducible tiny-network fixtures, and C loader are implemented. Loader rejection, resource-boundary, forced-failure cleanup, complete stage-by-stage export/load/inference, and loaded-model lifecycle checks pass locally. Hosted revision `5ad7dc4` passed all three jobs, closing M3 on October 25, 2026; see the M3 verification report. Phase 4's reproducible training script is implemented and tested offline; training/evaluating real MNIST is next.
 
 The **October 25 deadline is the internal deadline**.
 

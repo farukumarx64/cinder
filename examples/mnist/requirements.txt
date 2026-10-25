@@ -1,0 +1,2 @@
+# Python 3.11+. Reuse Cinder's pinned PyTorch; no torchvision/NumPy API required.
+-r ../../tools/requirements-exporter.txt

@@ -36,7 +36,7 @@ jobs:
       - name: Configure
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON
 
-      - name: Enable fresh NumPy references and exporter tests (Linux)
+      - name: Enable NumPy, exporter, and offline MNIST script tests (Linux)
         if: runner.os == 'Linux'
         run: |
           python3 -m venv .venv
@@ -45,6 +45,7 @@ jobs:
             -r tools/requirements-exporter.txt
           cmake -S . -B build -DCINDER_ENABLE_NUMPY_TESTS=ON \
             -DCINDER_ENABLE_EXPORTER_TESTS=ON \
+            -DCINDER_ENABLE_MNIST_TESTS=ON \
             -DPython3_EXECUTABLE="$GITHUB_WORKSPACE/.venv/bin/python"
 
       - name: Build

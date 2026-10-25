@@ -8,6 +8,7 @@ option(CINDER_ENABLE_ASAN "Enable AddressSanitizer for development" OFF)
 option(CINDER_ENABLE_UBSAN "Enable UndefinedBehaviorSanitizer for development" OFF)
 option(CINDER_ENABLE_NUMPY_TESTS "Also test freshly generated NumPy references" OFF)
 option(CINDER_ENABLE_EXPORTER_TESTS "Also test Python model validation, export, and the C round trip" OFF)
+option(CINDER_ENABLE_MNIST_TESTS "Also test the Python MNIST training script with offline synthetic data" OFF)
 
 if(CINDER_ENABLE_NUMPY_TESTS AND NOT BUILD_TESTING)
     message(FATAL_ERROR "CINDER_ENABLE_NUMPY_TESTS requires BUILD_TESTING=ON.")
@@ -15,6 +16,10 @@ endif()
 
 if(CINDER_ENABLE_EXPORTER_TESTS AND NOT BUILD_TESTING)
     message(FATAL_ERROR "CINDER_ENABLE_EXPORTER_TESTS requires BUILD_TESTING=ON.")
+endif()
+
+if(CINDER_ENABLE_MNIST_TESTS AND NOT BUILD_TESTING)
+    message(FATAL_ERROR "CINDER_ENABLE_MNIST_TESTS requires BUILD_TESTING=ON.")
 endif()
 
 if(CINDER_ENABLE_ASAN OR CINDER_ENABLE_UBSAN)
@@ -234,7 +239,7 @@ if(BUILD_TESTING)
         set_tests_properties(tensor_numpy_generated model_numpy_generated PROPERTIES TIMEOUT 10)
     endif()
 
-    if(CINDER_ENABLE_EXPORTER_TESTS)
+    if(CINDER_ENABLE_EXPORTER_TESTS OR CINDER_ENABLE_MNIST_TESTS)
         find_package(Python3 3.11 REQUIRED COMPONENTS Interpreter)
         execute_process(
             COMMAND "${Python3_EXECUTABLE}" -c "import torch; print(torch.__version__)"
@@ -244,9 +249,12 @@ if(BUILD_TESTING)
             OUTPUT_STRIP_TRAILING_WHITESPACE
         )
         if(NOT cinder_torch_status EQUAL 0)
-            message(FATAL_ERROR "PyTorch is required for exporter tests. Install tools/requirements-exporter.txt with ${Python3_EXECUTABLE}. ${cinder_torch_error}")
+            message(FATAL_ERROR "PyTorch is required for exporter/MNIST tests. Install tools/requirements-exporter.txt with ${Python3_EXECUTABLE}. ${cinder_torch_error}")
         endif()
-        message(STATUS "Testing model validation and binary export with PyTorch ${cinder_torch_version}")
+        message(STATUS "Testing Python tools with PyTorch ${cinder_torch_version}")
+    endif()
+
+    if(CINDER_ENABLE_EXPORTER_TESTS)
         add_test(NAME exporter_validation
             COMMAND "${Python3_EXECUTABLE}" -m unittest discover
                 -s "${PROJECT_SOURCE_DIR}/tests" -p test_export_model.py -v
@@ -260,6 +268,17 @@ if(BUILD_TESTING)
                 --executable "$<TARGET_FILE:test_model_round_trip>"
         )
         set_tests_properties(exporter_validation exporter_binary model_round_trip_exported PROPERTIES
+            WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+            TIMEOUT 60
+        )
+    endif()
+
+    if(CINDER_ENABLE_MNIST_TESTS)
+        add_test(NAME mnist_training
+            COMMAND "${Python3_EXECUTABLE}" -m unittest discover
+                -s "${PROJECT_SOURCE_DIR}/tests" -p test_mnist_training.py -v
+        )
+        set_tests_properties(mnist_training PROPERTIES
             WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
             TIMEOUT 60
         )
