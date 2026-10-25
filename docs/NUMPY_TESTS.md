@@ -21,8 +21,10 @@ generation is enabled. See [layer verification](LAYER.md#verification-and-next-s
 
 The full `2 -> 4 -> 2` network is now checked at every stage through both common
 layer calls and sequential models. Its ten fixed inputs, parameters, and four
-expected outputs per input are retained in the same saved header for the future
-exporter/loader round trip. See [complete-network coverage](#complete-tiny-network).
+expected outputs per input are retained in the same saved header. Phase 3 now
+also checks them through the [complete exporter/loader round trip](ROUND_TRIP.md),
+using both committed files and fresh Python exports. See
+[complete-network coverage](#complete-tiny-network) for the earlier in-memory tests.
 
 ## Two ways to run the same comparison
 

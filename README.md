@@ -34,8 +34,9 @@ parameter snapshots. Binary export now writes the version 1 format, with a saved
 The [C loader](docs/LOADER.md) now validates `.cnd` files and constructs executable
 models through the existing layer/model constructors. Tests cover successful
 loads, saved tiny-network probabilities, malformed files, exact resource limits,
-and forced allocation/file failures. The next scoped step compares every saved
-intermediate stage through the complete export/load/inference path.
+and forced allocation/file failures. The [complete round trip](docs/ROUND_TRIP.md)
+now compares every saved stage from both committed fixtures and fresh Python
+exports. Loaded-model lifecycle and final hosted M3 verification are next.
 The project contains a CMake build and a CLI that supports `--version`.
 The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
 
@@ -182,6 +183,12 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
   tests; C-only Release and ASan/UBSan passed 21/21 each. Both loader executables
   reported zero native leaks; hosted verification remains pending. See the dated results
   and platform limitations in the [loader guide](docs/LOADER.md#rejection-and-cleanup-audit--october-24-2026).
+- On October 25, the complete export/load/inference comparison passed all four
+  stages for ten inputs: 40 vectors / 120 values per saved or fresh-export run.
+  Dense/ReLU/logits matched exactly locally; maximum Softmax error was
+  `5.96046448e-8` with `atol = rtol = 1e-5`. The default C test uses committed
+  files without Python; the exporter option adds live export and nine deliberate
+  fixture-change rejection checks. See [round-trip verification](docs/ROUND_TRIP.md).
 - The `info`, `run`, and `bench` commands are
   planned features; they are not implemented yet.
 
@@ -326,8 +333,13 @@ The runtime tests cover tensor math and memory, layers, model ownership, and inf
   models before/after destruction. On macOS/Linux it also tests concurrent
   independent models and externally locked shared-model calls. POSIX Threads
   is a dependency of this test only, not of `cinder_core`.
+- `model_round_trip_fixtures` loads the full binary model and three exported
+  prefixes, reads the ten raw input files, and compares every stage with saved
+  NumPy references through the public model API. It checks shapes, finiteness,
+  tolerance, unchanged inputs, and spare output capacity without needing Python.
 
-All runtime tests have ten-second timeouts. Their checks stay active in Release
+Most runtime tests have ten-second timeouts; the two loader boundary/failure
+suites allow 60 seconds for their large fixtures. Checks stay active in Release
 builds, where ordinary C `assert` checks could be disabled by `NDEBUG`.
 
 To configure a build without tests, pass `-DBUILD_TESTING=OFF` to CMake.
@@ -408,8 +420,12 @@ The option defaults to `OFF`. CMake requires an importable PyTorch and enabled
 testing when it is selected, and does not install Python dependencies. The
 exporter tests consume saved reference arrays without requiring NumPy.
 
-The fixed binary model, ten raw float32 input files, and exact expected stage
-outputs are saved under [`tests/fixtures/tiny`](tests/fixtures/tiny).
+The option also registers `model_round_trip_exported`, which exports fresh
+models/inputs into a temporary directory and invokes the same C stage comparator.
+Both round-trip paths use the saved NumPy answers. See [the guide](docs/ROUND_TRIP.md).
+
+The fixed binary model, three stage prefixes, ten raw float32 input files, and
+exact expected stage outputs are saved under [`tests/fixtures/tiny`](tests/fixtures/tiny).
 Regenerate them explicitly or check for drift without changing saved files:
 
 ```sh
@@ -553,6 +569,7 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | `docs/MODEL_FORMAT.md` | `.cnd` version 1 byte layout, layer IDs, limits, validation, input-file contract, and worked example. |
 | `docs/EXPORTER.md` | Python model validation, binary writing, file replacement, fixtures, dependencies, and tests. |
 | `docs/NUMPY_TESTS.md` | Reference calculations, fixtures, tolerances, regeneration, and verification results. |
+| `docs/ROUND_TRIP.md` | Saved and freshly exported model-prefix comparisons through C loading/inference, dependencies, and measured results. |
 | `docs/M2_VERIFICATION.md` | Lifecycle/allocation audit, local and hosted evidence, M2 closure, and limitations. |
 | `tests/check_version.cmake` | Checks the version command's exit status and output. |
 | `tests/test_tensor.c` | Tests the core library's allocation and cleanup API. |
@@ -573,6 +590,8 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | `tests/test_tensor_softmax.c` | Tests stable probabilities, extreme/tiny values, validation, and composed math results. |
 | `tests/test_tensor_numpy.c` | Compares Cinder's math with saved or freshly generated NumPy fixtures. |
 | `tests/test_model_numpy.c` | Compares all tiny-network stages through layers and model prefixes against NumPy. |
+| `tests/test_model_round_trip.c` | Loads exported model prefixes and raw inputs, then compares all stages against saved NumPy outputs. |
+| `tests/check_model_round_trip.py` | Exports fresh fixtures, invokes the C comparator, and verifies rejection of nine deliberate fixture changes. |
 | `tests/test_model_lifecycle.c` | Exercises repeated/recovering inference and independent or externally serialized model use. |
 | `tests/numpy_compare.h` | Shared shape/finite checks, tolerance rule, diagnostics, and statistics for reference tests. |
 | `tests/generate_numpy_fixtures.py` | Generates independent float32 NumPy references with fixed inputs and seed. |
@@ -582,7 +601,7 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | `tests/test_export_binary.py` | Exact encoding, independent decoding, reference comparisons, regeneration, and I/O failure tests. |
 | `tests/cnd_fixture_support.py` | Shared saved NumPy array reader and fixed PyTorch network construction. |
 | `tests/generate_cnd_fixtures.py` | Reproduces or checks the tiny binary model, inputs, and saved expected stages. |
-| `tests/fixtures/tiny/` | The 168-byte `.cnd` model, ten eight-byte inputs, and a reference JSON manifest. |
+| `tests/fixtures/tiny/` | The 168-byte full model, three model prefixes, ten eight-byte inputs, and a reference JSON manifest. |
 | `tools/export_model.py` | Validates supported PyTorch models and exports complete `.cnd` version 1 files. |
 | `tools/requirements-exporter.txt` | Pinned optional PyTorch dependency for exporter validation. |
 | `tests/test_tensor_alloc_failures.c` | Forces allocation failures and tracks cleanup with test-only allocator substitutions. |
@@ -609,8 +628,8 @@ pass locally and in hosted macOS/Linux CI. M2 closed on October 23, 2026.
 The Phase 3 `.cnd` format contract, Python validation, and binary export are
 implemented, with reproducible tiny-network fixtures.
 The C loader API is implemented with successful-load, parser resource-boundary,
-and forced-failure cleanup tests. Next: verify every saved stage through the
-full export/load/inference path, then complete loaded-model lifecycle and CI checks.
+and forced-failure cleanup tests. Every saved stage now passes through the full
+export/load/inference path. Next: complete loaded-model lifecycle and final CI checks.
 
 The v0.1.0 scope excludes training, GPU execution, convolutional layers,
 quantization, SIMD, multithreading, and arbitrary computation graphs.

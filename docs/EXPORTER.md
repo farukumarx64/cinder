@@ -141,10 +141,16 @@ float strings. Read a stage value with `float.fromhex(value)` and convert to
 float32. Shape and finite-value checks precede `atol = rtol = 1e-5` comparisons.
 The hash is external fixture metadata, not an embedded format checksum.
 
+Three exported prefixes (`prefixes/dense1.cnd`, `prefixes/relu.cnd`, and
+`prefixes/logits.cnd`) expose intermediate stages through the C model API. The
+manifest's `stage_models` and `stage_model_sha256` fields identify these files
+and `tiny.cnd` for Softmax. The full fixture set contains 15 files. See the
+[round-trip guide](ROUND_TRIP.md) for live export/load/inference comparisons.
+
 The generator reads existing saved NumPy arrays from `numpy_fixtures.h`.
 Parameters construct a plain PyTorch model and pass through the public exporter;
 reference outputs are copied from NumPy fixtures, never recomputed by the
-exporter. The original C arrays remain available for future C loader tests.
+exporter. The C round-trip test uses those original arrays as its reference.
 
 ```sh
 .venv/bin/python tests/generate_cnd_fixtures.py
@@ -299,8 +305,9 @@ ctest --test-dir build-exporter --output-on-failure
 CMake requires Python 3.11+, an importable PyTorch, and `BUILD_TESTING=ON` when
 this option is enabled. It does not install dependencies. With the option off,
 the C build and its saved-fixture tests require no Python or PyTorch. The Linux
-CI build enables validation and binary export tests alongside fresh NumPy references; the
-macOS C job and Linux C sanitizer job retain their saved-fixture configuration.
+CI build enables validation, binary export, and the live C round trip alongside
+fresh NumPy references; the macOS C job and Linux C sanitizer job retain their
+saved-fixture configuration.
 
 ## Coverage
 
@@ -387,8 +394,10 @@ the filesystem limitations above define the intended behavior.
 The [C loader](LOADER.md) now implements the API, statuses, file handling,
 and ownership/cleanup rules, with successful-load and basic malformed-file tests.
 The C test loads the saved exported tiny network and compares final probabilities
-with NumPy. Parser limits and forced-failure cleanup now pass locally. Next is
-an integrated export/load test of every saved intermediate stage.
+with NumPy. Parser limits and forced-failure cleanup pass locally. The
+[integrated round trip](ROUND_TRIP.md) now compares every saved intermediate
+stage from fresh Python exports and committed C-only fixtures. Next is the
+loaded-model lifecycle and final hosted M3 verification step.
 
 The supported semantics were checked against the official PyTorch documentation
 for [Sequential](https://docs.pytorch.org/docs/2.14/generated/torch.nn.Sequential.html),

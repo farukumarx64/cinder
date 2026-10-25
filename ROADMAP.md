@@ -65,8 +65,10 @@ existing layer/model constructors. Loading is now implemented with successful-lo
 and basic malformed-file tests; the saved tiny network produces the expected
 NumPy probabilities. The rejection/cleanup audit now covers exact limits,
 non-finite data, all tiny-model allocation points, and file-operation failures.
-**Next scoped step: compare every saved intermediate stage through the complete
-Python export -> `.cnd` -> C load -> inference path.**
+On October 25, the complete Python export -> `.cnd` -> C load -> inference path
+also passed every saved stage, with a Python-independent committed-fixture test.
+**Next scoped step: verify loaded-model lifecycle behavior and final macOS/Linux
+CI, record the results, and close M3 if all required checks pass.**
 Implement and verify one scoped step at a time.
 
 ### Phase 0 checklist
@@ -140,7 +142,7 @@ above. Remaining platform/concurrency limits are recorded in the M2 report.
 - [x] Define the C loader contract on October 24, 2026: declare `cinder_model_load` and append IO/FORMAT/UNSUPPORTED/LIMIT statuses without changing existing values. Specify seekable read-only binary file handling, full format/resource/connection checks, exact EOF and successful close before model creation, per-record Dense staging copied by existing constructors, all-or-nothing ownership, NULL output/full cleanup on failure, first-error preservation, and independent repeated/concurrent loads. Headers, declaration, and caller example passed C11 syntax checks with warnings as errors; status values/signature checks passed, and the rebuilt Debug C suite passed 19/19. See [the loader contract and verification](docs/LOADER.md#contract-verification--october-24-2026). Implementation and behavioral tests are the next step.
 - [x] Implement loading and model construction: `cinder_model_load` checks host encoding, file/header/record bounds, dimensions/connections, exact payload sizes, finite parameters, and EOF/close before publishing a model constructed through existing layer/model APIs. Per-record staging and partial layers are cleaned up on failure. On October 24, 2026, the new C test passed successful tiny/non-square/activation-only/multi-block loads and 206 rejection cases with and without error details; 50 repeated final-probability vectors / 100 values matched NumPy (`atol = rtol = 1e-5`, maximum absolute error `5.96046448e-8`). Debug with NumPy/exporter suites passed 24/24 tests; C-only Release and combined ASan/UBSan passed 20/20 each. Native leaks reported zero; the linked caller example passed. See [loader implementation results and limitations](docs/LOADER.md#implementation-verification--october-24-2026). Exhaustive fault injection, full intermediate-stage round trip, and hosted CI remain separate steps.
 - [x] Complete rejection and cleanup tests on October 24, 2026: 709 parser/argument/file rejection cases run with and without diagnostics, including all tiny-file truncations, all nine type-to-type connection mismatches, non-finite encodings at every parameter position, all one-byte suffixes, and real files at resource boundaries. The tracked audit verifies 1,562 rejected calls, forces every one of the tiny model's 21 allocations and 29 stdio-failure scenarios, checks NULL output/complete cleanup/first-error preservation, and retries successfully. Exact parameter bits and test-only lowered native-size overflow guards pass. Debug with NumPy/exporter checks passed 25/25; C-only Release and combined ASan/UBSan passed 21/21 each. Both loader executables reported zero native leaks. No production/API changes were required. See [the audit and limitations](docs/LOADER.md#rejection-and-cleanup-audit--october-24-2026); hosted CI remains pending.
-- [ ] Verify Python export -> `.cnd` -> C load -> inference against every saved tiny-network stage, using matching shapes, finite values, and `atol = rtol = 1e-5`.
+- [x] Validate the complete round trip on October 25, 2026: export the full tiny model and three prefixes, load each through the public C API, read the ten raw input files, and compare all four stages with saved NumPy references. Both the committed-fixture C test and the optional fresh Python-export test compare 40 vectors / 120 values with shape/finite checks and `atol = rtol = 1e-5`. First Dense/ReLU/logits match exactly locally; maximum Softmax error is `5.96046448e-8`. Nine deliberately altered stage/input fixtures are rejected. All 15 fixture files regenerate identically; original model/input/reference values remain unchanged. C-only Release passed 22/22 tests; Debug and combined ASan/UBSan with NumPy/exporter options passed 27/27 each. See [round-trip verification and scope](docs/ROUND_TRIP.md); hosted verification and M3 closure remain pending.
 - [ ] Exercise loaded-model lifecycle behavior, sanitizers, supported leak checks, and macOS/Linux CI; record actual results and close M3.
 
 ---
@@ -896,7 +898,8 @@ contract was completed on October 23, 2026, and exporter validation and binary
 writing on October 24; the Phase 3 checklist in Current Progress records the
 actual status. The C loader API and ownership/cleanup contract were also defined
 on October 24. Loading, parser rejection, exact-limit, and forced-failure cleanup
-tests are implemented. The full intermediate-stage file round trip is next.
+tests are implemented. The full intermediate-stage file round trip passed on
+October 25; loaded-model lifecycle and final hosted M3 verification are next.
 
 Replace the hard-coded application path with model loading, while retaining the tiny network as a test fixture.
 
@@ -1704,7 +1707,7 @@ Documentation + release
 CINDER v0.1.0
 ```
 
-Follow these milestones in order even if individual daily targets shift. M0, M1, and M2 are complete. The full tiny network matches NumPy, and the lifecycle audit passes locally and in hosted macOS/Linux CI. Revision `f5424a4`, including the NumPy/lifecycle tests, passed all three CI jobs, closing M2 on October 23, 2026. See the M2 verification report for actual results and limitations. Phase 3's format contract, exporter validation, binary writing, reproducible tiny-network fixtures, and C loader are implemented. Loader rejection, resource-boundary, and forced-failure cleanup checks pass locally. Comparing every saved stage through the full export/load/inference path is the next scoped task.
+Follow these milestones in order even if individual daily targets shift. M0, M1, and M2 are complete. The full tiny network matches NumPy, and the lifecycle audit passes locally and in hosted macOS/Linux CI. Revision `f5424a4`, including the NumPy/lifecycle tests, passed all three CI jobs, closing M2 on October 23, 2026. See the M2 verification report for actual results and limitations. Phase 3's format contract, exporter validation, binary writing, reproducible tiny-network fixtures, and C loader are implemented. Loader rejection, resource-boundary, and forced-failure cleanup checks pass locally, as does the complete stage-by-stage export/load/inference path. Loaded-model lifecycle and final hosted M3 verification are next.
 
 The **October 25 deadline is the internal deadline**.
 

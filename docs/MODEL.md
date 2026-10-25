@@ -515,5 +515,6 @@ M2 closed on October 23, 2026. The report records exact evidence and limitations
 The [`.cnd` model-format contract](MODEL_FORMAT.md) is defined and
 [Python validation and binary export](EXPORTER.md) are implemented, and the
 [C loader](LOADER.md) is implemented with successful-load, exact-limit, malformed-file,
-and forced-failure cleanup tests. The full stage-by-stage file round trip is
+and forced-failure cleanup tests. The [full stage-by-stage file round trip](ROUND_TRIP.md)
+also passes locally. Loaded-model lifecycle and final hosted M3 verification are
 next; MNIST remains later work.

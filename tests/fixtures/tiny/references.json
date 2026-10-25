@@ -2,6 +2,18 @@
   "fixture_version": 1,
   "model": "tiny.cnd",
   "model_sha256": "3f6f2942084b334e2c9e8b59a1b0e702057554f4253473ae86ffd7cde7d86fa5",
+  "stage_models": {
+    "dense1": "prefixes/dense1.cnd",
+    "relu": "prefixes/relu.cnd",
+    "logits": "prefixes/logits.cnd",
+    "softmax": "tiny.cnd"
+  },
+  "stage_model_sha256": {
+    "dense1": "ec5ec70f2b9098dbd41854a32a990ad505115538f61e541fe806da06de73e5a8",
+    "relu": "c062f73521fa33fc8b24d57c0f685d2fccb5d7d24713f61591a343800b348e86",
+    "logits": "47bac0e4af65fb52bd59a3f5323895542d15a445fff5584c60248e8cd4af9782",
+    "softmax": "3f6f2942084b334e2c9e8b59a1b0e702057554f4253473ae86ffd7cde7d86fa5"
+  },
   "input_encoding": "raw little-endian IEEE 754 binary32",
   "stage_encoding": "exact binary32 values as hexadecimal float strings",
   "reference_source": "tests/fixtures/numpy_fixtures.h",

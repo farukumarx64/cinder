@@ -147,9 +147,23 @@ class BinaryExportTests(unittest.TestCase):
         first, second = self.directory / "first", self.directory / "second"
         generate(first)
         generate(second)
-        self.assertEqual(len(inventory(first)), 12)
+        self.assertEqual(len(inventory(first)), 15)
         self.assertEqual(inventory(first), inventory(second))
         self.assertEqual(inventory(first), inventory(SAVED))
+
+    def test_exported_prefixes_match_the_independent_full_model_bytes(self):
+        generate(self.directory)
+        manifest = json.loads((self.directory / "references.json").read_text())
+        expected_paths = {"dense1": "prefixes/dense1.cnd", "relu": "prefixes/relu.cnd",
+                          "logits": "prefixes/logits.cnd", "softmax": "tiny.cnd"}
+        self.assertEqual(manifest["stage_models"], expected_paths)
+        for count, (stage, end) in enumerate(zip(expected_paths, (80, 96, 152, 168)), start=1):
+            with self.subTest(stage=stage):
+                expected = bytearray(TINY_BYTES[:end])
+                struct.pack_into("<I", expected, 12, count)
+                data = (self.directory / expected_paths[stage]).read_bytes()
+                self.assertEqual(data, expected)
+                self.assertEqual(manifest["stage_model_sha256"][stage], hashlib.sha256(data).hexdigest())
 
     def test_generator_check_mode_detects_drift_without_changing_files(self):
         generate(self.directory)

@@ -308,9 +308,10 @@ a close failure on the successful parsing path prevents model publication.
 
 The rejection/cleanup audit below now covers parser categories, exact resource
 boundaries, parameter-bit preservation, and forced allocation/stdio failures.
-Remaining Phase 3 work is the full Python export -> C load -> inference comparison
-against every saved stage, followed by loaded-model lifecycle and final hosted
-macOS/Linux sanitizer/leak checks before M3 closure.
+The [full export/load/inference comparison](ROUND_TRIP.md) now passes against
+every saved stage, both from committed files and fresh Python exports. Remaining
+Phase 3 work is loaded-model lifecycle and final hosted macOS/Linux sanitizer/leak
+verification before M3 closure.
 
 Local results below describe only executed checks. Big-endian execution and
 unsupported host representations have not been exercised. Same-file mutation
@@ -330,7 +331,7 @@ Successful-load checks cover:
   Five passes across independent loads, file deletion, and failed-load recovery
   compare **50 output vectors / 100 values**. Maximum absolute error:
   **`5.96046448e-8`**. These compare final probabilities; the integrated file
-  round trip of every intermediate stage remains a later checklist item.
+  round trip of every intermediate stage was added in the [next step](ROUND_TRIP.md).
 - ReLU-only and Softmax-only files, an independently encoded non-square `2 -> 3`
   Dense, and a `1 -> 1025` Dense whose payload spans three read blocks.
 - Acceptance of positive/negative zero, subnormal encodings, and finite extremes.
@@ -500,9 +501,8 @@ Run both loader tests after building with:
 ctest --test-dir build -R '^(model_load|loader_failures)$' --output-on-failure -V
 ```
 
-Next: verify every saved intermediate stage through the complete
-Python export -> `.cnd` -> C load -> inference path. M3 remains open pending that
-round trip and the loaded-model lifecycle/hosted CI step. Big-endian execution,
+The [complete round trip](ROUND_TRIP.md) now compares every saved intermediate
+stage. M3 remains open pending the loaded-model lifecycle/hosted CI step. Big-endian execution,
 a different native ABI, and unsupported-host representation behavior remain
 unexecuted platform paths; file mutation during loading remains outside the
 caller contract.

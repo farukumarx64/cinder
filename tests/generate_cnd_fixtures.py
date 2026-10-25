@@ -19,7 +19,15 @@ from cnd_fixture_support import case_names, fixture_values, tiny_network
 def generate(directory: Path) -> None:
     directory.mkdir(parents=True, exist_ok=True)
     (directory / "inputs").mkdir(exist_ok=True)
-    export_model(tiny_network(), directory / "tiny.cnd")
+    (directory / "prefixes").mkdir(exist_ok=True)
+    model = tiny_network()
+    export_model(model, directory / "tiny.cnd")
+    stage_models = {}
+    for count, stage in enumerate(("dense1", "relu", "logits"), start=1):
+        relative = f"prefixes/{stage}.cnd"
+        export_model(model[:count], directory / relative)
+        stage_models[stage] = relative
+    stage_models["softmax"] = "tiny.cnd"
     cases = []
     for name in case_names():
         values = fixture_values(f"tiny_{name}_input")
@@ -35,6 +43,9 @@ def generate(directory: Path) -> None:
         "fixture_version": 1,
         "model": "tiny.cnd",
         "model_sha256": hashlib.sha256((directory / "tiny.cnd").read_bytes()).hexdigest(),
+        "stage_models": stage_models,
+        "stage_model_sha256": {stage: hashlib.sha256((directory / path).read_bytes()).hexdigest()
+                               for stage, path in stage_models.items()},
         "input_encoding": "raw little-endian IEEE 754 binary32",
         "stage_encoding": "exact binary32 values as hexadecimal float strings",
         "reference_source": "tests/fixtures/numpy_fixtures.h",
@@ -70,7 +81,7 @@ def main() -> int:
             print(f"All {len(expected)} fixture files match deterministic regeneration.")
     else:
         generate(args.output)
-        print(f"Generated tiny.cnd, ten input files, and references.json in {args.output}")
+        print(f"Generated tiny.cnd, three prefixes, ten inputs, and references.json in {args.output}")
     return 0
 
 
