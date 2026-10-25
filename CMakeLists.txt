@@ -8,7 +8,7 @@ option(CINDER_ENABLE_ASAN "Enable AddressSanitizer for development" OFF)
 option(CINDER_ENABLE_UBSAN "Enable UndefinedBehaviorSanitizer for development" OFF)
 option(CINDER_ENABLE_NUMPY_TESTS "Also test freshly generated NumPy references" OFF)
 option(CINDER_ENABLE_EXPORTER_TESTS "Also test Python model validation, export, and the C round trip" OFF)
-option(CINDER_ENABLE_MNIST_TESTS "Also test MNIST training with synthetic data and export from the saved checkpoint" OFF)
+option(CINDER_ENABLE_MNIST_TESTS "Also test Python MNIST training, export, and reference fixtures offline" OFF)
 
 if(CINDER_ENABLE_NUMPY_TESTS AND NOT BUILD_TESTING)
     message(FATAL_ERROR "CINDER_ENABLE_NUMPY_TESTS requires BUILD_TESTING=ON.")
@@ -282,7 +282,11 @@ if(BUILD_TESTING)
             COMMAND "${Python3_EXECUTABLE}" -m unittest discover
                 -s "${PROJECT_SOURCE_DIR}/tests" -p test_mnist_export.py -v
         )
-        set_tests_properties(mnist_training mnist_export PROPERTIES
+        add_test(NAME mnist_fixtures
+            COMMAND "${Python3_EXECUTABLE}" -m unittest discover
+                -s "${PROJECT_SOURCE_DIR}/tests" -p test_mnist_fixtures.py -v
+        )
+        set_tests_properties(mnist_training mnist_export mnist_fixtures PROPERTIES
             WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
             TIMEOUT 60
         )

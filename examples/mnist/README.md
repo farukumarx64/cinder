@@ -5,8 +5,9 @@ been trained on the 60,000 official training images and achieved **97.48% test
 accuracy (9,748/10,000)**. Parameters, settings, and verification evidence are
 preserved under [`reference/`](reference/); see [the measured results](RESULTS.md).
 The trained [`mnist.cnd`](mnist.cnd) now includes inference Softmax and passes
-[byte-for-byte export verification](EXPORT.md). Real-image reference fixtures
-and C comparisons remain subsequent steps.
+[byte-for-byte export verification](EXPORT.md). The first 100 official test
+images now have [saved inputs and every stage reference](FIXTURES.md).
+The CLI and C comparisons remain subsequent steps.
 The separate offline synthetic tests do not measure digit-recognition accuracy.
 
 ## Model and preprocessing
@@ -165,6 +166,20 @@ See [the export guide](EXPORT.md) for the wrapper, saved binary, byte layout,
 failure behavior, and verification. Export requires only the checkpoint and
 PyTorch; it never downloads data or reruns training.
 
+The [fixture generator](generate_fixtures.py) selects official test indices
+`0..99`, preserves labels/inputs/all four stages, and verifies the checkpoint
+matches the saved export. Check all 108 saved files against the original cached
+test archives with:
+
+```sh
+.venv/bin/python examples/mnist/generate_fixtures.py --check
+```
+
+Add `--download` only when missing test archives should be fetched. See
+[FIXTURES.md](FIXTURES.md) for layouts, creating a separate regeneration for
+review, the saved selected pixels, and the difference between exact byte
+regeneration and numerical stage comparison.
+
 ## Offline tests
 
 ```sh
@@ -184,13 +199,14 @@ To register the suite with CTest independently of exporter/NumPy tests:
 cmake -S . -B build-mnist -DCMAKE_BUILD_TYPE=Debug \
   -DCINDER_ENABLE_MNIST_TESTS=ON -DPython3_EXECUTABLE="$PWD/.venv/bin/python"
 cmake --build build-mnist --parallel
-ctest --test-dir build-mnist -R '^mnist_(training|export)$' --output-on-failure
+ctest --test-dir build-mnist -R '^mnist_(training|export|fixtures)$' --output-on-failure
 ```
 
 The new option defaults to OFF, requires `BUILD_TESTING=ON` and an importable
-PyTorch, and installs nothing. It registers the 18-test synthetic training suite
-and the 11-test saved-checkpoint export suite. Ordinary C builds still need no
-Python. The Linux CI job enables both offline suites alongside the existing Python checks;
+PyTorch, and installs nothing. It registers the 18-test synthetic training suite,
+11-test export suite, and 11-test fixture suite. Fixture checks use the saved
+100-image subset and synthetic archives, without a full dataset cache. Ordinary
+C builds still need no Python. The Linux CI job enables all three offline suites;
 it does not download MNIST or run full training.
 
 ## Verification — October 25, 2026
@@ -221,4 +237,6 @@ The subsequent [export step](EXPORT.md) adds the inference wrapper, trained
 binary, and export tests while preserving the training implementation and its
 reference records. Hosted verification for the export addition remains pending
 an authorized commit/push.
-Next: generate real-image reference fixtures from the saved model; M4 remains open.
+The [fixture step](FIXTURES.md) now preserves and verifies 100 real-image inputs
+and every stage, with 31/31 combined tests passing. Next: define the `cinder run`
+contract; M4 remains open.

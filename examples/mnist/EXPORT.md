@@ -137,8 +137,9 @@ Run these checks without any dataset or training:
 .venv/bin/python -m unittest discover -s tests -p test_mnist_export.py -v
 ```
 
-`CINDER_ENABLE_MNIST_TESTS=ON` now registers both `mnist_training` and
-`mnist_export`. The existing Linux CI configuration already enables that option.
+The export step adds `mnist_export` alongside `mnist_training` under
+`CINDER_ENABLE_MNIST_TESTS=ON`. The subsequent [fixture step](FIXTURES.md) adds
+`mnist_fixtures` as well. The existing Linux CI configuration enables that option.
 Ordinary C builds still need no Python, PyTorch, or MNIST downloads.
 
 Local verification used macOS 27.0.1 arm64, Python 3.12.14, and PyTorch 2.14.1.
@@ -157,6 +158,6 @@ The test now supplies a temporary output path so its missing-data check does
 not depend on local experiments. Training code and saved training artifacts
 remain unchanged.
 
-Next: generate deterministic real-image reference fixtures from this saved
-checkpoint, including inputs and Dense1/ReLU/logits/probability outputs.
-The later C comparisons and lifecycle audit are still required to close M4.
+The subsequent [fixture step](FIXTURES.md) now preserves the first 100 test
+images' inputs and Dense1/ReLU/logits/probability outputs. The CLI contract,
+implementation, C comparisons, and lifecycle audit are still required to close M4.

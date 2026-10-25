@@ -1,0 +1,1673 @@
+{
+  "cases": [
+    {
+      "dataset_index": 0,
+      "input_file": "inputs/00000.f32",
+      "label": 7,
+      "prediction": 7,
+      "row": 0
+    },
+    {
+      "dataset_index": 1,
+      "input_file": "inputs/00001.f32",
+      "label": 2,
+      "prediction": 2,
+      "row": 1
+    },
+    {
+      "dataset_index": 2,
+      "input_file": "inputs/00002.f32",
+      "label": 1,
+      "prediction": 1,
+      "row": 2
+    },
+    {
+      "dataset_index": 3,
+      "input_file": "inputs/00003.f32",
+      "label": 0,
+      "prediction": 0,
+      "row": 3
+    },
+    {
+      "dataset_index": 4,
+      "input_file": "inputs/00004.f32",
+      "label": 4,
+      "prediction": 4,
+      "row": 4
+    },
+    {
+      "dataset_index": 5,
+      "input_file": "inputs/00005.f32",
+      "label": 1,
+      "prediction": 1,
+      "row": 5
+    },
+    {
+      "dataset_index": 6,
+      "input_file": "inputs/00006.f32",
+      "label": 4,
+      "prediction": 4,
+      "row": 6
+    },
+    {
+      "dataset_index": 7,
+      "input_file": "inputs/00007.f32",
+      "label": 9,
+      "prediction": 9,
+      "row": 7
+    },
+    {
+      "dataset_index": 8,
+      "input_file": "inputs/00008.f32",
+      "label": 5,
+      "prediction": 6,
+      "row": 8
+    },
+    {
+      "dataset_index": 9,
+      "input_file": "inputs/00009.f32",
+      "label": 9,
+      "prediction": 9,
+      "row": 9
+    },
+    {
+      "dataset_index": 10,
+      "input_file": "inputs/00010.f32",
+      "label": 0,
+      "prediction": 0,
+      "row": 10
+    },
+    {
+      "dataset_index": 11,
+      "input_file": "inputs/00011.f32",
+      "label": 6,
+      "prediction": 6,
+      "row": 11
+    },
+    {
+      "dataset_index": 12,
+      "input_file": "inputs/00012.f32",
+      "label": 9,
+      "prediction": 9,
+      "row": 12
+    },
+    {
+      "dataset_index": 13,
+      "input_file": "inputs/00013.f32",
+      "label": 0,
+      "prediction": 0,
+      "row": 13
+    },
+    {
+      "dataset_index": 14,
+      "input_file": "inputs/00014.f32",
+      "label": 1,
+      "prediction": 1,
+      "row": 14
+    },
+    {
+      "dataset_index": 15,
+      "input_file": "inputs/00015.f32",
+      "label": 5,
+      "prediction": 5,
+      "row": 15
+    },
+    {
+      "dataset_index": 16,
+      "input_file": "inputs/00016.f32",
+      "label": 9,
+      "prediction": 9,
+      "row": 16
+    },
+    {
+      "dataset_index": 17,
+      "input_file": "inputs/00017.f32",
+      "label": 7,
+      "prediction": 7,
+      "row": 17
+    },
+    {
+      "dataset_index": 18,
+      "input_file": "inputs/00018.f32",
+      "label": 3,
+      "prediction": 3,
+      "row": 18
+    },
+    {
+      "dataset_index": 19,
+      "input_file": "inputs/00019.f32",
+      "label": 4,
+      "prediction": 4,
+      "row": 19
+    },
+    {
+      "dataset_index": 20,
+      "input_file": "inputs/00020.f32",
+      "label": 9,
+      "prediction": 9,
+      "row": 20
+    },
+    {
+      "dataset_index": 21,
+      "input_file": "inputs/00021.f32",
+      "label": 6,
+      "prediction": 6,
+      "row": 21
+    },
+    {
+      "dataset_index": 22,
+      "input_file": "inputs/00022.f32",
+      "label": 6,
+      "prediction": 6,
+      "row": 22
+    },
+    {
+      "dataset_index": 23,
+      "input_file": "inputs/00023.f32",
+      "label": 5,
+      "prediction": 5,
+      "row": 23
+    },
+    {
+      "dataset_index": 24,
+      "input_file": "inputs/00024.f32",
+      "label": 4,
+      "prediction": 4,
+      "row": 24
+    },
+    {
+      "dataset_index": 25,
+      "input_file": "inputs/00025.f32",
+      "label": 0,
+      "prediction": 0,
+      "row": 25
+    },
+    {
+      "dataset_index": 26,
+      "input_file": "inputs/00026.f32",
+      "label": 7,
+      "prediction": 7,
+      "row": 26
+    },
+    {
+      "dataset_index": 27,
+      "input_file": "inputs/00027.f32",
+      "label": 4,
+      "prediction": 4,
+      "row": 27
+    },
+    {
+      "dataset_index": 28,
+      "input_file": "inputs/00028.f32",
+      "label": 0,
+      "prediction": 0,
+      "row": 28
+    },
+    {
+      "dataset_index": 29,
+      "input_file": "inputs/00029.f32",
+      "label": 1,
+      "prediction": 1,
+      "row": 29
+    },
+    {
+      "dataset_index": 30,
+      "input_file": "inputs/00030.f32",
+      "label": 3,
+      "prediction": 3,
+      "row": 30
+    },
+    {
+      "dataset_index": 31,
+      "input_file": "inputs/00031.f32",
+      "label": 1,
+      "prediction": 1,
+      "row": 31
+    },
+    {
+      "dataset_index": 32,
+      "input_file": "inputs/00032.f32",
+      "label": 3,
+      "prediction": 3,
+      "row": 32
+    },
+    {
+      "dataset_index": 33,
+      "input_file": "inputs/00033.f32",
+      "label": 4,
+      "prediction": 4,
+      "row": 33
+    },
+    {
+      "dataset_index": 34,
+      "input_file": "inputs/00034.f32",
+      "label": 7,
+      "prediction": 7,
+      "row": 34
+    },
+    {
+      "dataset_index": 35,
+      "input_file": "inputs/00035.f32",
+      "label": 2,
+      "prediction": 2,
+      "row": 35
+    },
+    {
+      "dataset_index": 36,
+      "input_file": "inputs/00036.f32",
+      "label": 7,
+      "prediction": 7,
+      "row": 36
+    },
+    {
+      "dataset_index": 37,
+      "input_file": "inputs/00037.f32",
+      "label": 1,
+      "prediction": 1,
+      "row": 37
+    },
+    {
+      "dataset_index": 38,
+      "input_file": "inputs/00038.f32",
+      "label": 2,
+      "prediction": 2,
+      "row": 38
+    },
+    {
+      "dataset_index": 39,
+      "input_file": "inputs/00039.f32",
+      "label": 1,
+      "prediction": 1,
+      "row": 39
+    },
+    {
+      "dataset_index": 40,
+      "input_file": "inputs/00040.f32",
+      "label": 1,
+      "prediction": 1,
+      "row": 40
+    },
+    {
+      "dataset_index": 41,
+      "input_file": "inputs/00041.f32",
+      "label": 7,
+      "prediction": 7,
+      "row": 41
+    },
+    {
+      "dataset_index": 42,
+      "input_file": "inputs/00042.f32",
+      "label": 4,
+      "prediction": 4,
+      "row": 42
+    },
+    {
+      "dataset_index": 43,
+      "input_file": "inputs/00043.f32",
+      "label": 2,
+      "prediction": 2,
+      "row": 43
+    },
+    {
+      "dataset_index": 44,
+      "input_file": "inputs/00044.f32",
+      "label": 3,
+      "prediction": 3,
+      "row": 44
+    },
+    {
+      "dataset_index": 45,
+      "input_file": "inputs/00045.f32",
+      "label": 5,
+      "prediction": 5,
+      "row": 45
+    },
+    {
+      "dataset_index": 46,
+      "input_file": "inputs/00046.f32",
+      "label": 1,
+      "prediction": 1,
+      "row": 46
+    },
+    {
+      "dataset_index": 47,
+      "input_file": "inputs/00047.f32",
+      "label": 2,
+      "prediction": 2,
+      "row": 47
+    },
+    {
+      "dataset_index": 48,
+      "input_file": "inputs/00048.f32",
+      "label": 4,
+      "prediction": 4,
+      "row": 48
+    },
+    {
+      "dataset_index": 49,
+      "input_file": "inputs/00049.f32",
+      "label": 4,
+      "prediction": 4,
+      "row": 49
+    },
+    {
+      "dataset_index": 50,
+      "input_file": "inputs/00050.f32",
+      "label": 6,
+      "prediction": 6,
+      "row": 50
+    },
+    {
+      "dataset_index": 51,
+      "input_file": "inputs/00051.f32",
+      "label": 3,
+      "prediction": 3,
+      "row": 51
+    },
+    {
+      "dataset_index": 52,
+      "input_file": "inputs/00052.f32",
+      "label": 5,
+      "prediction": 5,
+      "row": 52
+    },
+    {
+      "dataset_index": 53,
+      "input_file": "inputs/00053.f32",
+      "label": 5,
+      "prediction": 5,
+      "row": 53
+    },
+    {
+      "dataset_index": 54,
+      "input_file": "inputs/00054.f32",
+      "label": 6,
+      "prediction": 6,
+      "row": 54
+    },
+    {
+      "dataset_index": 55,
+      "input_file": "inputs/00055.f32",
+      "label": 0,
+      "prediction": 0,
+      "row": 55
+    },
+    {
+      "dataset_index": 56,
+      "input_file": "inputs/00056.f32",
+      "label": 4,
+      "prediction": 4,
+      "row": 56
+    },
+    {
+      "dataset_index": 57,
+      "input_file": "inputs/00057.f32",
+      "label": 1,
+      "prediction": 1,
+      "row": 57
+    },
+    {
+      "dataset_index": 58,
+      "input_file": "inputs/00058.f32",
+      "label": 9,
+      "prediction": 9,
+      "row": 58
+    },
+    {
+      "dataset_index": 59,
+      "input_file": "inputs/00059.f32",
+      "label": 5,
+      "prediction": 5,
+      "row": 59
+    },
+    {
+      "dataset_index": 60,
+      "input_file": "inputs/00060.f32",
+      "label": 7,
+      "prediction": 7,
+      "row": 60
+    },
+    {
+      "dataset_index": 61,
+      "input_file": "inputs/00061.f32",
+      "label": 8,
+      "prediction": 8,
+      "row": 61
+    },
+    {
+      "dataset_index": 62,
+      "input_file": "inputs/00062.f32",
+      "label": 9,
+      "prediction": 9,
+      "row": 62
+    },
+    {
+      "dataset_index": 63,
+      "input_file": "inputs/00063.f32",
+      "label": 3,
+      "prediction": 3,
+      "row": 63
+    },
+    {
+      "dataset_index": 64,
+      "input_file": "inputs/00064.f32",
+      "label": 7,
+      "prediction": 7,
+      "row": 64
+    },
+    {
+      "dataset_index": 65,
+      "input_file": "inputs/00065.f32",
+      "label": 4,
+      "prediction": 4,
+      "row": 65
+    },
+    {
+      "dataset_index": 66,
+      "input_file": "inputs/00066.f32",
+      "label": 6,
+      "prediction": 6,
+      "row": 66
+    },
+    {
+      "dataset_index": 67,
+      "input_file": "inputs/00067.f32",
+      "label": 4,
+      "prediction": 4,
+      "row": 67
+    },
+    {
+      "dataset_index": 68,
+      "input_file": "inputs/00068.f32",
+      "label": 3,
+      "prediction": 3,
+      "row": 68
+    },
+    {
+      "dataset_index": 69,
+      "input_file": "inputs/00069.f32",
+      "label": 0,
+      "prediction": 0,
+      "row": 69
+    },
+    {
+      "dataset_index": 70,
+      "input_file": "inputs/00070.f32",
+      "label": 7,
+      "prediction": 7,
+      "row": 70
+    },
+    {
+      "dataset_index": 71,
+      "input_file": "inputs/00071.f32",
+      "label": 0,
+      "prediction": 0,
+      "row": 71
+    },
+    {
+      "dataset_index": 72,
+      "input_file": "inputs/00072.f32",
+      "label": 2,
+      "prediction": 2,
+      "row": 72
+    },
+    {
+      "dataset_index": 73,
+      "input_file": "inputs/00073.f32",
+      "label": 9,
+      "prediction": 9,
+      "row": 73
+    },
+    {
+      "dataset_index": 74,
+      "input_file": "inputs/00074.f32",
+      "label": 1,
+      "prediction": 1,
+      "row": 74
+    },
+    {
+      "dataset_index": 75,
+      "input_file": "inputs/00075.f32",
+      "label": 7,
+      "prediction": 7,
+      "row": 75
+    },
+    {
+      "dataset_index": 76,
+      "input_file": "inputs/00076.f32",
+      "label": 3,
+      "prediction": 3,
+      "row": 76
+    },
+    {
+      "dataset_index": 77,
+      "input_file": "inputs/00077.f32",
+      "label": 2,
+      "prediction": 2,
+      "row": 77
+    },
+    {
+      "dataset_index": 78,
+      "input_file": "inputs/00078.f32",
+      "label": 9,
+      "prediction": 9,
+      "row": 78
+    },
+    {
+      "dataset_index": 79,
+      "input_file": "inputs/00079.f32",
+      "label": 7,
+      "prediction": 7,
+      "row": 79
+    },
+    {
+      "dataset_index": 80,
+      "input_file": "inputs/00080.f32",
+      "label": 7,
+      "prediction": 7,
+      "row": 80
+    },
+    {
+      "dataset_index": 81,
+      "input_file": "inputs/00081.f32",
+      "label": 6,
+      "prediction": 6,
+      "row": 81
+    },
+    {
+      "dataset_index": 82,
+      "input_file": "inputs/00082.f32",
+      "label": 2,
+      "prediction": 2,
+      "row": 82
+    },
+    {
+      "dataset_index": 83,
+      "input_file": "inputs/00083.f32",
+      "label": 7,
+      "prediction": 7,
+      "row": 83
+    },
+    {
+      "dataset_index": 84,
+      "input_file": "inputs/00084.f32",
+      "label": 8,
+      "prediction": 8,
+      "row": 84
+    },
+    {
+      "dataset_index": 85,
+      "input_file": "inputs/00085.f32",
+      "label": 4,
+      "prediction": 4,
+      "row": 85
+    },
+    {
+      "dataset_index": 86,
+      "input_file": "inputs/00086.f32",
+      "label": 7,
+      "prediction": 7,
+      "row": 86
+    },
+    {
+      "dataset_index": 87,
+      "input_file": "inputs/00087.f32",
+      "label": 3,
+      "prediction": 3,
+      "row": 87
+    },
+    {
+      "dataset_index": 88,
+      "input_file": "inputs/00088.f32",
+      "label": 6,
+      "prediction": 6,
+      "row": 88
+    },
+    {
+      "dataset_index": 89,
+      "input_file": "inputs/00089.f32",
+      "label": 1,
+      "prediction": 1,
+      "row": 89
+    },
+    {
+      "dataset_index": 90,
+      "input_file": "inputs/00090.f32",
+      "label": 3,
+      "prediction": 3,
+      "row": 90
+    },
+    {
+      "dataset_index": 91,
+      "input_file": "inputs/00091.f32",
+      "label": 6,
+      "prediction": 6,
+      "row": 91
+    },
+    {
+      "dataset_index": 92,
+      "input_file": "inputs/00092.f32",
+      "label": 9,
+      "prediction": 9,
+      "row": 92
+    },
+    {
+      "dataset_index": 93,
+      "input_file": "inputs/00093.f32",
+      "label": 3,
+      "prediction": 3,
+      "row": 93
+    },
+    {
+      "dataset_index": 94,
+      "input_file": "inputs/00094.f32",
+      "label": 1,
+      "prediction": 1,
+      "row": 94
+    },
+    {
+      "dataset_index": 95,
+      "input_file": "inputs/00095.f32",
+      "label": 4,
+      "prediction": 4,
+      "row": 95
+    },
+    {
+      "dataset_index": 96,
+      "input_file": "inputs/00096.f32",
+      "label": 1,
+      "prediction": 1,
+      "row": 96
+    },
+    {
+      "dataset_index": 97,
+      "input_file": "inputs/00097.f32",
+      "label": 7,
+      "prediction": 7,
+      "row": 97
+    },
+    {
+      "dataset_index": 98,
+      "input_file": "inputs/00098.f32",
+      "label": 6,
+      "prediction": 6,
+      "row": 98
+    },
+    {
+      "dataset_index": 99,
+      "input_file": "inputs/00099.f32",
+      "label": 9,
+      "prediction": 9,
+      "row": 99
+    }
+  ],
+  "checkpoint_sha256": "f388dd5d4a058f6b62013685b9f41c4cb6994a8de5d04d2e8b1c00be2b4aeaea",
+  "comparison": {
+    "atol": 1e-05,
+    "require_finite": true,
+    "require_shape_match": true,
+    "rtol": 1e-05
+  },
+  "count": 100,
+  "environment": {
+    "platform": "macOS-27.0.1-arm64-arm-64bit",
+    "python": "3.12.14",
+    "torch": "2.14.1",
+    "torch_build": "PyTorch built with:\n  - GCC 4.2\n  - C++ Version: 202002\n  - clang 21.0.0\n  - OpenMP 202011\n  - LAPACK is enabled (usually provided by MKL)\n  - NNPACK is enabled\n  - CPU capability usage: DEFAULT\n  - Build settings: BLAS_INFO=accelerate, BUILD_TYPE=Release, COMMIT_SHA=5c4886908584029761b579af026dcfb627c84070, CUDA_FLAGS= -DLIBCUDACXX_ENABLE_SIMPLIFIED_COMPLEX_OPERATIONS -Xfatbin -compress-all  -Wno-deprecated-gpu-targets --expt-extended-lambda -DCUB_WRAPPED_NAMESPACE=at_cuda_detail -DDISABLE_CUSPARSE_DEPRECATED -DCUDA_HAS_FP16=1 -D__CUDA_NO_HALF_OPERATORS__ -D__CUDA_NO_HALF_CONVERSIONS__ -D__CUDA_NO_HALF2_OPERATORS__ -D__CUDA_NO_BFLOAT16_CONVERSIONS__ -DC10_NODEPRECATED, CXX_COMPILER=/usr/bin/c++, CXX_FLAGS= -fvisibility-inlines-hidden -DUSE_PTHREADPOOL -DNDEBUG -DUSE_KINETO -DUSE_PYTORCH_QNNPACK -DAT_BUILD_ARM_VEC256_WITH_SLEEF -DUSE_PYTORCH_METAL_EXPORT -DSYMBOLICATE_MOBILE_DEBUG_HANDLE -DUSE_COREML_DELEGATE -O2 -fPIC -DC10_NODEPRECATED -Wall -Wextra -Werror=return-type -Werror=non-virtual-dtor -Werror=braced-scalar-init -Werror=range-loop-construct -Werror=bool-operation -Wnarrowing -Wno-missing-field-initializers -Wno-unknown-pragmas -Wno-unused-parameter -Wno-strict-overflow -Wno-strict-aliasing -Wvla-extension -Wsuggest-override -Wnewline-eof -Winconsistent-missing-override -Winconsistent-missing-destructor-override -Wno-pass-failed -Wno-error=old-style-cast -Wconstant-conversion -Qunused-arguments -faligned-new -fno-math-errno -fno-trapping-math -Werror=format -fclang-abi-compat=17 -DUSE_MPS -Wno-missing-braces, LAPACK_INFO=accelerate, TORCH_VERSION=2.14.1, USE_CUDA=OFF, USE_CUDNN=OFF, USE_CUSPARSELT=OFF, USE_EIGEN_FOR_BLAS=ON, USE_GFLAGS=OFF, USE_GLOG=OFF, USE_GLOO=ON, USE_HIPSPARSELT=OFF, USE_MKL=OFF, USE_MKLDNN=OFF, USE_MPI=OFF, USE_NCCL=OFF, USE_NNPACK=ON, USE_OPENMP=ON, USE_ROCM=OFF, USE_ROCM_KERNEL_ASSERT=OFF, USE_XCCL=OFF, USE_XPU=OFF, \n"
+  },
+  "execution": {
+    "deterministic_algorithms": true,
+    "device": "cpu",
+    "dtype": "float32",
+    "evaluation_mode": true,
+    "gradients": false,
+    "seed": 20261025,
+    "threads": 1,
+    "vector_at_a_time": true
+  },
+  "files": {
+    "dense1.f32": {
+      "bytes": 51200,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "618c9fa85723edcaa7b3c9c71ecafc21e630bc10b561640d47927bdbb0842564",
+      "shape": [
+        100,
+        128
+      ]
+    },
+    "images.u8": {
+      "bytes": 78400,
+      "encoding": "uint8, row-major",
+      "sha256": "8a004a2f81a80f4866259cbb77cf37af89315036b298b250b4d45c24aaa92048",
+      "shape": [
+        100,
+        28,
+        28
+      ]
+    },
+    "indices.u32": {
+      "bytes": 400,
+      "encoding": "little-endian uint32",
+      "sha256": "077897d1b034053b87f9dcf857eddf68e4eab2d68a726c2865ff8800599dd95c",
+      "shape": [
+        100
+      ]
+    },
+    "inputs/00000.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "25c7cba0509b7d1e068a5793c8bbd5cd421f4b92792aae3484e3a8dbb218e73f",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00001.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "33b9bab86332bd0ec11d5dfa7b04600ecb47ad84c628aeb8747023c71b302a39",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00002.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "fb24aebbcbc9827e05cfaba5f91e609093b3e47425be8d9e57060a0da94e2756",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00003.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "692f8ff1c2aaa7dd3c5982979516e774e4daf6d8420f1818a68389825ebb84a9",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00004.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "850b1a8e7e1e9c33d796336769c054b9a2db2cb570d9639de0dcc94b6758d7b7",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00005.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "8405bd47dac506fbe8e5ddbdf1ddd8206bcbb1d101d20deaf8f85fe09c969280",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00006.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "98331a8d1edacc1ffab0f86ec6be285edae489843dcb1274266b0dd852346883",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00007.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "78e88fbae8a3fca7c8ed21078d162154e95b5d3d154686b569a67abb269a7eb6",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00008.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "8711a8c1dbc5a421f245b47413b0fc55c83850f6cd4b60b58bacd435bfd3b810",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00009.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "cfe5a272aae51b73825292e407ded893e3077f136b32618b30dab5d7db92c26a",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00010.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "35d829488400e4f33391c64825900abcb13b29fa31b9c8aa5fbe6e544ec4e148",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00011.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "61955ca7c21738cbb61dea08566d687097b2a2906d98f99f401ea91287b49238",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00012.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "e6e936a55e61e3fa7fe4865444ce8922c7c184f2655666afd598b6128b2a44da",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00013.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "fc76577637893e85946e8104c09dfa98b05041a6a20b3880c6399d95ab76b517",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00014.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "8cb3430da636705815e973f74871cfa8d00d3729399a1ce260a69c48bd2652d9",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00015.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "aa1293288bf01ea347f68c899b24b399dae147a98fad94e1eda390efa7dd0563",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00016.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "c4f2a074eb1318a6fc6e62e7c4d33de67bbb3ad9174f4d1fdd6e59479811a049",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00017.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "37c624ec52a3df6039966978f858a7468c7cdf8dec2c0c45813453b7e64cb1e1",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00018.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "184745a8e86e93f45f33f3ec4a886da2156ec35a09e9c6272327390e3e96205e",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00019.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "886f5e6b5e6ac2a0f67cf08efe335b0c9e690fcabc0e397b491843c75c2ec895",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00020.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "fe85cc7ff6b4417ebc79fe79c582b4620dde2f8813e854b68924ad5cc5ae3596",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00021.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "ec086ad02fec90b5217cb3ab1079f010f17e27c2d9a38b9b9e81471bb83e0197",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00022.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "b938744b590788b8bffd91a85774279fb6664da7dcc613c231313d30ec6bffa8",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00023.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "105a919fc319d13f11c57e3565a9f19f20a1caaacccfaf1776d78caa4aae5bde",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00024.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "6387148bc079a49b213a63fc8dd8f78e9a2e21eb10f9715ecdc7295ce55b16b4",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00025.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "672b4f2fb4d683fd1fb7237f06019a160beb7f43304ab11a5e273fbbb0b97e4a",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00026.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "1cd29e58c88f6d90afef237e24eb6820550ca3a04668daa45a56c449abaabf65",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00027.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "2df9bb788904956c79b018a96b11e0b48594b2fea5340dd65bfbcd09c2c4bfe1",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00028.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "7a5e10f5db979d86b4a577cffa6978978380fe8c2629289fba8e6d2e8afb5bf6",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00029.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "3866f769d568c43d29f2b5779c48098255b3510faecc0f95ea0de751aceb37fe",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00030.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "be6489f3bf306fd8510bbebe4ce4624fb796daa52255b4251990d2a8bbea7d42",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00031.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "27bde8538de62c171c347fe726b58769429f0bb609c34689376948a191f2af1c",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00032.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "159ee7649e96e19dfc9951f17f21add183886761eabee9efe9bdce0bb19b7431",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00033.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "9081b9d9a09d8b1fe86f98c11718ab2b59b82954d5cef76247acbae956ad6a15",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00034.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "1119f19abaedb00a904c17b61a567b7e226ca56d814001ed47e036e5b7d75567",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00035.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "d3aa4cb30dbce23b202e15e8790f32adf397a29b692e53e0e7632ef2ece22f0d",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00036.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "95b4b5847eafbeabbedbefbe1bd8571868ac193ab7465ab95e886bc13c7110d9",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00037.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "3a412af0af1f37f0daa14fb9482a0b99af5f0d85aa4bf53090b12078017b577d",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00038.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "3f1b856d665eb1e9c42c0d4328a8bea164af46a38b09779a06a9544c3fa87262",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00039.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "9e1766c439390fde968c2e0ed855631915491564b9bdccd72d6f67c5582e0537",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00040.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "a8f2e8c59cbf26a81aa223045afa703df22f02c58cab80c121d9ce065053b568",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00041.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "a72ee62b446447bb2e8b336d8237b7ca6eed1402f6a73631580d5821f362d3a8",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00042.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "5004ea0bffd7bd3a6cd37f8dcbada9e037e332605cda7ea49731b60a46c633c4",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00043.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "8f2afe03afb1b9163eee40dae1af7ca50618e8e65fd6dcc6c6d0a8a12c5d18e8",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00044.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "07cf4f0364b5085817c3032dc9d1b5e48ec44d546055fbe7006e8ef5bc17dd58",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00045.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "0e51a2fb3da123f9547593c492f063eca125149e92c3e4d655adadf10c15ca04",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00046.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "a20d9dbe9e422be5c6e53467f9db98fd4f8c8d5dd914d72dddd9bcffacb93169",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00047.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "b80f951ba809a96325f6defb20ecfb86fcef4482fe2d0d43b2f5e97d2d65b2ec",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00048.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "e325bcc294d41142a95f647ac86ddcc7cc969f5f987cd48f85d29f9f4125cb48",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00049.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "c1a365c4c1ade796ea89d1503d6d0e164ae7d37b9c130a1160a3a2f5a9451712",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00050.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "e971aaf0c4098b2db3396486551069f64dd3ed76595360fc24fadc7a817eee8c",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00051.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "0ec6e39d5185e7b6ce0ba3c1d336a8c5a2998df4b983448b73964e0b2e0894bc",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00052.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "cd2a2574739ba873cb785e685d2895d765c397ef2c80a0d6fc39769c49e41ebc",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00053.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "987aa62a95498cf9433279e556c0f06e22c98e45de5972bbab280ea591b9fb41",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00054.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "b6c58097cd429ca9dfc5b728ee398efd71f245ccade4016f05d27ab88ba7ebea",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00055.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "5b9408e94ac21b903ac4ad6409e1ff8175e71e57055bfe9291149b692a2876f7",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00056.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "3d27e22b1d3974901e9d554ace581236d83e4ab126c2e134772e2a6048cfa55e",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00057.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "ebe5badf591c1dee69acde69423ba8ca111b3bafcb6eec1b988b12a79fe6b3a7",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00058.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "fd0234b91fb71795662cbaadc127dbe7e3c5820e4bf00efcca843bcb88862d50",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00059.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "9cb3cf42ffd6c7b7732f488119fa8362a4b1538776313a9fd4708bd11f051957",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00060.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "8167adeaa3f83bec3ccb35f5be7bd3d7acb7728a33eb6e443d420bd4b2346a55",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00061.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "19fdceb6a7af66500f6385fc8a00e43615c56a9c9a4c5f2b88905ed66562f1a2",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00062.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "49930bb512cc32ae641a3f8304b55502622155cb5c8e36c8b8cdedb52b8903be",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00063.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "9d7b05d577fae3e6bcfc585e8eaa4dd99ca5352c58ebbab649d31335f79a3467",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00064.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "42cfe0498edfaf5c7304880f040190c72fb2491032e12b80532adeaade1f72a8",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00065.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "1e1c71e19336a6bf92c270edacd6384a0d6586377ef5777fb91beb564b7a52e0",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00066.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "aaab545463e5c906188f06133998a3caad513cf1d31f3ca864890122080044b3",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00067.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "c41213f023c911373e60d123661f92ec57b9d2362a83c08e0751fa7348ac294f",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00068.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "308a773a244f67f5a084635edf940db02bd95ef3592b8af8ff7855275225ba4d",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00069.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "4b734835b9a8085d31de0a9c6df1190c519a6e89b0723d86f48327de23a91db0",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00070.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "b2657091a674104d79a496326de4a05a1642949bf05a4b85610715caafa08d28",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00071.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "b6384bb3eb50476d076217bb2d1362a1f991e5a2cd7e2d55559af5b717d99b1d",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00072.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "f3c1212a3b603dea26e2ffa2fbeb3bf36e04408367ce28b982c1cb7d238374fe",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00073.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "303138043f187a7690e89fe5ba125566c5ed5d46c488cc367cb1b5c47cd37eb4",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00074.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "c060b863781a209fa8e7e06726f1d7817199a389854c0b450883ac2a671a6399",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00075.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "11e87af7ef4334bd2224136ccdab2ae0fd87333bc8fb2827e4712e1e749aa843",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00076.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "fc29d8a0455f400dc5908b34d618ad39be26eb94b3d5a337146b0c67a2423e93",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00077.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "37b2d766d61b66bcc5416414bcba566757b96186db27a8adea39df3acf7d0846",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00078.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "c7a36154afeba6098de13a8532485a1e9e5de0e1271c23f747b5475cbc3ec548",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00079.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "48c008f3f875b988e32032bb617069c793f74118c8a24520a4024cce043b5336",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00080.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "1a75f67061ea6e8b068eea9ae44c30a0f4c3dd522828119d605e7b749d8c23d4",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00081.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "0b3cfec6d57c4eab506994027c10e3e646c78c29bfd212730c597ff8a9ca3fb6",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00082.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "52326932c97fcf460ba7efbde3a903d58afd83bbb399665fdd7a257864d65848",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00083.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "7d22323423a50ea28327b3a5027010596593b5862a438b97c97df8f2dd2c3ca5",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00084.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "ef994795a0f1805c14842e9a68433e439ef0aa719f069c8bc824c5f69fb4e882",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00085.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "c0275f79569c052d28821e894f52329a32388cc9d49f7edea7b5af15c77884d1",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00086.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "cccc5e37598343c4af733cc07eb940765982f93cd4aceefd6b7e9f9609c41c00",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00087.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "95e2a65b8d2681e7cdef57529551614cb53988a472324145ecebf1f1d76dda00",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00088.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "96dade787867a5c8ce335416790ad5ba0dfa9c30133cefa86354dfd6c4dd92d2",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00089.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "d78cc90e78ec7af24d9f52b4d08940484f447c5b641ec9489fb5a3ecd7eeb97d",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00090.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "8baf45679599c3e23891944ff72d5dbe2c23ba31f1109b7a15c801b702f5689c",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00091.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "b9505b66736d464f1c0503d5012d81f912baff77ef97554ab736658470e3208d",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00092.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "9da1d60f0fba76d8c2c133fe9399b82cc712486312f3a29833a1e7549b6ba7a4",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00093.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "7b34c168ba35ad5eb1fdef78cf0381424b740f92926093ca8bee805d31748cd4",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00094.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "7d5312139adb44c076130cdf58e0ebdede847d55b340dd5b1ec40fad31ea9e08",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00095.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "bd08d3e8ec2b87b15aef57170b5498958d733e076b240563c9fba0083925f2f9",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00096.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "940ea531d25962bb257bed08591d721df0728fde61003b75f9814df8921b3c92",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00097.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "eef168505d569011e594937c77e88a0d5144d53f94ca8ff72930a511297425d4",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00098.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "0bc333d7fb2c3c7ba6351bea5e79df310e85b8b9085760c590292792cab828e8",
+      "shape": [
+        784
+      ]
+    },
+    "inputs/00099.f32": {
+      "bytes": 3136,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "2c051ce4ad17bfb15e03c07e1933be022f8fb3c95dba75ddf27108bd8408447b",
+      "shape": [
+        784
+      ]
+    },
+    "labels.u32": {
+      "bytes": 400,
+      "encoding": "little-endian uint32",
+      "sha256": "ecfd4b21e9a016d728ead41f81932ea71a6c0856967043ca28a7770a6ea9e653",
+      "shape": [
+        100
+      ]
+    },
+    "logits.f32": {
+      "bytes": 4000,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "4f35cf1d560236c318f95da154f9d926848b80ced7740a897a4e1b7ed3971cb1",
+      "shape": [
+        100,
+        10
+      ]
+    },
+    "probabilities.f32": {
+      "bytes": 4000,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "1e021049340a65542004430026a66e1ef45924fdc04d47bdaa30ac2628a4a2c1",
+      "shape": [
+        100,
+        10
+      ]
+    },
+    "relu.f32": {
+      "bytes": 51200,
+      "encoding": "little-endian IEEE 754 binary32, row-major, no header",
+      "sha256": "3cf0b5d48b7740f6fbf37373aaeb0b8f5d4a178c07649ca370165ce469adcf88",
+      "shape": [
+        100,
+        128
+      ]
+    }
+  },
+  "fixture_version": 1,
+  "model_bytes": 407160,
+  "model_sha256": "b0376dd2562f0a89d95cc4f9f1172005e293d0ab9c4a0c9c345fff2dd98fb8bd",
+  "preprocessing": {
+    "augmentation": "none",
+    "input_dtype": "uint8",
+    "input_shape": [
+      28,
+      28
+    ],
+    "operation": "cast to float32, then divide by float32 255.0",
+    "order": "row-major",
+    "output_dtype": "float32",
+    "output_shape": [
+      784
+    ],
+    "range": [
+      0.0,
+      1.0
+    ]
+  },
+  "selection": {
+    "archives": [
+      {
+        "bytes": 1648877,
+        "filename": "t10k-images-idx3-ubyte.gz",
+        "md5": "9fb629c4189551a2d022fa330f9573f3",
+        "samples": 10000,
+        "sha256": "8d422c7b0a1c1c79245a5bcf07fe86e33eeafee792b84584aec276f5a2dbc4e6",
+        "url": "https://ossci-datasets.s3.amazonaws.com/mnist/t10k-images-idx3-ubyte.gz"
+      },
+      {
+        "bytes": 4542,
+        "filename": "t10k-labels-idx1-ubyte.gz",
+        "md5": "ec29112dd5afa0611ce80d1b7f02629c",
+        "samples": 10000,
+        "sha256": "f7ae60f92e00ec6debd23a6088c31dbd2371eca3ffa0defaefb259924204aec6",
+        "url": "https://ossci-datasets.s3.amazonaws.com/mnist/t10k-labels-idx1-ubyte.gz"
+      }
+    ],
+    "dataset": "MNIST",
+    "rule": "indices 0..99 in original order; no shuffle or prediction filtering",
+    "split": "official test split"
+  },
+  "source_sha256": {
+    "examples/mnist/data.py": "970b17710a1d4adc8357c11dff872e08dccef207e2fb30d368483c6cb416aa72",
+    "examples/mnist/export.py": "3c3d655e7f1e6406d452aa91b20a1000a1fa6c896c13d05eab588128e483ffee",
+    "examples/mnist/generate_fixtures.py": "1863f62bc5d62aa7086e5a7810c720fb814e9cfd3852acd4bfd8d02a5cec112e",
+    "examples/mnist/train.py": "dabd5ad49f7333ec2b6823bd75ec9ffe50a04a3577880b107c62a1885fe7cf28",
+    "tools/export_model.py": "3a1d6f4c7b09ac1c9b0c089e360b85c5886bf500aed2acef8a72c79afb66f575"
+  },
+  "stages": [
+    {
+      "file": "dense1.f32",
+      "name": "dense1",
+      "row_bytes": 512,
+      "width": 128
+    },
+    {
+      "file": "relu.f32",
+      "name": "relu",
+      "row_bytes": 512,
+      "width": 128
+    },
+    {
+      "file": "logits.f32",
+      "name": "logits",
+      "row_bytes": 40,
+      "width": 10
+    },
+    {
+      "file": "probabilities.f32",
+      "name": "probabilities",
+      "row_bytes": 40,
+      "width": 10
+    }
+  ],
+  "subset_result": {
+    "correct": 99,
+    "samples": 100
+  }
+}

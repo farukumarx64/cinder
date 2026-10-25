@@ -188,8 +188,8 @@ PY
 ## Remaining work
 
 The subsequent [trained export](EXPORT.md) is now implemented and verified from
-this checkpoint. Real-image stage fixtures, the `cinder run` CLI, C/Python
-numerical comparisons, and larger-model lifecycle verification remain separate
-steps. M4 remains open. Ordinary C tests still need neither Python nor MNIST
+this checkpoint, followed by [100-image reference fixtures](FIXTURES.md).
+The `cinder run` CLI, C/Python numerical comparisons, and larger-model lifecycle
+verification remain separate steps. M4 remains open. Ordinary C tests still need neither Python nor MNIST
 downloads. No hosted CI or full C rebuild was run for the original
 artifact/documentation-only training step; export checks are recorded separately.
