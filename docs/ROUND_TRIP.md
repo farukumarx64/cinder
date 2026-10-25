@@ -162,6 +162,6 @@ execution remain untested.
 
 The existing Linux CI build enables exporter tests and will run the live Python
 round trip. The macOS build and Linux sanitizer jobs run the saved C fixture path by
-default. The subsequent [loaded-model lifecycle audit](M3_VERIFICATION.md) also
-passes locally. Hosted results for both additions remain pending a future push;
-M3 stays open until that final verification passes.
+default. The subsequent [loaded-model lifecycle audit and hosted verification](M3_VERIFICATION.md)
+passed on October 25 for `5ad7dc4`: 23/23 macOS, 28/28 Linux, and 23/23 Linux
+sanitizer/leak tests. That revision includes both additions and closes M3.

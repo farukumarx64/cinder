@@ -335,6 +335,6 @@ against the saved NumPy references. Malformed-file, exact-limit, and allocation/
 failure cleanup tests now pass locally. Every saved stage also passes through
 the [complete file round trip](ROUND_TRIP.md), with committed files and fresh
 Python exports. [Loaded-model lifecycle checks](M3_VERIFICATION.md), local
-sanitizers, and native leak checks also pass. Final macOS/Linux CI verification
-of these additions remains required before M3 closes.
+sanitizers, and native leak checks also pass. Hosted macOS/Linux CI passed for
+`5ad7dc4`, including these additions, closing M3 on October 25, 2026.
 Ordinary C tests must consume saved fixtures without requiring Python.

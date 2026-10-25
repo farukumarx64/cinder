@@ -517,4 +517,5 @@ The [`.cnd` model-format contract](MODEL_FORMAT.md) is defined and
 [C loader](LOADER.md) is implemented with successful-load, exact-limit, malformed-file,
 and forced-failure cleanup tests. The [full stage-by-stage file round trip](ROUND_TRIP.md)
 also passes locally, as does the [loaded-model lifecycle audit](M3_VERIFICATION.md).
-Final hosted M3 verification is next; MNIST remains later work.
+All three hosted jobs also passed for `5ad7dc4`, closing M3 on October 25, 2026.
+Phase 4's MNIST demonstration is next.

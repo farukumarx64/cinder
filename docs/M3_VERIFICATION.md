@@ -1,7 +1,13 @@
 # M3 lifecycle verification — October 25, 2026
 
-**Local verification is complete. M3 remains open until hosted macOS/Linux CI
-passes a revision containing both the round-trip and loaded-lifecycle tests.**
+**M3 is complete as of October 25, 2026. Local verification and all three
+hosted CI jobs passed with the round-trip and loaded-lifecycle additions.**
+
+The verified revision is `5ad7dc40fcd51ba7c627e14e250b8ece9d7d6bc0`, which includes
+round-trip commit `cc0b77f`.
+[GitHub Actions run 40192296107](https://github.com/farukumarx64/cinder/actions/runs/40192296107)
+confirms the published revision. Job status, checked-out commit, toolchains,
+and test logs were inspected before closing the milestone.
 
 This step adds tests, CMake test registration, and documentation. No runtime
 source, public API, `.cnd` format, fixture values, or numerical tolerance changed.
@@ -125,19 +131,37 @@ Use separate build directories for Release and sanitizers. The
 [ROUND_TRIP.md](ROUND_TRIP.md#two-ctest-paths) documents the optional live exporter
 path. C-only configuration remains the default.
 
-## Hosted verification and milestone status
+## Hosted results and milestone closure
 
-The latest inspected successful run is the earlier
+[Run 40192296107](https://github.com/farukumarx64/cinder/actions/runs/40192296107)
+completed successfully on October 25, 2026, for
+`5ad7dc40fcd51ba7c627e14e250b8ece9d7d6bc0`:
+
+| Job | Toolchain/checks | Actual result |
+| --- | --- | --- |
+| macOS 15 | Apple Clang 17.0.0, CMake 4.4.3 | 23/23 CTest tests passed |
+| Ubuntu 24.04 | GCC 13.3.0, CMake 3.31.6; Python 3.12.3, NumPy 2.3.5, PyTorch 2.14.1+cpu | 28/28 passed |
+| Ubuntu 24.04 sanitizers | Clang 18.1.3, CMake 3.31.6; ASan + UBSan + LeakSanitizer | 23/23 passed |
+
+All jobs configured, compiled, and tested successfully. Logs explicitly confirm
+`model_loaded_lifecycle`, `loader_failures`, and `model_round_trip_fixtures`
+passed on each platform. Linux additionally passed `model_round_trip_exported`,
+both fresh NumPy comparisons, and both exporter suites. The sanitizer log shows
+`ASAN_OPTIONS=detect_leaks=1:halt_on_error=1` and
+`UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1`, with no reported findings.
+Hosted builds use Debug; Release was verified locally as recorded above.
+
+The earlier successful
 [run 40140441755](https://github.com/farukumarx64/cinder/actions/runs/40140441755)
-for `312801d64791047170c5c5d1cda06077a45bca36`. Its success is a baseline only:
-it predates round-trip commit `cc0b77f` and this lifecycle addition.
+for `312801d` was a baseline only. The run above includes the subsequent
+round-trip and lifecycle tests and supplies the M3 closure evidence. The
+existing workflow required no changes.
 
-The existing workflow automatically includes the new CTest registration in
-the macOS 15, Ubuntu 24.04, and Linux ASan/UBSan/LeakSanitizer jobs. The ordinary
-Linux job additionally runs fresh NumPy and Python export/load comparisons.
-No workflow changes are needed. Publication has been authorized. A new hosted
-run containing both additions must pass before M3 can close; the results will
-be recorded here after inspecting that revision's jobs and logs.
+The format, exporter, loader, stage comparisons, rejection/cleanup, loaded-model
+lifecycle, sanitizers, supported leak checks, and macOS/Linux verification
+required for M3 have passed. Phase 4's MNIST demonstration is next, starting
+with the reproducible external Python reference model. Training remains outside
+the C runtime. See [current progress](../ROADMAP.md#current-progress).
 
 ## Remaining limitations
 

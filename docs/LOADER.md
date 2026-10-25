@@ -304,19 +304,19 @@ pointer list, and attempts to close any still-open stream. Constructor failures
 retain their status and diagnostic cause. An earlier failure survives cleanup;
 a close failure on the successful parsing path prevents model publication.
 
-## Remaining verification
+## Verification status
 
 The rejection/cleanup audit below now covers parser categories, exact resource
 boundaries, parameter-bit preservation, and forced allocation/stdio failures.
 The [full export/load/inference comparison](ROUND_TRIP.md) now passes against
 every saved stage, both from committed files and fresh Python exports. The
 [loaded-model lifecycle audit](M3_VERIFICATION.md) also passes locally, including
-Debug/Release, sanitizers, and native leak checks. Final hosted macOS/Linux
-verification remains required before M3 closure.
+Debug/Release, sanitizers, and native leak checks. All three hosted macOS/Linux
+jobs passed for `5ad7dc4`, closing M3 on October 25, 2026.
 
 Local results below describe only executed checks. Big-endian execution and
 unsupported host representations have not been exercised. Same-file mutation
-during loading remains outside the caller contract. M3 is still open.
+during loading remains outside the caller contract.
 
 ## Implementation verification — October 24, 2026
 
@@ -365,8 +365,9 @@ The native leak tool required execution outside the sandbox to inspect its child
 process. It also reported the normal restricted-process memory-content warning;
 the zero-leak result is evidence for this executed test, not a complete allocation
 failure audit. LeakSanitizer was not enabled on macOS. The existing Linux CI job
-enables it, but **hosted CI for these loader changes has not run**. The new
-C test is registered for the existing macOS, Linux, and Linux sanitizer jobs.
+enables it. Hosted CI was pending at this implementation step and subsequently
+passed at [M3 closure](M3_VERIFICATION.md). The C test runs in the existing
+macOS, Linux, and Linux sanitizer jobs.
 
 To run the new test after configuring and building normally:
 
@@ -493,8 +494,8 @@ On October 24, 2026, Apple Silicon / Apple Clang 21.0.0 / CMake 4.4.4:
 Both native leak runs required execution outside the sandbox for child-process
 inspection and reported the restricted-process memory-content warning described
 above. LeakSanitizer was not enabled on macOS. These tests are registered for
-the existing macOS/Linux CI jobs and Linux ASan/UBSan/leak job, but no hosted run
-for this step is claimed.
+the existing macOS/Linux CI jobs and Linux ASan/UBSan/leak job. Hosted verification
+was pending at this audit step and subsequently passed at [M3 closure](M3_VERIFICATION.md).
 
 Run both loader tests after building with:
 
@@ -505,7 +506,7 @@ ctest --test-dir build -R '^(model_load|loader_failures)$' --output-on-failure -
 The [complete round trip](ROUND_TRIP.md) now compares every saved intermediate
 stage. The [M3 report](M3_VERIFICATION.md) records the subsequent loaded-model
 lifecycle checks, expanded allocation audit (1,604 rejected calls), and local
-results; hosted CI for the final additions remains pending. Big-endian execution,
+results, including successful hosted CI and M3 closure. Big-endian execution,
 a different native ABI, and unsupported-host representation behavior remain
 unexecuted platform paths; file mutation during loading remains outside the
 caller contract.

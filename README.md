@@ -9,7 +9,7 @@ Training happens outside the runtime.
 
 ## Current status
 
-**M0, M1, and M2 are complete; M2 closed on October 23, 2026.** Tensor allocation,
+**M0 through M3 are complete; M3 closed on October 25, 2026.** Tensor allocation,
 cleanup, basic access, matrix-vector multiplication, bias addition, ReLU, and stable Softmax are
 implemented and tested. The math operations match deterministic NumPy float32
 references within the documented tolerance.
@@ -37,7 +37,8 @@ loads, saved tiny-network probabilities, malformed files, exact resource limits,
 and forced allocation/file failures. The [complete round trip](docs/ROUND_TRIP.md)
 now compares every saved stage from both committed fixtures and fresh Python
 exports. [Loaded-model lifecycle verification](docs/M3_VERIFICATION.md) also
-passes locally; final hosted verification is required before M3 closes.
+passes locally and in all three hosted CI jobs, closing M3. Phase 4's MNIST
+demonstration is next.
 The project contains a CMake build and a CLI that supports `--version`.
 The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
 
@@ -182,7 +183,7 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
   this to 709 cases, forces all 21 tiny-model allocations and 29 file-failure
   scenarios, and checks cleanup after 1,562 rejected calls. Debug passed 25/25
   tests; C-only Release and ASan/UBSan passed 21/21 each. Both loader executables
-  reported zero native leaks; hosted verification remains pending. See the dated results
+  reported zero native leaks; hosted verification subsequently passed at M3 closure. See the dated results
   and platform limitations in the [loader guide](docs/LOADER.md#rejection-and-cleanup-audit--october-24-2026).
 - On October 25, the complete export/load/inference comparison passed all four
   stages for ten inputs: 40 vectors / 120 values per saved or fresh-export run.
@@ -195,8 +196,9 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
   poisoned workspaces, no inference allocation/free attempts, unchanged parameters,
   and recovery from all 21 allocation failures while another model remains alive.
   Debug and ASan/UBSan passed 28/28 tests; C-only Release passed 23/23. Both native
-  leak checks reported zero leaks. See [M3 verification](docs/M3_VERIFICATION.md)
-  for details and the pending hosted verification requirement.
+  leak checks reported zero leaks. Hosted CI for `5ad7dc4` passed 23/23 macOS,
+  28/28 Linux, and 23/23 Linux sanitizer/leak tests, closing M3. See
+  [M3 verification](docs/M3_VERIFICATION.md) for the exact revision, run, and limitations.
 - The `info`, `run`, and `bench` commands are
   planned features; they are not implemented yet.
 
@@ -585,7 +587,7 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | `docs/NUMPY_TESTS.md` | Reference calculations, fixtures, tolerances, regeneration, and verification results. |
 | `docs/ROUND_TRIP.md` | Saved and freshly exported model-prefix comparisons through C loading/inference, dependencies, and measured results. |
 | `docs/M2_VERIFICATION.md` | Lifecycle/allocation audit, local and hosted evidence, M2 closure, and limitations. |
-| `docs/M3_VERIFICATION.md` | Loaded-model lifecycle, allocation/recovery audit, actual verification results, and M3 closure requirements. |
+| `docs/M3_VERIFICATION.md` | Loaded-model lifecycle, allocation/recovery audit, local/hosted evidence, M3 closure, and limitations. |
 | `tests/check_version.cmake` | Checks the version command's exit status and output. |
 | `tests/test_tensor.c` | Tests the core library's allocation and cleanup API. |
 | `tests/test_dense.c` | Tests Dense shapes, validation, copied parameters, and independent ownership/lifetimes. |
@@ -644,8 +646,9 @@ The Phase 3 `.cnd` format contract, Python validation, and binary export are
 implemented, with reproducible tiny-network fixtures.
 The C loader API is implemented with successful-load, parser resource-boundary,
 and forced-failure cleanup tests. Every saved stage now passes through the full
-export/load/inference path. Loaded-model lifecycle and local sanitizer/leak checks
-also pass. Next: verify the final revision in hosted CI before closing M3.
+export/load/inference path. Loaded-model lifecycle, local sanitizer/leak checks,
+and all three hosted jobs pass for `5ad7dc4`, closing M3 on October 25, 2026.
+Next: Phase 4's MNIST demonstration, starting with a reproducible Python reference model.
 
 The v0.1.0 scope excludes training, GPU execution, convolutional layers,
 quantization, SIMD, multithreading, and arbitrary computation graphs.

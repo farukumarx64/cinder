@@ -355,8 +355,8 @@ cmake --build build-exporter --parallel
 ctest --test-dir build-exporter --output-on-failure --no-tests=error
 ```
 
-The Linux workflow is configured to run these additions, but hosted results
-are pending a future push. No C runtime implementation changed in this step;
+The Linux workflow runs these additions. Hosted results were pending at this
+step and subsequently passed at [M3 closure](M3_VERIFICATION.md). No C runtime implementation changed in this step;
 the sanitizer/leak results in [the M2 report](M2_VERIFICATION.md) belong to that
 earlier verified revision, not a new sanitizer run for the Python exporter.
 
@@ -382,7 +382,8 @@ On the same macOS Python 3.12.14 / PyTorch 2.14.1 environment:
 - Failure injection confirmed unchanged/absent destinations, closed resources,
   temporary cleanup, and successful retry under the tested filesystem conditions.
 
-These changes have not been pushed, so hosted macOS/Linux CI remains pending.
+Hosted macOS/Linux CI was pending at this step and subsequently passed at
+[M3 closure](M3_VERIFICATION.md).
 The existing Linux exporter option automatically registers both Python suites.
 The binary-export step did not include C loader or new sanitizer/leak results.
 Big-endian execution and
@@ -397,8 +398,8 @@ The C test loads the saved exported tiny network and compares final probabilitie
 with NumPy. Parser limits and forced-failure cleanup pass locally. The
 [integrated round trip](ROUND_TRIP.md) now compares every saved intermediate
 stage from fresh Python exports and committed C-only fixtures. The
-[loaded-model lifecycle audit](M3_VERIFICATION.md) also passes locally. Final
-hosted verification for these additions is required before M3 closes.
+[loaded-model lifecycle audit and hosted verification](M3_VERIFICATION.md) also
+pass, closing M3 on October 25, 2026. Phase 4's MNIST demonstration is next.
 
 The supported semantics were checked against the official PyTorch documentation
 for [Sequential](https://docs.pytorch.org/docs/2.14/generated/torch.nn.Sequential.html),
