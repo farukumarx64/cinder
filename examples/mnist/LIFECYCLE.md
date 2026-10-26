@@ -1,7 +1,7 @@
 # MNIST lifecycle and CI verification
 
-**Local checks passed October 26, 2026. Hosted verification of the new lifecycle
-tests and expanded workflow is pending publication.** M4 remains open because
+**Local checks passed October 26, 2026. Hosted verification is being completed
+on October 27 after the first run stalled in native macOS leak checking.** M4 remains open because
 the input-file reader and `cinder run` implementation are still outstanding.
 
 This step adds two CTest executables from
@@ -128,14 +128,26 @@ The updated [workflow](../../.github/workflows/ci.yml) defines five jobs:
 | Ubuntu 24.04 Debug | C tests plus optional NumPy/exporter/offline MNIST suites |
 | Ubuntu 24.04 Release | Ordinary C tests, using committed fixtures |
 | macOS 15 Debug | Ordinary C tests, using committed fixtures |
-| macOS 15 Release | Ordinary C tests plus native leak checks for both MNIST lifecycle executables |
+| macOS 15 Release | Ordinary C tests, using committed fixtures |
 | Ubuntu 24.04 Clang sanitizers | Ordinary C tests under ASan + UBSan + LeakSanitizer |
 
 Only Linux Debug installs Python dependencies. Ordinary C tests never download
 MNIST, regenerate fixtures, train a model, or invoke Python. Verbose CTest logs
 retain lifecycle counts and numerical-comparison details from passing tests.
 Linux sanitizer settings keep `detect_leaks=1` and halt on the first finding.
-**Results for the new revision remain pending until it is committed and pushed.**
+
+The first lifecycle run, [40374063660](https://github.com/farukumarx64/cinder/actions/runs/40374063660),
+tested revision `9f6fe4e9439cdc4865f5db8d47379ee4c9380de0`. Linux Debug,
+Linux Release, macOS Debug, and Linux sanitizers passed. macOS Release's CTest
+step also passed, but its added native `leaks --atExit` step did not complete;
+the job was eventually cancelled. GitHub's job-log API returns `404 BlobNotFound`
+for that cancelled job, so no hosted native-leak result or precise cause can be
+claimed. This is not counted as a fully successful CI run.
+
+The follow-up workflow removes that hosted-only step. Native macOS leak checks
+remain verified locally as recorded above; Linux LeakSanitizer remains a
+required CI check. Both lifecycle tests and the complete C suite still run in
+every job. The revised five-job run is pending verification.
 
 ## Reproduce and limits
 
@@ -149,8 +161,16 @@ ctest --test-dir build-mnist-lifecycle -R '^mnist_lifecycle' -V
 
 Use a separate build directory with `-DCMAKE_BUILD_TYPE=Release` for Release,
 or `-DCINDER_ENABLE_ASAN=ON -DCINDER_ENABLE_UBSAN=ON` for sanitizers.
-Run the whole suite by removing the `-R` filter. The native leak commands are
-shown in the workflow; scratch files stay in each build directory.
+Run the whole suite by removing the `-R` filter. Scratch files stay in each
+build directory. To repeat the supported local macOS native leak checks after
+building Release in `build-mnist-c-only`:
+
+```sh
+leaks --atExit -- ./build-mnist-c-only/test_mnist_lifecycle \
+  examples/mnist/mnist.cnd tests/fixtures/mnist build-mnist-c-only/mnist-lifecycle-files/model.bin
+leaks --atExit -- ./build-mnist-c-only/test_mnist_lifecycle_audit \
+  examples/mnist/mnist.cnd tests/fixtures/mnist build-mnist-c-only/mnist-lifecycle-audit-files/model.bin
+```
 
 This verifies the committed model and exercised inputs, errors, allocation
 points, and synchronization patterns. It does not prove every possible thread

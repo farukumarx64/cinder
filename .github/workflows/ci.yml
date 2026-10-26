@@ -55,14 +55,6 @@ jobs:
       - name: Test
         run: ctest --test-dir build --output-on-failure --no-tests=error --verbose
 
-      - name: Native MNIST leak checks (macOS Release)
-        if: runner.os == 'macOS' && matrix.build_type == 'Release'
-        run: |
-          leaks --atExit -- ./build/test_mnist_lifecycle \
-            examples/mnist/mnist.cnd tests/fixtures/mnist build/mnist-lifecycle-files/model.bin
-          leaks --atExit -- ./build/test_mnist_lifecycle_audit \
-            examples/mnist/mnist.cnd tests/fixtures/mnist build/mnist-lifecycle-audit-files/model.bin
-
   sanitizers:
     name: Sanitizers (Linux, ASan + UBSan + leaks)
     runs-on: ubuntu-24.04

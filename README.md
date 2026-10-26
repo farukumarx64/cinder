@@ -603,7 +603,7 @@ requests, and manual dispatch from the repository's Actions tab.
 | Linux Debug | Ubuntu 24.04 | Configuration, compilation, and CTest, including optional NumPy, exporter, and offline MNIST suites. |
 | Linux Release | Ubuntu 24.04 | Release configuration, compilation, and ordinary CTest tests using committed fixtures. |
 | macOS Debug | macOS 15 | Debug configuration, compilation, and ordinary CTest tests. |
-| macOS Release | macOS 15 | Release configuration, compilation, CTest, and native MNIST lifecycle leak checks. |
+| macOS Release | macOS 15 | Release configuration, compilation, and ordinary CTest tests. |
 | Linux sanitizers | Ubuntu 24.04 with Clang | Debug build with ASan and UBSan, then CTest with leak detection enabled. |
 
 Each job starts from a fresh checkout, prints its toolchain versions, and fails
@@ -624,8 +624,10 @@ The workflow uses read-only repository permissions and a pinned checkout action.
 Check results and failure logs in [GitHub Actions](https://github.com/farukumarx64/cinder/actions/workflows/ci.yml).
 All three jobs passed in the [first hosted run](https://github.com/farukumarx64/cinder/actions/runs/37680825782)
 on October 7, 2026.
-LeakSanitizer is enabled in the Linux sanitizer job. macOS Release uses native
-`leaks --atExit` for both MNIST lifecycle executables instead.
+LeakSanitizer is enabled in the Linux sanitizer job. Native macOS
+`leaks --atExit` passed locally on both MNIST lifecycle executables. Its hosted
+macOS step did not complete and was removed; the [lifecycle report](examples/mnist/LIFECYCLE.md)
+records that limitation and local reproduction commands.
 
 ## Repository layout
 
