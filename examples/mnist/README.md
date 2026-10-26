@@ -7,7 +7,10 @@ preserved under [`reference/`](reference/); see [the measured results](RESULTS.m
 The trained [`mnist.cnd`](mnist.cnd) now includes inference Softmax and passes
 [byte-for-byte export verification](EXPORT.md). The first 100 official test
 images now have [saved inputs and every stage reference](FIXTURES.md).
-The CLI and C comparisons remain subsequent steps.
+[C inference validation](VALIDATION.md) now passes every saved stage with
+100/100 prediction agreement. Both runtimes classify 99/100 subset images
+correctly; this is separate from the full-test accuracy above. The CLI remains
+an upcoming step.
 The separate offline synthetic tests do not measure digit-recognition accuracy.
 
 ## Model and preprocessing
@@ -199,14 +202,16 @@ To register the suite with CTest independently of exporter/NumPy tests:
 cmake -S . -B build-mnist -DCMAKE_BUILD_TYPE=Debug \
   -DCINDER_ENABLE_MNIST_TESTS=ON -DPython3_EXECUTABLE="$PWD/.venv/bin/python"
 cmake --build build-mnist --parallel
-ctest --test-dir build-mnist -R '^mnist_(training|export|fixtures)$' --output-on-failure
+ctest --test-dir build-mnist -R '^mnist_' --output-on-failure
 ```
 
 The new option defaults to OFF, requires `BUILD_TESTING=ON` and an importable
 PyTorch, and installs nothing. It registers the 18-test synthetic training suite,
-11-test export suite, and 11-test fixture suite. Fixture checks use the saved
+11-test export suite, 11-test fixture suite, and fresh-export C comparison with
+28 rejection controls. The C-only saved-stage test runs with or without this
+option. Fixture checks use the saved
 100-image subset and synthetic archives, without a full dataset cache. Ordinary
-C builds still need no Python. The Linux CI job enables all three offline suites;
+C builds still need no Python. The Linux CI job enables all four optional suites;
 it does not download MNIST or run full training.
 
 ## Verification — October 25, 2026
@@ -238,7 +243,11 @@ binary, and export tests while preserving the training implementation and its
 reference records. Hosted verification for the export addition remains pending
 an authorized commit/push.
 The [fixture step](FIXTURES.md) now preserves and verifies 100 real-image inputs
-and every stage, with 31/31 combined tests passing. The [`cinder run`
+and every stage, with 31/31 combined tests passing at that step. The subsequent
+[C validation](VALIDATION.md) passes all 27,600 values: Debug 33/33 tests,
+C-only Release and ASan/UBSan 24/24 each, and zero native leaks. Fresh exports
+match the saved references; 28 corruption controls reject altered data.
+Hosted verification of this addition remains pending. The [`cinder run`
 contract](../../docs/CLI.md) is now defined; it prints zero-based class indices
 and up to three raw scores, which are probabilities for this model. The command
 is not implemented yet. Next: implement its finite float32 input-file reader;

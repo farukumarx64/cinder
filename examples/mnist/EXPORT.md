@@ -160,5 +160,7 @@ remain unchanged.
 
 The subsequent [fixture step](FIXTURES.md) now preserves the first 100 test
 images' inputs and Dense1/ReLU/logits/probability outputs. The
-[`run` contract](../../docs/CLI.md) is defined; its input reader, CLI implementation,
-C comparisons, and lifecycle audit are still required to close M4.
+[C validation](VALIDATION.md) now passes every saved stage and fresh checkpoint
+exports. The [`run` contract](../../docs/CLI.md) is defined; its input reader,
+CLI implementation, lifecycle audit, and hosted verification are still required
+to close M4.

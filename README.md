@@ -44,7 +44,10 @@ and [measured results](examples/mnist/RESULTS.md). Its trained
 [`mnist.cnd`](examples/mnist/mnist.cnd) includes inference Softmax and passes
 [deterministic export checks](examples/mnist/EXPORT.md). Saved
 [reference fixtures](examples/mnist/FIXTURES.md) now cover test indices `0..99`
-and every intermediate stage. The [`cinder run` contract](docs/CLI.md) is defined;
+and every intermediate stage. [C inference validation](examples/mnist/VALIDATION.md)
+passes all 27,600 saved stage values with `atol = rtol = 1e-5` and 100/100
+prediction agreement; C and Python each classify 99/100 subset images correctly.
+The [`cinder run` contract](docs/CLI.md) is defined;
 implementing its exact-length float32 input reader is next.
 The project contains a CMake build and a CLI that supports `--version`.
 The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
@@ -216,13 +219,19 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
 - The saved checkpoint exports through the existing writer as a 407,160-byte
   Dense/ReLU/Dense/Softmax model. Independent processes produce identical bytes,
   and every stored parameter bit matches the checkpoint. See
-  [the MNIST export guide](examples/mnist/EXPORT.md); real-image C comparisons
-  remain a later step.
+  [the MNIST export guide](examples/mnist/EXPORT.md).
 - Deterministic MNIST fixtures preserve 100 test images' indices, labels, raw
   preprocessed inputs, and every Dense/ReLU/logits/probability vector. All 108
   files regenerate identically in the recorded environment. Offline tests use
   the saved selected pixels and checkpoint, without downloads. See
   [the fixture guide](examples/mnist/FIXTURES.md).
+- Every saved MNIST stage passes C comparisons. Maximum absolute errors are
+  `6.19888306e-6` (Dense1), `5.7220459e-6` (ReLU/logits), and `3.57627869e-7`
+  (probabilities). Prediction agreement is 100/100; classification accuracy on
+  that fixed subset is 99/100 for both runtimes, separate from Python's 97.48%
+  full-test result. Debug passed 33/33 tests; C-only Release and ASan/UBSan each
+  passed 24/24. Native leaks reported zero. See [the validation report](examples/mnist/VALIDATION.md)
+  for fresh-export checks, 28 rejection controls, reproduction, and pending CI.
 - The `info`, `run`, and `bench` commands are
   planned features; they are not implemented yet.
 - The [`run` contract](docs/CLI.md) now defines two positional file paths, a
@@ -474,10 +483,13 @@ models/inputs into a temporary directory and invokes the same C stage comparator
 Both round-trip paths use the saved NumPy answers. See [the guide](docs/ROUND_TRIP.md).
 
 The independent `CINDER_ENABLE_MNIST_TESTS=ON` option adds the offline
-`mnist_training`, `mnist_export`, and `mnist_fixtures` suites using the same
+`mnist_training`, `mnist_export`, `mnist_fixtures`, and `mnist_inference_exported`
+suites using the same
 PyTorch dependency. They test synthetic training, checkpoint handling, export,
 and every saved image/stage reference using the selected pixels and checkpoint.
-No dataset is downloaded.
+The fresh-export test runs the C comparator and corruption controls against
+saved answers. The ordinary `mnist_inference_fixtures` C test also runs with
+all Python options OFF. No dataset is downloaded.
 Both options default to OFF. See
 [MNIST setup and test commands](examples/mnist/README.md).
 
@@ -674,10 +686,13 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | `examples/mnist/EXPORT.md` | Export commands, byte layout, provenance, checks, and remaining scope. |
 | `examples/mnist/generate_fixtures.py` | Generates/checks the fixed 100-image test fixture set from the original test archives and saved checkpoint. |
 | `examples/mnist/FIXTURES.md` | Selection policy, binary layouts, regeneration commands, measured results, and verification scope. |
+| `examples/mnist/VALIDATION.md` | C-versus-Python stage errors, prediction agreement, separate classification accuracy, reproduction, and verification scope. |
 | `tests/fixtures/mnist/` | Indices, labels, original selected pixels, 100 raw inputs, four stage arrays, and a provenance/hash manifest. |
 | `tests/test_mnist_training.py` | Offline synthetic training, preprocessing/IDX checks, independent-process repeatability, and checkpoint/CLI failures. |
 | `tests/test_mnist_export.py` | Exact trained parameter bits, evaluation/Softmax behavior, independent-process export, and checkpoint/CLI rejection checks. |
 | `tests/test_mnist_fixtures.py` | Offline preprocessing, stage comparison, regeneration, source selection, corruption detection, and cleanup checks. |
+| `tests/test_mnist_inference.c` | Python-independent comparison of all 100 saved MNIST inputs and four stages through the C loader/model APIs. |
+| `tests/check_mnist_inference.py` | Fresh checkpoint export, prefix identity, 28 C rejection controls, and accuracy/agreement separation. |
 | `tests/test_tensor_alloc_failures.c` | Forces allocation failures and tracks cleanup with test-only allocator substitutions. |
 | `.github/workflows/ci.yml` | macOS/Linux build jobs and the Linux sanitizer job. |
 | `ROADMAP.md` | Scope, implementation decisions, milestones, and progress. |

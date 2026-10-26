@@ -151,20 +151,23 @@ is not needed. This lets CI check the real selected images without a full cache.
 .venv/bin/python -m unittest discover -s tests -p test_mnist_fixtures.py -v
 ```
 
-`CINDER_ENABLE_MNIST_TESTS=ON` now includes `mnist_fixtures` alongside
+At the fixture-generation step, `CINDER_ENABLE_MNIST_TESTS=ON` added `mnist_fixtures` alongside
 `mnist_training` and `mnist_export`. The existing Linux CI configuration enables
 that option. Ordinary C tests still require neither Python nor MNIST downloads.
 Local fixture tests passed 11/11 on macOS arm64 with Python 3.12.14 and PyTorch
 2.14.1. The rebuilt combined Debug suite passed **31/31 CTest tests**, including
-all three MNIST suites. The MNIST-only configuration registers all three without
+all three MNIST suites. The MNIST-only configuration registered all three without
 requiring the exporter/NumPy test options. With Python options OFF, the C-only
-Release configuration still registers 23 C tests without Python discovery.
+Release configuration registered 23 C tests without Python discovery at that step.
 Python compilation and whitespace checks passed. No C runtime changes or new
-sanitizer runs are part of this step. Hosted CI and the future C-versus-Python
-MNIST comparisons remain pending.
+sanitizer runs were part of the fixture-generation step. The subsequent
+[C-versus-Python validation](VALIDATION.md) passes all 27,600 values and reports
+100/100 prediction agreement, with 99/100 subset accuracy for each runtime.
+That step adds C-only comparison, fresh-export integration, corruption controls,
+and local Debug/Release/sanitizer/leak verification. Hosted CI remains pending.
 
 The [`cinder run` contract](../../docs/CLI.md) is now defined: digit labels map
 directly to zero-based output indices, and the CLI will show up to three raw
 scores (probabilities for this Softmax model). Next: implement exact-length
-finite float32 input-file reading, followed by CLI execution, C comparisons,
+finite float32 input-file reading, followed by CLI execution
 and the lifecycle audit. M4 is still open.

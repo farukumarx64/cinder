@@ -8,7 +8,7 @@ option(CINDER_ENABLE_ASAN "Enable AddressSanitizer for development" OFF)
 option(CINDER_ENABLE_UBSAN "Enable UndefinedBehaviorSanitizer for development" OFF)
 option(CINDER_ENABLE_NUMPY_TESTS "Also test freshly generated NumPy references" OFF)
 option(CINDER_ENABLE_EXPORTER_TESTS "Also test Python model validation, export, and the C round trip" OFF)
-option(CINDER_ENABLE_MNIST_TESTS "Also test Python MNIST training, export, and reference fixtures offline" OFF)
+option(CINDER_ENABLE_MNIST_TESTS "Also test Python MNIST training, export, fixtures, and C agreement offline" OFF)
 
 if(CINDER_ENABLE_NUMPY_TESTS AND NOT BUILD_TESTING)
     message(FATAL_ERROR "CINDER_ENABLE_NUMPY_TESTS requires BUILD_TESTING=ON.")
@@ -182,6 +182,20 @@ if(BUILD_TESTING)
     )
     set_tests_properties(model_round_trip_fixtures PROPERTIES TIMEOUT 10)
 
+    # The committed MNIST model and all saved stages are checked without Python
+    # or a dataset download. Test-only prefix files live in the build directory.
+    add_executable(test_mnist_inference tests/test_mnist_inference.c)
+    target_include_directories(test_mnist_inference PRIVATE "${PROJECT_SOURCE_DIR}/tests/fixtures")
+    target_link_libraries(test_mnist_inference PRIVATE cinder_core)
+    cinder_configure_target(test_mnist_inference)
+    file(MAKE_DIRECTORY "${PROJECT_BINARY_DIR}/mnist-inference-files")
+    add_test(NAME mnist_inference_fixtures COMMAND test_mnist_inference
+        "${PROJECT_SOURCE_DIR}/examples/mnist/mnist.cnd"
+        "${PROJECT_SOURCE_DIR}/tests/fixtures/mnist"
+        "${PROJECT_BINARY_DIR}/mnist-inference-files"
+    )
+    set_tests_properties(mnist_inference_fixtures PROPERTIES TIMEOUT 30)
+
     # Test caller-managed concurrency on the supported macOS/Linux platforms.
     # Threads are a test dependency, not a dependency of the runtime library.
     if(UNIX)
@@ -286,9 +300,17 @@ if(BUILD_TESTING)
             COMMAND "${Python3_EXECUTABLE}" -m unittest discover
                 -s "${PROJECT_SOURCE_DIR}/tests" -p test_mnist_fixtures.py -v
         )
+        add_test(NAME mnist_inference_exported
+            COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/check_mnist_inference.py"
+                --executable "$<TARGET_FILE:test_mnist_inference>"
+        )
         set_tests_properties(mnist_training mnist_export mnist_fixtures PROPERTIES
             WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
             TIMEOUT 60
+        )
+        set_tests_properties(mnist_inference_exported PROPERTIES
+            WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+            TIMEOUT 120
         )
     endif()
 
