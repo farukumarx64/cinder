@@ -250,5 +250,9 @@ match the saved references; 28 corruption controls reject altered data.
 Hosted verification of this addition remains pending. The [`cinder run`
 contract](../../docs/CLI.md) is now defined; it prints zero-based class indices
 and up to three raw scores, which are probabilities for this model. The command
-is not implemented yet. Next: implement its finite float32 input-file reader;
-M4 remains open.
+is not implemented yet. The subsequent [lifecycle audit](LIFECYCLE.md) passes
+locally with repeated inference, failure recovery, ownership/concurrency,
+allocation-failure cleanup, and zero native leaks. Debug passes 35/35 tests;
+C-only Release and ASan/UBSan pass 26/26 each. The expanded five-job hosted
+workflow remains to be verified. Next: implement the CLI's finite float32
+input-file reader; M4 remains open.

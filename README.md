@@ -49,6 +49,9 @@ passes all 27,600 saved stage values with `atol = rtol = 1e-5` and 100/100
 prediction agreement; C and Python each classify 99/100 subset images correctly.
 The [`cinder run` contract](docs/CLI.md) is defined;
 implementing its exact-length float32 input reader is next.
+[MNIST lifecycle verification](examples/mnist/LIFECYCLE.md) now passes locally,
+including failure recovery, independent owners, poisoned workspaces, and all
+construction allocation failures. Expanded hosted verification is pending.
 The project contains a CMake build and a CLI that supports `--version`.
 The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
 
@@ -232,6 +235,13 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
   full-test result. Debug passed 33/33 tests; C-only Release and ASan/UBSan each
   passed 24/24. Native leaks reported zero. See [the validation report](examples/mnist/VALIDATION.md)
   for fresh-export checks, 28 rejection controls, reproduction, and pending CI.
+- MNIST lifecycle tests exercise 2,100 public-API and 1,384 instrumented inference
+  calls. All 21 allocation points fail cleanly with a surviving model and a
+  successful retry. Workspaces are independent, inference cycles make zero
+  allocation/free attempts, and parameters stay unchanged. Local Debug passed
+  35/35 tests; C-only Release and ASan/UBSan passed 26/26 each; both native leak
+  checks reported zero. See [the lifecycle report](examples/mnist/LIFECYCLE.md)
+  for evidence and pending hosted CI.
 - The `info`, `run`, and `bench` commands are
   planned features; they are not implemented yet.
 - The [`run` contract](docs/CLI.md) now defines two positional file paths, a
@@ -590,8 +600,10 @@ requests, and manual dispatch from the repository's Actions tab.
 
 | Job | Runner | Checks |
 | --- | --- | --- |
-| Linux build | Ubuntu 24.04 | Debug configuration, compilation, and CTest, including freshly generated NumPy references, model validation, and binary export tests. |
-| macOS build | macOS 15 | Debug configuration, compilation, and CTest. |
+| Linux Debug | Ubuntu 24.04 | Configuration, compilation, and CTest, including optional NumPy, exporter, and offline MNIST suites. |
+| Linux Release | Ubuntu 24.04 | Release configuration, compilation, and ordinary CTest tests using committed fixtures. |
+| macOS Debug | macOS 15 | Debug configuration, compilation, and ordinary CTest tests. |
+| macOS Release | macOS 15 | Release configuration, compilation, CTest, and native MNIST lifecycle leak checks. |
 | Linux sanitizers | Ubuntu 24.04 with Clang | Debug build with ASan and UBSan, then CTest with leak detection enabled. |
 
 Each job starts from a fresh checkout, prints its toolchain versions, and fails
@@ -599,20 +611,21 @@ if configuration, compilation, or testing fails. CTest also fails if no tests
 are registered. Jobs have a ten-minute limit, and newer runs replace older runs
 for the same branch or pull request.
 
-All jobs test the saved NumPy fixtures. The ordinary Linux job additionally
+All jobs test the saved NumPy and MNIST fixtures. The Linux Debug job additionally
 creates a Python virtual environment, installs the pinned NumPy and CPU PyTorch
-dependencies, and enables `CINDER_ENABLE_NUMPY_TESTS` and
-`CINDER_ENABLE_EXPORTER_TESTS`. Hosted verification of the exporter additions
-requires a future push. The M2 revision passed all three jobs:
-19 macOS tests, 21 Linux tests, and 19 Linux sanitizer tests. See
-[the verified run](https://github.com/farukumarx64/cinder/actions/runs/39984963408).
+dependencies, and enables `CINDER_ENABLE_NUMPY_TESTS`,
+`CINDER_ENABLE_EXPORTER_TESTS`, and `CINDER_ENABLE_MNIST_TESTS`. Ordinary C tests
+require no Python or MNIST download. The preceding numerical-validation commit
+passed [all three previous jobs](https://github.com/farukumarx64/cinder/actions/runs/40318184929).
+Hosted verification of the expanded matrix and new lifecycle tests is pending;
+see [the report](examples/mnist/LIFECYCLE.md).
 
 The workflow uses read-only repository permissions and a pinned checkout action.
 Check results and failure logs in [GitHub Actions](https://github.com/farukumarx64/cinder/actions/workflows/ci.yml).
 All three jobs passed in the [first hosted run](https://github.com/farukumarx64/cinder/actions/runs/37680825782)
 on October 7, 2026.
-Leak detection is enabled only in the Linux sanitizer job because the verified
-Apple Clang runtime does not support LeakSanitizer on this Mac.
+LeakSanitizer is enabled in the Linux sanitizer job. macOS Release uses native
+`leaks --atExit` for both MNIST lifecycle executables instead.
 
 ## Repository layout
 
@@ -687,12 +700,15 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | `examples/mnist/generate_fixtures.py` | Generates/checks the fixed 100-image test fixture set from the original test archives and saved checkpoint. |
 | `examples/mnist/FIXTURES.md` | Selection policy, binary layouts, regeneration commands, measured results, and verification scope. |
 | `examples/mnist/VALIDATION.md` | C-versus-Python stage errors, prediction agreement, separate classification accuracy, reproduction, and verification scope. |
+| `examples/mnist/LIFECYCLE.md` | Larger-model failure recovery, ownership, allocation audit, concurrency, local verification, and CI evidence. |
 | `tests/fixtures/mnist/` | Indices, labels, original selected pixels, 100 raw inputs, four stage arrays, and a provenance/hash manifest. |
 | `tests/test_mnist_training.py` | Offline synthetic training, preprocessing/IDX checks, independent-process repeatability, and checkpoint/CLI failures. |
 | `tests/test_mnist_export.py` | Exact trained parameter bits, evaluation/Softmax behavior, independent-process export, and checkpoint/CLI rejection checks. |
 | `tests/test_mnist_fixtures.py` | Offline preprocessing, stage comparison, regeneration, source selection, corruption detection, and cleanup checks. |
 | `tests/test_mnist_inference.c` | Python-independent comparison of all 100 saved MNIST inputs and four stages through the C loader/model APIs. |
 | `tests/check_mnist_inference.py` | Fresh checkpoint export, prefix identity, 28 C rejection controls, and accuracy/agreement separation. |
+| `tests/test_mnist_lifecycle.c` | C-only repeated inference, failed-call/load recovery, independent owners, and supported concurrency. |
+| `tests/mnist_lifecycle_audit.h` | Test-only allocation/I/O tracking, partial-write injection, and compilation of the real ownership chain. |
 | `tests/test_tensor_alloc_failures.c` | Forces allocation failures and tracks cleanup with test-only allocator substitutions. |
 | `.github/workflows/ci.yml` | macOS/Linux build jobs and the Linux sanitizer job. |
 | `ROADMAP.md` | Scope, implementation decisions, milestones, and progress. |

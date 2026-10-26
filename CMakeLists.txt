@@ -196,10 +196,37 @@ if(BUILD_TESTING)
     )
     set_tests_properties(mnist_inference_fixtures PROPERTIES TIMEOUT 30)
 
+    # Instrument the real ownership chain only in this test translation unit.
+    # Its committed fixtures require no Python or dataset cache.
+    add_executable(test_mnist_lifecycle_audit tests/test_mnist_lifecycle.c)
+    target_compile_definitions(test_mnist_lifecycle_audit PRIVATE CINDER_MNIST_AUDIT=1)
+    target_include_directories(test_mnist_lifecycle_audit PRIVATE
+        "${PROJECT_SOURCE_DIR}/include" "${PROJECT_SOURCE_DIR}/tests/fixtures")
+    cinder_configure_target(test_mnist_lifecycle_audit)
+    if(UNIX)
+        target_link_libraries(test_mnist_lifecycle_audit PRIVATE m)
+    endif()
+    file(MAKE_DIRECTORY "${PROJECT_BINARY_DIR}/mnist-lifecycle-audit-files")
+    add_test(NAME mnist_lifecycle_audit COMMAND test_mnist_lifecycle_audit
+        "${PROJECT_SOURCE_DIR}/examples/mnist/mnist.cnd"
+        "${PROJECT_SOURCE_DIR}/tests/fixtures/mnist"
+        "${PROJECT_BINARY_DIR}/mnist-lifecycle-audit-files/model.bin")
+    set_tests_properties(mnist_lifecycle_audit PROPERTIES TIMEOUT 60)
+
     # Test caller-managed concurrency on the supported macOS/Linux platforms.
     # Threads are a test dependency, not a dependency of the runtime library.
     if(UNIX)
         find_package(Threads REQUIRED)
+        add_executable(test_mnist_lifecycle tests/test_mnist_lifecycle.c)
+        target_include_directories(test_mnist_lifecycle PRIVATE "${PROJECT_SOURCE_DIR}/tests/fixtures")
+        target_link_libraries(test_mnist_lifecycle PRIVATE cinder_core Threads::Threads)
+        cinder_configure_target(test_mnist_lifecycle)
+        file(MAKE_DIRECTORY "${PROJECT_BINARY_DIR}/mnist-lifecycle-files")
+        add_test(NAME mnist_lifecycle COMMAND test_mnist_lifecycle
+            "${PROJECT_SOURCE_DIR}/examples/mnist/mnist.cnd"
+            "${PROJECT_SOURCE_DIR}/tests/fixtures/mnist"
+            "${PROJECT_BINARY_DIR}/mnist-lifecycle-files/model.bin")
+        set_tests_properties(mnist_lifecycle PROPERTIES TIMEOUT 60)
         add_executable(test_model_lifecycle tests/test_model_lifecycle.c)
         target_include_directories(test_model_lifecycle PRIVATE "${PROJECT_SOURCE_DIR}/tests/fixtures")
         target_link_libraries(test_model_lifecycle PRIVATE cinder_core Threads::Threads)

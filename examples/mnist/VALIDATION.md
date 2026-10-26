@@ -155,11 +155,14 @@ standard restricted-process memory-display notice before reporting zero leaks.
 
 The existing workflow includes the new C test in macOS, Linux, and Linux
 sanitizer jobs, and the optional fresh-export check in the Linux Python job.
-**Hosted results for these changes have not yet been obtained.** Other
+The numerical-validation revision passed all three existing jobs in
+[run 40318184929](https://github.com/farukumarx64/cinder/actions/runs/40318184929).
+The subsequent [lifecycle audit and expanded CI matrix](LIFECYCLE.md) record
+their own verification status separately. Other
 architectures/toolchains may produce different rounding errors and must pass
 the same tolerance rather than reproduce these exact maxima.
 
 The training script, checkpoint, exported model, saved answers, production C
 runtime, and CLI implementation are unchanged. M4 remains open: input-file
-reading, `cinder run`, the larger-model lifecycle audit, hosted CI verification,
-and final documentation/closure remain in the roadmap.
+reading, `cinder run`, final hosted lifecycle verification, and documentation/
+closure remain in the roadmap. The larger-model lifecycle audit now passes locally.

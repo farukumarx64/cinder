@@ -15,13 +15,14 @@ concurrency:
 
 jobs:
   build:
-    name: Build and test (${{ matrix.os }})
+    name: Build and test (${{ matrix.os }}, ${{ matrix.build_type }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-24.04, macos-15]
+        build_type: [Debug, Release]
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -34,10 +35,10 @@ jobs:
           cc --version
 
       - name: Configure
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DBUILD_TESTING=ON
 
-      - name: Enable NumPy, exporter, and offline MNIST script tests (Linux)
-        if: runner.os == 'Linux'
+      - name: Enable NumPy, exporter, and offline MNIST script tests (Linux Debug)
+        if: runner.os == 'Linux' && matrix.build_type == 'Debug'
         run: |
           python3 -m venv .venv
           .venv/bin/python -m pip install -r tests/requirements-numpy.txt
@@ -52,7 +53,15 @@ jobs:
         run: cmake --build build --parallel
 
       - name: Test
-        run: ctest --test-dir build --output-on-failure --no-tests=error
+        run: ctest --test-dir build --output-on-failure --no-tests=error --verbose
+
+      - name: Native MNIST leak checks (macOS Release)
+        if: runner.os == 'macOS' && matrix.build_type == 'Release'
+        run: |
+          leaks --atExit -- ./build/test_mnist_lifecycle \
+            examples/mnist/mnist.cnd tests/fixtures/mnist build/mnist-lifecycle-files/model.bin
+          leaks --atExit -- ./build/test_mnist_lifecycle_audit \
+            examples/mnist/mnist.cnd tests/fixtures/mnist build/mnist-lifecycle-audit-files/model.bin
 
   sanitizers:
     name: Sanitizers (Linux, ASan + UBSan + leaks)
@@ -86,4 +95,4 @@ jobs:
         env:
           ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
           UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
-        run: ctest --test-dir build-sanitize --output-on-failure --no-tests=error
+        run: ctest --test-dir build-sanitize --output-on-failure --no-tests=error --verbose
