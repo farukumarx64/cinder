@@ -149,8 +149,9 @@ exporter, and C round-trip checks. The MNIST-only configuration registers both
 suites independently of the NumPy/exporter options. With all Python options OFF,
 the C-only Release configuration still registers 23 C tests without Python
 discovery. The module-form `--check`, Python compilation, and whitespace checks
-also passed. Hosted verification is pending an authorized commit/push; no C
-runtime changes or new sanitizer runs are part of this step.
+also passed. No C runtime changes or new sanitizer runs were part of the export
+step. Subsequent [lifecycle verification](LIFECYCLE.md) passed locally and in all
+five hosted CI jobs.
 
 The integration run exposed an existing training CLI test that assumed the
 default run directory was absent. Real training had created that directory.
@@ -162,5 +163,5 @@ The subsequent [fixture step](FIXTURES.md) now preserves the first 100 test
 images' inputs and Dense1/ReLU/logits/probability outputs. The
 [C validation](VALIDATION.md) now passes every saved stage and fresh checkpoint
 exports. The [`run` contract](../../docs/CLI.md) is defined; its input reader,
-CLI implementation, lifecycle audit, and hosted verification are still required
-to close M4.
+CLI implementation, and final milestone documentation are still required to
+close M4. The [lifecycle audit and hosted verification](LIFECYCLE.md) are complete.

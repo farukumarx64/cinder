@@ -240,19 +240,21 @@ reproduced both metrics exactly. A second full training run reproduced all
 [RESULTS.md](RESULTS.md) for evidence, saved artifacts, and reproduction commands.
 The subsequent [export step](EXPORT.md) adds the inference wrapper, trained
 binary, and export tests while preserving the training implementation and its
-reference records. Hosted verification for the export addition remains pending
-an authorized commit/push.
+reference records. Hosted verification subsequently passed as recorded in the
+[lifecycle report](LIFECYCLE.md).
 The [fixture step](FIXTURES.md) now preserves and verifies 100 real-image inputs
 and every stage, with 31/31 combined tests passing at that step. The subsequent
 [C validation](VALIDATION.md) passes all 27,600 values: Debug 33/33 tests,
 C-only Release and ASan/UBSan 24/24 each, and zero native leaks. Fresh exports
 match the saved references; 28 corruption controls reject altered data.
-Hosted verification of this addition remains pending. The [`cinder run`
+Hosted verification of this addition also passed. The [`cinder run`
 contract](../../docs/CLI.md) is now defined; it prints zero-based class indices
 and up to three raw scores, which are probabilities for this model. The command
 is not implemented yet. The subsequent [lifecycle audit](LIFECYCLE.md) passes
-locally with repeated inference, failure recovery, ownership/concurrency,
+locally and in hosted CI with repeated inference, failure recovery, ownership/concurrency,
 allocation-failure cleanup, and zero native leaks. Debug passes 35/35 tests;
-C-only Release and ASan/UBSan pass 26/26 each. The expanded five-job hosted
-workflow remains to be verified. Next: implement the CLI's finite float32
+C-only Release and ASan/UBSan pass 26/26 each. All five hosted jobs passed
+October 27: Linux Debug 35/35; both macOS configurations, Linux Release, and Linux
+sanitizers 26/26 each. The report records the native hosted macOS leak-check
+limitation. Next: implement the CLI's finite float32
 input-file reader; M4 remains open.

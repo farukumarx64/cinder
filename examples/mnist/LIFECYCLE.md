@@ -1,7 +1,7 @@
 # MNIST lifecycle and CI verification
 
-**Local checks passed October 26, 2026. Hosted verification is being completed
-on October 27 after the first run stalled in native macOS leak checking.** M4 remains open because
+**Local checks passed October 26, 2026, and all five hosted CI jobs passed
+October 27, 2026 (Africa/Lagos).** M4 remains open because
 the input-file reader and `cinder run` implementation are still outstanding.
 
 This step adds two CTest executables from
@@ -147,7 +147,33 @@ claimed. This is not counted as a fully successful CI run.
 The follow-up workflow removes that hosted-only step. Native macOS leak checks
 remain verified locally as recorded above; Linux LeakSanitizer remains a
 required CI check. Both lifecycle tests and the complete C suite still run in
-every job. The revised five-job run is pending verification.
+every job.
+
+The verified revision is **`bd6cbd9a331127e1d53c238f825c00ef3ce2e1ef`**, including
+the lifecycle implementation from `9f6fe4e`. All five jobs passed in
+[run 40417063563](https://github.com/farukumarx64/cinder/actions/runs/40417063563).
+Checked-out revisions, job conclusions, lifecycle output, test totals,
+toolchains, and sanitizer settings were inspected in the logs.
+
+| Job | Toolchain | Actual result |
+| --- | --- | --- |
+| Ubuntu 24.04 Debug | GCC 13.3.0, CMake 3.31.6 | **35/35 tests passed** |
+| Ubuntu 24.04 Release | GCC 13.3.0, CMake 3.31.6 | **26/26 passed** |
+| macOS 15 Debug | Apple Clang 17.0.0, CMake 4.4.3 | **26/26 passed** |
+| macOS 15 Release | Apple Clang 17.0.0, CMake 4.4.3 | **26/26 passed** |
+| Ubuntu 24.04 sanitizers | Clang 18.1.3, CMake 3.31.6 | **26/26 passed**, ASan + UBSan + LeakSanitizer, no findings |
+
+Linux Debug also used Python 3.12.3, NumPy 2.3.5, and PyTorch 2.14.1+cpu.
+Every job printed the expected lifecycle counts and zero final tracked
+allocations/streams. All saved MNIST stages passed, with 100/100 runtime
+prediction agreement and 99/100 subset classification accuracy in both C and
+Python. Linux's slightly different numerical maxima are recorded in
+[VALIDATION.md](VALIDATION.md); no tolerance or reference changes were needed.
+
+This completes the scoped lifecycle/CI step. Native hosted macOS leak checking
+remains an explicit limitation. Successful local native checks and mandatory
+hosted Linux LeakSanitizer provide the recorded leak evidence. M4 still requires the input-file reader,
+`cinder run`, and final milestone documentation.
 
 ## Reproduce and limits
 

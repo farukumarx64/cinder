@@ -164,8 +164,9 @@ the same tolerance rather than reproduce these exact maxima.
 
 
 Hosted Linux Debug, Release, and sanitizer jobs for lifecycle revision
-`9f6fe4e9439cdc4865f5db8d47379ee4c9380de0` also passed the numerical comparison
-in [run 40374063660](https://github.com/farukumarx64/cinder/actions/runs/40374063660).
+`bd6cbd9a331127e1d53c238f825c00ef3ce2e1ef` also passed the numerical comparison
+in [run 40417063563](https://github.com/farukumarx64/cinder/actions/runs/40417063563),
+alongside successful macOS Debug/Release jobs, verified October 27, 2026.
 Their maximum errors differ slightly from the local/macOS results:
 
 | Stage | Linux maximum absolute error | Maximum fraction of allowed error |
@@ -179,9 +180,10 @@ All 27,600 values still pass the same tolerance; the largest fraction is about
 20.67% of the allowance. Every checked platform reports 100/100 runtime
 prediction agreement and 99/100 subset classification accuracy for each
 runtime. These observed rounding differences require no fixture or tolerance
-changes. Lifecycle/leak-job completion is tracked in [LIFECYCLE.md](LIFECYCLE.md).
+changes. All five jobs passed; lifecycle results and the native hosted macOS
+leak-check limitation are recorded in [LIFECYCLE.md](LIFECYCLE.md).
 
 The training script, checkpoint, exported model, saved answers, production C
 runtime, and CLI implementation are unchanged. M4 remains open: input-file
-reading, `cinder run`, final hosted lifecycle verification, and documentation/
-closure remain in the roadmap. The larger-model lifecycle audit now passes locally.
+reading, `cinder run`, and final documentation/closure remain in the roadmap.
+The larger-model lifecycle audit now passes locally and in hosted CI.

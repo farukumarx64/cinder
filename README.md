@@ -49,9 +49,10 @@ passes all 27,600 saved stage values with `atol = rtol = 1e-5` and 100/100
 prediction agreement; C and Python each classify 99/100 subset images correctly.
 The [`cinder run` contract](docs/CLI.md) is defined;
 implementing its exact-length float32 input reader is next.
-[MNIST lifecycle verification](examples/mnist/LIFECYCLE.md) now passes locally,
+[MNIST lifecycle verification](examples/mnist/LIFECYCLE.md) now passes locally and
+in all five hosted CI jobs,
 including failure recovery, independent owners, poisoned workspaces, and all
-construction allocation failures. Expanded hosted verification is pending.
+construction allocation failures. Hosted verification completed October 27, 2026.
 The project contains a CMake build and a CLI that supports `--version`.
 The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
 
@@ -234,14 +235,16 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
   that fixed subset is 99/100 for both runtimes, separate from Python's 97.48%
   full-test result. Debug passed 33/33 tests; C-only Release and ASan/UBSan each
   passed 24/24. Native leaks reported zero. See [the validation report](examples/mnist/VALIDATION.md)
-  for fresh-export checks, 28 rejection controls, reproduction, and pending CI.
+  for fresh-export checks, 28 rejection controls, reproduction, and hosted results.
 - MNIST lifecycle tests exercise 2,100 public-API and 1,384 instrumented inference
   calls. All 21 allocation points fail cleanly with a surviving model and a
   successful retry. Workspaces are independent, inference cycles make zero
   allocation/free attempts, and parameters stay unchanged. Local Debug passed
   35/35 tests; C-only Release and ASan/UBSan passed 26/26 each; both native leak
   checks reported zero. See [the lifecycle report](examples/mnist/LIFECYCLE.md)
-  for evidence and pending hosted CI.
+  for evidence: Linux Debug passes 35/35 hosted tests; macOS Debug/Release,
+  Linux Release, and Linux sanitizers each pass 26/26. Native hosted macOS leak
+  checking did not complete; local native checks and hosted Linux LeakSanitizer pass.
 - The `info`, `run`, and `bench` commands are
   planned features; they are not implemented yet.
 - The [`run` contract](docs/CLI.md) now defines two positional file paths, a
@@ -617,8 +620,9 @@ dependencies, and enables `CINDER_ENABLE_NUMPY_TESTS`,
 `CINDER_ENABLE_EXPORTER_TESTS`, and `CINDER_ENABLE_MNIST_TESTS`. Ordinary C tests
 require no Python or MNIST download. The preceding numerical-validation commit
 passed [all three previous jobs](https://github.com/farukumarx64/cinder/actions/runs/40318184929).
-Hosted verification of the expanded matrix and new lifecycle tests is pending;
-see [the report](examples/mnist/LIFECYCLE.md).
+The expanded matrix and lifecycle tests passed
+[all five jobs for `bd6cbd9`](https://github.com/farukumarx64/cinder/actions/runs/40417063563)
+on October 27, 2026; see [the report](examples/mnist/LIFECYCLE.md).
 
 The workflow uses read-only repository permissions and a pinned checkout action.
 Check results and failure logs in [GitHub Actions](https://github.com/farukumarx64/cinder/actions/workflows/ci.yml).

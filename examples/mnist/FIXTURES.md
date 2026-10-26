@@ -164,10 +164,11 @@ sanitizer runs were part of the fixture-generation step. The subsequent
 [C-versus-Python validation](VALIDATION.md) passes all 27,600 values and reports
 100/100 prediction agreement, with 99/100 subset accuracy for each runtime.
 That step adds C-only comparison, fresh-export integration, corruption controls,
-and local Debug/Release/sanitizer/leak verification. Hosted CI remains pending.
+and local Debug/Release/sanitizer/leak verification. The subsequent
+[lifecycle step](LIFECYCLE.md) also passes all five hosted jobs.
 
 The [`cinder run` contract](../../docs/CLI.md) is now defined: digit labels map
 directly to zero-based output indices, and the CLI will show up to three raw
 scores (probabilities for this Softmax model). Next: implement exact-length
-finite float32 input-file reading, followed by CLI execution
-and the lifecycle audit. M4 is still open.
+finite float32 input-file reading, followed by CLI execution and final milestone
+documentation. Lifecycle verification is complete; M4 is still open.
