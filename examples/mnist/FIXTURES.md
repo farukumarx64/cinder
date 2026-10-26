@@ -163,7 +163,8 @@ Python compilation and whitespace checks passed. No C runtime changes or new
 sanitizer runs are part of this step. Hosted CI and the future C-versus-Python
 MNIST comparisons remain pending.
 
-Next: define the `cinder run <model.cnd> <input.bin>` command contract, including
-prediction output, class indices, exit statuses, and errors. The input-reader,
-CLI implementation, C comparisons, and lifecycle audit remain separate steps;
-M4 is still open.
+The [`cinder run` contract](../../docs/CLI.md) is now defined: digit labels map
+directly to zero-based output indices, and the CLI will show up to three raw
+scores (probabilities for this Softmax model). Next: implement exact-length
+finite float32 input-file reading, followed by CLI execution, C comparisons,
+and the lifecycle audit. M4 is still open.

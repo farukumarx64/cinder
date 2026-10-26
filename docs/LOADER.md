@@ -4,7 +4,9 @@
 The declaration is in [`include/cinder/model.h`](../include/cinder/model.h), and
 the shared status codes are in [`include/cinder/error.h`](../include/cinder/error.h).
 [`src/loader.c`](../src/loader.c) implements the linkable C API. The CLI still
-supports only `--version`; loading through CLI commands is later work.
+supports only `--version`; loading through CLI commands is later work. The
+planned [`run` contract](CLI.md) specifies how the CLI will call this API and
+present errors without changing the loader's status or ownership rules.
 The [format specification](MODEL_FORMAT.md) remains authoritative for file bytes
 and resource bounds; this document defines the C API, file handling, ownership,
 failure behavior, and use of the existing constructors.

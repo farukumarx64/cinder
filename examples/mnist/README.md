@@ -238,5 +238,8 @@ binary, and export tests while preserving the training implementation and its
 reference records. Hosted verification for the export addition remains pending
 an authorized commit/push.
 The [fixture step](FIXTURES.md) now preserves and verifies 100 real-image inputs
-and every stage, with 31/31 combined tests passing. Next: define the `cinder run`
-contract; M4 remains open.
+and every stage, with 31/31 combined tests passing. The [`cinder run`
+contract](../../docs/CLI.md) is now defined; it prints zero-based class indices
+and up to three raw scores, which are probabilities for this model. The command
+is not implemented yet. Next: implement its finite float32 input-file reader;
+M4 remains open.

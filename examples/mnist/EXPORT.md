@@ -159,5 +159,6 @@ not depend on local experiments. Training code and saved training artifacts
 remain unchanged.
 
 The subsequent [fixture step](FIXTURES.md) now preserves the first 100 test
-images' inputs and Dense1/ReLU/logits/probability outputs. The CLI contract,
-implementation, C comparisons, and lifecycle audit are still required to close M4.
+images' inputs and Dense1/ReLU/logits/probability outputs. The
+[`run` contract](../../docs/CLI.md) is defined; its input reader, CLI implementation,
+C comparisons, and lifecycle audit are still required to close M4.

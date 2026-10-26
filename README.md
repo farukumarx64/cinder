@@ -44,7 +44,8 @@ and [measured results](examples/mnist/RESULTS.md). Its trained
 [`mnist.cnd`](examples/mnist/mnist.cnd) includes inference Softmax and passes
 [deterministic export checks](examples/mnist/EXPORT.md). Saved
 [reference fixtures](examples/mnist/FIXTURES.md) now cover test indices `0..99`
-and every intermediate stage. Defining the `cinder run` contract is next.
+and every intermediate stage. The [`cinder run` contract](docs/CLI.md) is defined;
+implementing its exact-length float32 input reader is next.
 The project contains a CMake build and a CLI that supports `--version`.
 The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
 
@@ -224,6 +225,10 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
   [the fixture guide](examples/mnist/FIXTURES.md).
 - The `info`, `run`, and `bench` commands are
   planned features; they are not implemented yet.
+- The [`run` contract](docs/CLI.md) now defines two positional file paths, a
+  zero-based prediction and up to three ranked raw scores, lower-index tie
+  breaking, exit statuses `0/1/2`, and contextual errors. It accepts valid models
+  with or without Softmax; the current executable still supports only `--version`.
 
 See [the roadmap](ROADMAP.md#current-progress) for the current checklist and
 next scoped task.
@@ -266,6 +271,11 @@ The version number comes from CMake's project version, with `-dev` appended for
 the development build. The CLI currently accepts exactly one argument:
 `--version`. Missing, unknown, or extra arguments print a usage message to
 standard error and return a nonzero exit status.
+
+The [planned inference-command contract](docs/CLI.md) specifies
+`cinder run <model.cnd> <input.bin>`, its exact display format, path/class
+semantics, errors, and cleanup. `run` and its planned usage-error exit status `2`
+are not implemented by this documentation step.
 
 Keep generated files in a separate build directory. The ignore rules cover
 `build/`, `build-*/`, and `cmake-build-*/`, along with common generated CMake files.
@@ -614,6 +624,7 @@ Apple Clang runtime does not support LeakSanitizer on this Mac.
 | `docs/MODEL.md` | Model ownership transfer, connections, dimensions, buffers, inference failures, and concurrency contract. |
 | `docs/LOADER.md` | C loader API, file/status rules, constructor ownership, cleanup, implementation results, and remaining checks. |
 | `docs/MODEL_FORMAT.md` | `.cnd` version 1 byte layout, layer IDs, limits, validation, input-file contract, and worked example. |
+| `docs/CLI.md` | Planned `cinder run` syntax, score formatting, class mapping, exit statuses, diagnostics, cleanup, and implementation acceptance cases. |
 | `docs/EXPORTER.md` | Python model validation, binary writing, file replacement, fixtures, dependencies, and tests. |
 | `docs/NUMPY_TESTS.md` | Reference calculations, fixtures, tolerances, regeneration, and verification results. |
 | `docs/ROUND_TRIP.md` | Saved and freshly exported model-prefix comparisons through C loading/inference, dependencies, and measured results. |
@@ -698,7 +709,8 @@ Phase 4's Python reference model is trained and saved, with 97.48% official test
 accuracy and verified reload/repeatability results.
 The trained `mnist.cnd` includes inference Softmax and regenerates identically.
 Saved fixtures now cover 100 fixed test inputs and all four stage outputs.
-Next: define the `cinder run <model.cnd> <input.bin>` command contract.
+The `cinder run` contract is defined; implementation remains pending.
+Next: implement exact-length finite little-endian float32 input-file reading.
 
 The v0.1.0 scope excludes training, GPU execution, convolutional layers,
 quantization, SIMD, multithreading, and arbitrary computation graphs.

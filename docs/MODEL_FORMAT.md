@@ -185,6 +185,9 @@ basename of the supplied path, including its extension: `/models/tiny.cnd`
 is displayed as `Model: tiny.cnd`. Renaming a file changes that display label,
 not its model semantics. Example documentation supplies human descriptions and
 class meanings separately. Writers must not append such metadata to the file.
+The [defined `run` contract](CLI.md) uses the same basename display convention,
+with escaping for unusual filename bytes, and prints zero-based indices and
+raw scores. It does not infer labels or insert Softmax from a filename.
 
 The loader must reject malformed or unsupported files, dimension
 mismatches, resource-limit violations, non-finite parameters, allocation
@@ -218,6 +221,10 @@ The future `cinder run` and `cinder bench` commands take a separate input file:
   Reject missing/extra bytes and I/O errors before inference.
 - The caller supplies already-preprocessed values. The runtime does not infer
   normalization from the model filename or perform image decoding.
+
+The [`run` command contract](CLI.md) specifies planned argument handling,
+prediction formatting, input diagnostics, process exit statuses, and cleanup.
+The exact input bytes below are unchanged; CLI implementation remains pending.
 
 For MNIST, flatten a `28 x 28` image in row-major order: feature
 `row * 28 + column` corresponds to that pixel. Convert the original `0..255`
