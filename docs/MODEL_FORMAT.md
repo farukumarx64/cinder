@@ -212,7 +212,8 @@ they do not provide general file-integrity detection.
 
 ## Input-file and preprocessing contract
 
-The future `cinder run` and `cinder bench` commands take a separate input file:
+The implemented `cinder run` and planned [`cinder bench`](BENCHMARK.md) commands
+take a separate input file:
 
 - Exactly `model_input_size` consecutive `f32le` values, totaling
   `4 * model_input_size` bytes, in feature-index order.

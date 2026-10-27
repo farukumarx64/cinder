@@ -251,6 +251,10 @@ records the exact revision, results, GCC warnings, and remaining limitations.
   Linux Release, and Linux sanitizers each pass 26/26. Native hosted macOS leak
   checking did not complete; local native checks and hosted Linux LeakSanitizer pass.
 - The `info` and `bench` commands remain planned features.
+- The [benchmark contract](docs/BENCHMARK.md), defined October 27, specifies
+  required `--iterations N` (1–1,000,000), ten fixed warm-ups, per-call monotonic
+  inference timing, checked statistics, exact reporting, and failure behavior.
+  The command is not implemented and no performance results have been measured.
 - The [`run` contract](docs/CLI.md) now defines two positional file paths, a
   zero-based prediction and up to three ranked raw scores, lower-index tie
   breaking, exit statuses `0/1/2`, and contextual errors. It accepts valid models
@@ -668,6 +672,7 @@ records that limitation and local reproduction commands.
 | `docs/LOADER.md` | C loader API, file/status rules, constructor ownership, cleanup, implementation results, and remaining checks. |
 | `docs/MODEL_FORMAT.md` | `.cnd` version 1 byte layout, layer IDs, limits, validation, input-file contract, and worked example. |
 | `docs/CLI.md` | Implemented `cinder run` syntax, score formatting, class mapping, exit statuses, diagnostics, cleanup, and implementation acceptance cases. |
+| `docs/BENCHMARK.md` | Planned benchmark arguments, warm-up policy, timing boundary, statistics, exact output/errors, baseline reporting, and acceptance cases. |
 | `docs/EXPORTER.md` | Python model validation, binary writing, file replacement, fixtures, dependencies, and tests. |
 | `docs/NUMPY_TESTS.md` | Reference calculations, fixtures, tolerances, regeneration, and verification results. |
 | `docs/ROUND_TRIP.md` | Saved and freshly exported model-prefix comparisons through C loading/inference, dependencies, and measured results. |
@@ -762,7 +767,9 @@ The `cinder run` command and exact-length input reader are implemented and
 verified locally and in all five hosted jobs. The
 [demonstration report](examples/mnist/DEMO.md) consolidates reproduction commands,
 results, limitations, and M4 closure on October 27, 2026.
-Next: define the Phase 5 benchmark command and measurement contract.
+The [Phase 5 benchmark contract](docs/BENCHMARK.md) is defined; implementation
+remains pending. Next: prepare reusable CLI model/input setup and cleanup while
+preserving the tested `run` behavior.
 
 The v0.1.0 scope excludes training, GPU execution, convolutional layers,
 quantization, SIMD, multithreading, and arbitrary computation graphs.

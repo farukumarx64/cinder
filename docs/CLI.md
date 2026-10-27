@@ -9,6 +9,12 @@ output, reproduction commands, test results, and M4 closure status.
 The [.cnd format](MODEL_FORMAT.md), [loader](LOADER.md), and [model API](MODEL.md)
 remain authoritative for binary encoding, validation, ownership, and inference.
 
+The separate [benchmark contract](BENCHMARK.md) defines the planned `bench`
+command. It is not implemented yet. Its future integration will add a third
+line to the common usage block and change the global unknown-command reason;
+the two-command usage text below describes the current executable. Successful
+`run`/`--version` output and `run` operational errors will retain this contract.
+
 ## Invocation and argument rules
 
 ```text

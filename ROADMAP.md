@@ -96,7 +96,13 @@ records reproduction commands, actual output, accuracy, agreement, and limitatio
 Linux Debug passed 38/38 tests; macOS Debug/Release, Linux Release, and Linux
 ASan/UBSan/LeakSanitizer passed 29/29 each. The demonstration report records
 actual numerical results, existing GCC warnings, and platform limitations.
-**Next scoped step: define the Phase 5 benchmark command and measurement contract.**
+The [Phase 5 benchmark contract](docs/BENCHMARK.md) was defined October 27:
+required `--iterations N` (1–1,000,000), ten fixed warm-ups, monotonic timing of
+one public model call per sample, checked nanosecond totals, microsecond latency,
+throughput, exact reports/errors, and failure cleanup. Implementation remains
+pending; this documentation step records no performance measurements.
+**Next scoped step: prepare reusable CLI model/input setup and cleanup while
+preserving the tested `run` behavior.**
 Implement and verify one scoped step at a time.
 
 ### Phase 0 checklist
@@ -191,6 +197,17 @@ remain documented in the M3 report.
 - [x] Verify larger-model lifecycle behavior and CI, completed October 27, 2026. Local verification passed October 26, 2026: 2,100 public-API inference calls and 1,384 instrumented calls cover repeated inputs, failure recovery, independent owners, deleted source files, caller-serialized shared access, poisoned 784-float workspaces, partial-write failures at all four layers, unchanged parameters, and all 21 allocation points failing with/without diagnostics. Debug passed 35/35 tests; C-only Release and ASan/UBSan passed 26/26 each; both native leak checks reported zero. Ordinary C tests use committed fixtures without Python or MNIST downloads. The workflow now covers Debug/Release on macOS/Linux and Linux sanitizer/leak checks. The first hosted macOS native leak step did not complete and was removed; native macOS checks passed locally. All five jobs passed for `bd6cbd9` in [run 40417063563](https://github.com/farukumarx64/cinder/actions/runs/40417063563): Linux Debug 35/35; macOS Debug/Release, Linux Release, and Linux ASan/UBSan/LeakSanitizer 26/26 each. See [the lifecycle report](examples/mnist/LIFECYCLE.md) for exact toolchains and the native hosted macOS leak-check limitation. The subsequent [demonstration report](examples/mnist/DEMO.md) tracks CLI implementation and M4 closure.
 - [x] Document the demonstration and close M4 on October 27, 2026. [DEMO.md](examples/mnist/DEMO.md) records measured accuracy and agreement separately, all-stage numerical errors, offline build/run commands, Python reproduction, actual C output, local checks, and limitations. The saved export and all 108 fixture files regenerate identically. All five jobs for `7aa4bdaca26149a1746779817b8f42c6813a9bc6` passed in [run 40487216629](https://github.com/farukumarx64/cinder/actions/runs/40487216629): Linux Debug 38/38; macOS Debug/Release, Linux Release, and Linux ASan/UBSan/LeakSanitizer 29/29 each. Every job passed the 122 CLI cases and 27,600 stage comparisons with 100/100 prediction/top-three agreement; lifecycle and allocation-failure audits also passed. Record existing GCC warnings, native hosted macOS leak-check limitations, and unmeasured full-test C accuracy explicitly. M4 is complete; Phase 5 benchmarking remains separate.
 
+### Phase 5 checklist
+
+- [x] Define the benchmark command and measurement contract on October 27, 2026. [BENCHMARK.md](docs/BENCHMARK.md) specifies fixed argument order, checked decimal iterations in 1..1,000,000, ten untimed warm-ups, reuse of one model/input/output, monotonic per-call wall-clock timing including public API validation/copies, exclusion of setup/observation/printing, checked integer nanosecond accumulation, microsecond latency and throughput formulas, exact nine-line output, `0/1/2` exits, contextual failures/precedence/cleanup, and controlled-clock acceptance cases. Verify synthetic arithmetic and documentation consistency only; no implementation, benchmark timings, build, or new CI results are claimed.
+- [ ] Prepare reusable CLI model/input setup and cleanup; preserve the tested `run` behavior and existing ownership/error guarantees.
+- [ ] Implement the monotonic timer for macOS/Linux, including resolution, normalized timestamps, checked differences, and clock/error tests.
+- [ ] Implement ten warm-up calls and the measured loop with reusable buffers, output observation outside timing, no per-call allocation, and immediate failure stopping.
+- [ ] Calculate and display count, mean/minimum/maximum latency, clock resolution, and throughput according to the contract; check overflow, finite results, and output errors.
+- [ ] Complete benchmark acceptance tests: arguments, controlled timing/statistics, ownership, failures, formatting, and real tiny/MNIST runs. Ordinary C tests must need neither Python nor downloads and must not impose a speed threshold.
+- [ ] Record a Release-build baseline for tiny/MNIST with repeated trials, exact revisions/commands, model/input identities, environment/build details, numerical agreement, and inference allocation counts.
+- [ ] Evaluate only evidence-supported improvements, compare like-for-like before/after results, and close Phase 5 after numerical/lifecycle checks, Debug/Release, sanitizers, supported leak checks, and macOS/Linux CI pass. A measured baseline is valid even if no optimization is justified.
+
 ---
 
 # 1. v0.1.0 Goal
@@ -234,19 +251,24 @@ Scores:
 2	0.000236767111
 ```
 
-Benchmarking:
+Planned benchmarking command, specified in [the contract](docs/BENCHMARK.md):
 
 ```bash
 $ cinder bench mnist.cnd digit.bin --iterations 1000
 ```
 
-Output:
+Planned output format; placeholders below are not measured values:
 
 ```text
-Iterations:       1000
-Average:          0.79 ms
-Min:              0.73 ms
-Max:              1.12 ms
+Model: mnist.cnd
+Iterations: 1000
+Warm-up iterations: 10
+Clock: monotonic
+Clock resolution (ns): <resolution>
+Mean latency (us): <mean>
+Minimum latency (us): <minimum>
+Maximum latency (us): <maximum>
+Throughput (inferences/s): <throughput>
 ```
 
 That is enough for a strong `v0.1.0`.
@@ -1262,10 +1284,14 @@ At this point the MVP technically exists.
 
 ## Benchmarking and Runtime Improvements
 
-Add:
+October 23–25 was the original planning target. M4 closed October 27; the
+benchmark contract was defined that day, and implementation remains pending.
+The [Phase 5 checklist](#phase-5-checklist) records the scoped steps.
+
+The authoritative [command and measurement contract](docs/BENCHMARK.md) specifies:
 
 ```bash
-cinder bench
+cinder bench <model.cnd> <input.bin> --iterations N
 ```
 
 Example:
@@ -1284,20 +1310,20 @@ maximum latency
 throughput
 ```
 
-Define the benchmark before interpreting results:
+Apply the contract before interpreting results:
 
 - Use an optimized Release build and record the CPU, operating system, compiler, and build options.
 - Load the model and input and allocate working buffers before timing.
-- Run warm-up iterations, then measure forward inference with a monotonic clock. Exclude file I/O, preprocessing, and output printing from the reported inference time.
-- Validate the iteration count and ensure benchmark outputs are consumed so computation cannot be discarded by optimization.
-- Report the iteration count, mean, minimum, maximum, and throughput. Treat noisy individual measurements cautiously.
+- Require `--iterations N` in 1..1,000,000 and run ten fixed untimed warm-ups, then measure each public `cinder_model_run` call with a monotonic clock. Include its validation/copies; exclude loading, allocation, preprocessing, result observation, statistics, cleanup, and printing.
+- Observe all output values outside each interval, preserve reusable buffers, and stop on failure without printing partial statistics.
+- Keep checked uint64 nanosecond totals/minimum/maximum; reject zero/backward time and arithmetic overflow. Report microsecond latency and throughput as measured count divided by total measured time, with the clock resolution. Treat noisy individual measurements cautiously.
 - Confirm numerical correctness after any performance change.
 
 Do not obsess over beating established runtimes.
 
 Benchmark Cinder against **previous versions of Cinder**.
 
-Example:
+Illustrative comparison only; these are not measured implementations or results:
 
 ```text
 Cinder naive runtime        1.41 ms
@@ -1771,7 +1797,7 @@ Documentation + release
 CINDER v0.1.0
 ```
 
-Follow these milestones in order even if individual daily targets shift. M0 through M4 are complete. The full tiny network matches NumPy, and the lifecycle audit passes locally and in hosted macOS/Linux CI. Revision `f5424a4`, including the NumPy/lifecycle tests, passed all three CI jobs, closing M2 on October 23, 2026. See the M2 verification report for actual results and limitations. Phase 3's format contract, exporter validation, binary writing, reproducible tiny-network fixtures, and C loader are implemented. Loader rejection, resource-boundary, forced-failure cleanup, complete stage-by-stage export/load/inference, and loaded-model lifecycle checks pass locally. Hosted revision `5ad7dc4` passed all three jobs, closing M3 on October 25, 2026; see the M3 verification report. Phase 4's reproducible training script and full MNIST training/evaluation are complete: the saved reference achieved 97.48% official test accuracy, with reload and repeat-training checks passing. That checkpoint now exports with inference Softmax to mnist.cnd; byte identity, parameter preservation, and the combined 30-test suite pass. Reference fixtures now preserve the first 100 official test images and every stage; all 108 files regenerate identically and the combined 31-test suite passes. All 27,600 saved MNIST stage values now pass C comparisons, with 100/100 runtime prediction agreement and 99/100 subset accuracy for both runtimes. The subsequent lifecycle audit passes locally with Debug 35/35, C-only Release and ASan/UBSan 26/26 each, and zero native leaks. On October 27, revision `bd6cbd9` passed all five hosted jobs: Linux Debug 35/35, macOS Debug/Release, Linux Release, and Linux sanitizer/leak checks 26/26 each. Native hosted macOS leak checking did not complete and remains a documented limitation; native local checks and hosted Linux LeakSanitizer passed. The cinder run command and private input reader are now implemented, with 122 passing real command cases. Local Debug passes 38/38 tests; C-only Release and ASan/UBSan pass 29/29 each; native CLI/reader leak checks report zero. The demonstration guide records commands, measured results, actual output, and limits. All five hosted jobs passed for `7aa4bda` in run 40487216629: Linux Debug 38/38; macOS Debug/Release, Linux Release, and Linux sanitizer/leak checks 29/29 each. M4 closed October 27, 2026. Phase 5 begins with defining the benchmark command and measurement contract.
+Follow these milestones in order even if individual daily targets shift. M0 through M4 are complete. The full tiny network matches NumPy, and the lifecycle audit passes locally and in hosted macOS/Linux CI. Revision `f5424a4`, including the NumPy/lifecycle tests, passed all three CI jobs, closing M2 on October 23, 2026. See the M2 verification report for actual results and limitations. Phase 3's format contract, exporter validation, binary writing, reproducible tiny-network fixtures, and C loader are implemented. Loader rejection, resource-boundary, forced-failure cleanup, complete stage-by-stage export/load/inference, and loaded-model lifecycle checks pass locally. Hosted revision `5ad7dc4` passed all three jobs, closing M3 on October 25, 2026; see the M3 verification report. Phase 4's reproducible training script and full MNIST training/evaluation are complete: the saved reference achieved 97.48% official test accuracy, with reload and repeat-training checks passing. That checkpoint now exports with inference Softmax to mnist.cnd; byte identity, parameter preservation, and the combined 30-test suite pass. Reference fixtures now preserve the first 100 official test images and every stage; all 108 files regenerate identically and the combined 31-test suite passes. All 27,600 saved MNIST stage values now pass C comparisons, with 100/100 runtime prediction agreement and 99/100 subset accuracy for both runtimes. The subsequent lifecycle audit passes locally with Debug 35/35, C-only Release and ASan/UBSan 26/26 each, and zero native leaks. On October 27, revision `bd6cbd9` passed all five hosted jobs: Linux Debug 35/35, macOS Debug/Release, Linux Release, and Linux sanitizer/leak checks 26/26 each. Native hosted macOS leak checking did not complete and remains a documented limitation; native local checks and hosted Linux LeakSanitizer passed. The cinder run command and private input reader are now implemented, with 122 passing real command cases. Local Debug passes 38/38 tests; C-only Release and ASan/UBSan pass 29/29 each; native CLI/reader leak checks report zero. The demonstration guide records commands, measured results, actual output, and limits. All five hosted jobs passed for `7aa4bda` in run 40487216629: Linux Debug 38/38; macOS Debug/Release, Linux Release, and Linux sanitizer/leak checks 29/29 each. M4 closed October 27, 2026. The Phase 5 benchmark contract is now defined in docs/BENCHMARK.md, with ten warm-ups, explicit iteration limits, inference-only timing boundaries, checked statistics, and exact report/error rules. No benchmark is implemented or measured yet. Next: prepare reusable CLI model/input setup and cleanup.
 
 The **October 25 deadline is the internal deadline**.
 
