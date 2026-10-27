@@ -259,4 +259,6 @@ October 27: Linux Debug 35/35; both macOS configurations, Linux Release, and Lin
 sanitizers 26/26 each. The report records the native hosted macOS leak-check
 limitation. The subsequent CLI addition passes local Debug 38/38, C-only
 Release 29/29 and ASan/UBSan 29/29; [DEMO.md](DEMO.md) records its tests,
-native leak checks, reproduction commands, and outstanding hosted CI gate.
+native leak checks, reproduction commands, and M4 closure on October 27.
+All five hosted jobs passed for `7aa4bda`: Linux Debug 38/38 tests; macOS
+Debug/Release, Linux Release, and Linux sanitizer/leak checks 29/29 each.

@@ -1,9 +1,10 @@
 # MNIST demonstration and M4 verification
 
-**October 27, 2026 (Africa/Lagos): the input reader and `cinder run` are
-implemented, and local verification passes. M4 remains open until hosted CI
-passes for these additions.** Earlier lifecycle CI results do not substitute
-for verification of the new CLI.
+**M4 closed October 27, 2026 (Africa/Lagos).** The input reader and `cinder run`
+are implemented; local checks and all five hosted CI jobs pass for revision
+`7aa4bdaca26149a1746779817b8f42c6813a9bc6`. See
+[run 40487216629](https://github.com/farukumarx64/cinder/actions/runs/40487216629)
+and the [hosted verification record](#hosted-verification-and-m4-closure).
 
 This guide connects the saved Python checkpoint, exported model, committed
 inputs, C executable, and measured results. Training happened externally;
@@ -99,17 +100,17 @@ These measurements answer different questions:
 The numerical rule is `abs(C - reference) <= 1e-5 + 1e-5 * abs(reference)`.
 The following are observed maxima, not extra tolerance settings:
 
-| Stage | Local/macOS maximum absolute error | Previously verified Linux maximum absolute error |
+| Stage | Local/macOS maximum absolute error | Hosted Linux maximum absolute error |
 | --- | ---: | ---: |
 | First Dense | `6.19888306e-6` | `6.67572021e-6` |
 | ReLU | `5.7220459e-6` | `4.76837158e-6` |
 | Final logits | `5.7220459e-6` | `5.7220459e-6` |
 | Softmax probabilities | `3.57627869e-7` | `3.57627869e-7` |
 
-The local all-stage comparison was rerun with this CLI addition. Linux values
-come from the earlier lifecycle revision, documented with its exact CI run in
-[VALIDATION.md](VALIDATION.md). The maximum local error for the 300 displayed
-CLI scores, parsed back to floats, is also `3.57627869e-7`.
+The local and all five hosted jobs reran the all-stage comparison with this
+CLI addition. The maxima match the earlier [validation record](VALIDATION.md);
+no tolerance or reference changes were needed. All five hosted jobs also report
+`3.57627869e-7` maximum error for the 300 displayed CLI scores parsed back to floats.
 We have **not measured full 10,000-image C accuracy**. The 100-image regression
 subset and runtime agreement must not be reported as that result.
 
@@ -184,7 +185,7 @@ Python 3.12.14, NumPy 2.3.5, and PyTorch 2.14.1. Checked October 27, 2026:
 | Native macOS leaks: input-reader and CLI failure audits | **0 leaks / 0 leaked bytes** for both |
 | New C sources/tests, C11 warnings as errors | Passed |
 | Saved checkpoint export and complete fixture regeneration | Identical model bytes; **108/108 fixture files identical** |
-| New CLI revision in hosted macOS/Linux Debug/Release and Linux sanitizer CI | **Pending; M4 remains open** |
+| New CLI revision in hosted macOS/Linux Debug/Release and Linux sanitizer CI | **All five passed**; exact results below |
 
 Three new CTest cases complement `cli_version`:
 
@@ -212,7 +213,50 @@ The existing [lifecycle audit](LIFECYCLE.md) remains in every full suite, coveri
 repeated calls, independent models, caller-serialized shared access, allocation
 counts, poisoned workspaces, and construction-failure cleanup.
 
-## Limits and milestone gate
+## Hosted verification and M4 closure
+
+All five jobs in [run 40487216629](https://github.com/farukumarx64/cinder/actions/runs/40487216629)
+completed successfully on October 27, 2026. Each job log confirms checkout of
+`7aa4bdaca26149a1746779817b8f42c6813a9bc6`, containing the CLI implementation,
+three new test cases, and demonstration documentation. The workflow itself
+was unchanged by this step.
+
+| Job | Toolchain | Result |
+| --- | --- | --- |
+| Ubuntu 24.04 Debug | GCC 13.3.0, CMake 3.31.6 | **38/38 passed**, including all optional Python suites |
+| Ubuntu 24.04 Release | GCC 13.3.0, CMake 3.31.6 | **29/29 passed** |
+| macOS 15 Debug | Apple Clang 17.0.0, CMake 4.4.3 | **29/29 passed** |
+| macOS 15 Release | Apple Clang 17.0.0, CMake 4.4.3 | **29/29 passed** |
+| Ubuntu 24.04 sanitizers | Clang 18.1.3, CMake 3.31.6 | **29/29 passed**, ASan + UBSan + LeakSanitizer, no findings |
+
+Linux Debug used Python 3.12.3, NumPy 2.3.5, and PyTorch 2.14.1+cpu. Its
+fresh-export check verified the full model and three prefix identities,
+rejected all 28 corruption controls, and confirmed that a label-only change
+affects accuracy without affecting runtime agreement. The other four jobs
+used ordinary C tests with committed fixtures and no Python requirement.
+
+Every job passed the 122 CLI processes, all 27,600 MNIST stage values,
+100/100 prediction and top-three index agreement, the public lifecycle test,
+and the instrumented audit. The audit again reported 1,384 inference calls,
+all 21 construction allocation points failed twice, zero allocations/frees or
+loader I/O during its inference cycles, and zero final live blocks/bytes/streams.
+The Linux sanitizer job used `detect_leaks=1:halt_on_error=1` and
+`halt_on_error=1:print_stacktrace=1` for ASan and UBSan respectively.
+
+The GCC builds emit existing `-Wtype-limits` warnings for loader size guards
+and Release `-Wmaybe-uninitialized` warnings in older model tests (including
+inlined tensor code). The same warnings are present in the preceding
+[lifecycle run](https://github.com/farukumarx64/cinder/actions/runs/40417063563),
+and the implicated sources were unchanged. No such warnings were emitted for
+the new CLI/reader/test sources. This is a passing build/test record, not a
+claim of a warning-free GCC build; warning cleanup remains follow-up hardening.
+
+This satisfies the M4 gate: saved training/configuration and held-out accuracy,
+deterministic export and fixtures, the working CLI, all-stage numerical
+comparison, lifecycle/failure recovery, local Debug/Release/sanitizers/native
+leaks, and hosted macOS/Linux verification. **M4 is complete.**
+
+## Limits
 
 - Supported verification hosts are macOS arm64 and Linux x86-64. Big-endian and
   other float representations have not been exercised; unsupported encodings
@@ -230,6 +274,7 @@ counts, poisoned workspaces, and construction-failure cleanup.
   once per process. Output-write failure can leave partial text; host signal
   termination is outside the normal `0/1/2` exit mapping.
 
-M4 closes only when the new code has passed all five hosted jobs and their
-exact revision/results have been recorded here. Its original October 19–22
-schedule remains a historical target; completion will use the actual date.
+M4 completed on October 27, 2026, after the checks above passed. Its original
+October 19–22 schedule remains a historical target. Phase 5 benchmarking and
+the later hardening/release work remain separate milestones; M4 closure does
+not publish a v0.1.0 release.

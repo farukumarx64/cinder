@@ -3,13 +3,13 @@
 A tiny neural-network inference runtime in C, built to understand how pretrained
 models become forward-pass computations over arrays in memory.
 
-The planned v0.1.0 will load sequential float32 models and execute Dense, ReLU,
-and Softmax layers on the CPU, with results checked against a Python reference.
+Cinder loads sequential float32 models and executes Dense, ReLU, and Softmax
+layers on the CPU, with results checked against a Python reference.
 Training happens outside the runtime.
 
 ## Current status
 
-**M0 through M3 are complete; M3 closed on October 25, 2026.** Tensor allocation,
+**M0 through M4 are complete; M4 closed on October 27, 2026.** Tensor allocation,
 cleanup, basic access, matrix-vector multiplication, bias addition, ReLU, and stable Softmax are
 implemented and tested. The math operations match deterministic NumPy float32
 references within the documented tolerance.
@@ -55,8 +55,11 @@ in all five hosted CI jobs,
 including failure recovery, independent owners, poisoned workspaces, and all
 construction allocation failures. Hosted verification completed October 27, 2026.
 The CLI supports `--version` and `run`. The new CLI passes local Debug 38/38,
-C-only Release 29/29, ASan/UBSan 29/29, and native leak checks. M4 awaits hosted
-verification of these additions; the demonstration report tracks that gate.
+C-only Release 29/29, ASan/UBSan 29/29, and native leak checks. All five hosted
+jobs passed for `7aa4bda`: Linux Debug 38/38; macOS Debug/Release, Linux Release,
+and Linux sanitizer/leak checks 29/29 each. The
+[demonstration report](examples/mnist/DEMO.md#hosted-verification-and-m4-closure)
+records the exact revision, results, GCC warnings, and remaining limitations.
 
 - C11 compilation with `-Wall`, `-Wextra`, and `-Wpedantic` is configured.
 - A local Git repository on `main` tracks source and documentation. Generated
@@ -252,7 +255,7 @@ verification of these additions; the demonstration report tracks that gate.
   zero-based prediction and up to three ranked raw scores, lower-index tie
   breaking, exit statuses `0/1/2`, and contextual errors. It accepts valid models
   with or without Softmax. The implementation and three new C tests now pass
-  locally; see [the demonstration report](examples/mnist/DEMO.md).
+  locally and in all five CI jobs; see [the demonstration report](examples/mnist/DEMO.md).
 
 See [the roadmap](ROADMAP.md#current-progress) for the current checklist and
 next scoped task.
@@ -756,8 +759,10 @@ accuracy and verified reload/repeatability results.
 The trained `mnist.cnd` includes inference Softmax and regenerates identically.
 Saved fixtures now cover 100 fixed test inputs and all four stage outputs.
 The `cinder run` command and exact-length input reader are implemented and
-verified locally. The [demonstration report](examples/mnist/DEMO.md) consolidates
-reproduction commands and results. M4 awaits hosted CI for these additions.
+verified locally and in all five hosted jobs. The
+[demonstration report](examples/mnist/DEMO.md) consolidates reproduction commands,
+results, limitations, and M4 closure on October 27, 2026.
+Next: define the Phase 5 benchmark command and measurement contract.
 
 The v0.1.0 scope excludes training, GPU execution, convolutional layers,
 quantization, SIMD, multithreading, and arbitrary computation graphs.
