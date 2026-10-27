@@ -1,12 +1,14 @@
 # `cinder bench` command and measurement contract
 
-**Defined October 27, 2026; shared preparation implemented that day.** The
-executable currently supports only `--version` and `run`. Model/input setup and
-cleanup are ready for reuse; benchmark dispatch, timing, warm-ups, statistics,
-and reporting remain pending. None of the benchmark output below is a measured
+**Defined October 27, 2026; shared preparation and timer implemented that day.**
+The executable currently supports only `--version` and `run`. Model/input setup,
+cleanup, and checked monotonic timing are ready for reuse; benchmark dispatch,
+warm-ups, the measured loop, statistics, and reporting remain pending.
+None of the benchmark output below is a measured
 Cinder result. The original contract step changed documentation only; the
-[preparation report](#preparation-implementation-and-verification) records the
-subsequent implementation and checks.
+[preparation report](#preparation-implementation-and-verification) and
+[timer report](#monotonic-timer-implementation-and-verification) record the
+subsequent implementations and checks.
 
 The [run contract](CLI.md), [input format](MODEL_FORMAT.md#input-file-and-preprocessing-contract),
 and [model API](MODEL.md) remain authoritative for loading, input encoding,
@@ -70,8 +72,9 @@ Before warm-up or timing:
    reusable working buffers. Initialize benchmark counters/statistics on the stack.
 4. Establish an available monotonic elapsed-time clock and query its positive
    resolution. Fail if either is unavailable or invalid; do not fall back to
-   calendar time or process CPU time. The timer implementation will choose the
-   supported macOS/Linux backend and record it in the baseline report.
+   calendar time or process CPU time. The timer uses
+   `clock_gettime(CLOCK_MONOTONIC_RAW)` and queries the same clock with
+   `clock_getres`; record this backend in the baseline report.
 
 Run **exactly 10 warm-up calls**, sequentially on the same model, same input,
 and same output buffer. Warm-up is fixed for this first contract and is not
@@ -134,8 +137,10 @@ equal, fail with a timing diagnostic and no statistics. Do not report infinite
 throughput, invent a one-nanosecond result, omit that call, or retry it. Raising
 `N` does not repair an individual zero-length measurement under this per-call
 policy; a suitable timer or a separately specified future batching mode would
-be needed. Positive quantized observations are retained as reported by the clock.
-Resolution and printed decimal digits do not establish measurement accuracy.
+be needed. Positive quantized observations are retained as reported by the clock,
+including positive differences smaller than its reported resolution. Resolution
+is metadata, not a threshold used to round, discard, or retry a positive sample.
+It and the printed decimal digits do not establish measurement accuracy.
 
 ## Observe results outside the timer
 
@@ -478,4 +483,131 @@ while completing both zero-leak checks. No hosted macOS/Linux CI result is
 claimed for these preparation changes; the existing matrix will run
 the new test on a later authorized push. Timing and performance are unmeasured.
 
-Next scoped step: implement and test the macOS/Linux monotonic timer.
+The next step at the time of this preparation report was the monotonic timer;
+its implementation is recorded below.
+
+## Monotonic timer implementation and verification
+
+Implemented October 27, 2026 in [`src/timer.h`](../src/timer.h) and
+[`src/timer.c`](../src/timer.c), as a private `cinder_cli_timer` build target.
+It does not change the public runtime API or query a clock during `run` or
+`--version`. No heap allocation, file handling, global measurement state, or
+timer destruction is required.
+
+The backend is **`CLOCK_MONOTONIC_RAW` on both macOS and Linux**, accessed through
+`clock_gettime` and `clock_getres`. Both hosts document this raw clock as
+unaffected by clock frequency/time adjustments; their suspend behavior may
+differ. See the [Linux clock manual](https://man7.org/linux/man-pages/man3/clock_gettime.3.html)
+and Apple's installed SDK manual (`man 3 clock_gettime`, macOS 10.12 and newer).
+Do not mix timestamps from different clock IDs or suspend a baseline trial.
+
+CMake checks that the raw clock ID and both functions compile and link. Timing
+targets enable POSIX declarations, plus `_DARWIN_C_SOURCE` on macOS to expose
+the raw clock extension. Linux retries the link probe with `librt` if needed.
+If the backend cannot be compiled, initialization returns `UNSUPPORTED` with
+`No monotonic clock is available.` There is no calendar/CPU-clock fallback.
+The native test requires a working backend on the supported macOS/Linux hosts,
+so an accidental feature-detection failure cannot silently pass their tests.
+
+The interface has three operations:
+
+| Function | Behavior |
+| --- | --- |
+| `cinder_timer_init` | Reset all state; query and validate resolution once; store positive `uint64_t resolution_ns`. Failure leaves the timer zeroed and unusable until successful initialization. |
+| `cinder_timer_start` | Require an initialized, inactive timer; read and validate a start timestamp; reject a start before the last successful end. |
+| `cinder_timer_stop` | Require an active measurement and output destination; read/validate its end; calculate a positive, representable elapsed nanosecond count; publish the result and remember the successful end. |
+
+Timestamps retain separate signed 64-bit seconds and 32-bit nanoseconds after
+checking the OS result: seconds must be nonnegative and representable;
+nanoseconds must be in `0..999999999`. Absolute uptime is never converted to
+floating point or multiplied into a potentially overflowing nanosecond count.
+Instead, stop subtracts seconds/nanoseconds, borrows a second if necessary, and
+checks the final multiply/add against `UINT64_MAX` before performing it.
+
+For example, start `(3 s, 999999900 ns)` and end `(4 s, 100 ns)` produce exactly
+`200 ns`. Even at `INT64_MAX` seconds, timestamps one nanosecond apart produce
+`1 ns`. An interval of exactly `UINT64_MAX` ns is accepted; the next value is
+rejected as `OVERFLOW`.
+
+Failures use the existing status codes and the exact diagnostic details in the
+table above: resolution/read failures, malformed timestamps, backwards time,
+and zero intervals use `IO`; unrepresentable resolution/intervals use `OVERFLOW`.
+Misuse of the private API, such as starting twice or stopping without a start,
+uses `INVALID_ARGUMENT` before querying the clock. Optional error details are
+cleared on success. The helper prints nothing; iteration context and exit status
+belong to the later benchmark command.
+
+A failed start leaves the timer unchanged. A valid stop attempt consumes the
+active measurement even if the clock or duration fails, but leaves the caller's
+elapsed destination and previous successful end unchanged. A new start can
+recover for another independent use; the benchmark itself must stop on its
+first failure. Reinitialization starts a fresh sequence. Separate timer objects
+have independent state; calls on one object must be serialized. Output/error
+destinations must not overlap timer state or one another.
+
+When integrated, stop must be called even if the intervening inference fails,
+using a separate error object to preserve model-error precedence. Start/end
+reads enclose one public inference call; there is unavoidable clock and
+call-boundary bookkeeping overhead. No warm-up, result observation, statistics,
+or printing is performed by this helper. The measured loop is the next step.
+
+The zero-duration rule is an explicit resolution failure, with no retry,
+clamping, invented duration, batching, or dropped sample. A positive observation
+below reported resolution is retained under the existing contract, not promoted
+to a claim of corresponding accuracy. More iterations cannot rescue a zero
+duration for an individual call.
+
+Three ordinary C tests were added:
+
+- `timer_checked` replaces only the OS clock calls, exercising the real timer
+  code with deterministic values. It covers invalid/zero/overflowing resolution,
+  failed reads, negative or unnormalized timestamps, within/across-call backwards
+  transitions, equality to the prior end, second-boundary borrowing, large uptime,
+  exact/overflowing uint64 limits, zero and positive sub-resolution intervals,
+  API misuse, preserved failure outputs, recovery, and independent timers.
+- `timer_unavailable` compiles the real unavailable-backend branch without
+  POSIX clock support and verifies explicit rejection and reset state.
+- `timer_native` links the actual library and reads the real host clock. Its
+  32 pairs include one short sleep and adjacent reads; it accepts either a
+  positive interval or the exact zero-interval rejection for each pair. This
+  checks clock behavior without a speed threshold or an inference benchmark.
+
+The final raw-clock probe on this Mac reported **42 ns resolution**, compared
+with **1000 ns** for the regular `CLOCK_MONOTONIC` checked during development.
+This motivated using the raw clock for short intervals. Adjacent raw reads can
+still coincide: zero durations are explicitly rejected, including in the native
+test. Neither resolution value is an inference latency or accuracy guarantee.
+
+Final local checks on macOS 27.0.1 arm64, Apple Clang 21.0.0, CMake 4.4.4:
+
+| Check | Result |
+| --- | --- |
+| Debug with optional Python reference checks | 42/42 passed |
+| Release, ordinary C tests only | 33/33 passed |
+| Debug ASan + UBSan, ordinary C tests only | 33/33 passed; no findings |
+| Native `leaks --atExit` on controlled and native timer tests | Both exited 0; 0 leaks / 0 leaked bytes |
+| C11 syntax checks, available/unavailable branches, `-Wall -Wextra -Wpedantic -Werror` | Passed |
+| Fresh Release build with `BUILD_TESTING=OFF` and `--version` | Passed |
+
+Reproduce the focused tests and native macOS leak checks:
+
+```sh
+cmake -S . -B build-timer -DCMAKE_BUILD_TYPE=Debug
+cmake --build build-timer --parallel
+ctest --test-dir build-timer --output-on-failure -V -R '^timer_'
+leaks --atExit -- ./build-timer/test_timer
+leaks --atExit -- ./build-timer/test_timer_native
+```
+
+All three timer tests are ordinary C tests and require neither Python nor data
+downloads. The full suites include the unchanged `run`/version regression tests.
+ASan used `detect_leaks=0` on this Mac; native leak checks are separate evidence
+and completed with the tool's restricted-process inspection notice. A local
+Linux container run was unavailable because Docker Desktop was manually paused;
+it was left paused. No Linux execution or new hosted CI result is claimed for
+this timer step. The existing macOS/Linux CI matrix will automatically include
+these tests on a later authorized push. The legacy Linux `librt` fallback is
+implemented but not exercised on this Mac. No inference performance is measured.
+
+Next scoped step: implement the ten warm-up calls and measured inference loop,
+reusing prepared buffers and observing outputs outside each timed interval.

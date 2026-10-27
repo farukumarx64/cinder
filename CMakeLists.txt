@@ -60,12 +60,80 @@ if(UNIX)
     target_link_libraries(cinder_core PUBLIC m)
 endif()
 
+# Keep the raw monotonic backend private to CLI timing. Both supported hosts
+# expose this clock through POSIX calls. Probe declarations and linkage,
+# including older Linux systems where these calls require librt.
+include(CheckCSourceCompiles)
+include(CMakePushCheckState)
+cmake_push_check_state(RESET)
+set(CMAKE_REQUIRED_DEFINITIONS -D_POSIX_C_SOURCE=200809L)
+set(CINDER_TIMER_PLATFORM_DEFINITIONS _POSIX_C_SOURCE=200809L)
+if(APPLE)
+    # Darwin hides its raw clock extension under strict POSIX feature selection.
+    list(APPEND CMAKE_REQUIRED_DEFINITIONS -D_DARWIN_C_SOURCE)
+    list(APPEND CINDER_TIMER_PLATFORM_DEFINITIONS _DARWIN_C_SOURCE)
+endif()
+set(CINDER_MONOTONIC_PROBE "
+    #include <time.h>
+    int main(void) {
+        struct timespec value;
+        int (*read_clock)(clockid_t, struct timespec *) = clock_gettime;
+        int (*read_resolution)(clockid_t, struct timespec *) = clock_getres;
+        return read_resolution(CLOCK_MONOTONIC_RAW, &value) ||
+               read_clock(CLOCK_MONOTONIC_RAW, &value);
+    }")
+check_c_source_compiles("${CINDER_MONOTONIC_PROBE}" CINDER_HAVE_MONOTONIC_RAW_CLOCK)
+set(CINDER_TIMER_LIBRARIES "")
+if(NOT CINDER_HAVE_MONOTONIC_RAW_CLOCK AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(CMAKE_REQUIRED_LIBRARIES rt)
+    check_c_source_compiles("${CINDER_MONOTONIC_PROBE}" CINDER_HAVE_MONOTONIC_RAW_CLOCK_WITH_RT)
+    if(CINDER_HAVE_MONOTONIC_RAW_CLOCK_WITH_RT)
+        set(CINDER_HAVE_MONOTONIC_RAW_CLOCK TRUE)
+        set(CINDER_TIMER_LIBRARIES rt)
+    endif()
+endif()
+cmake_pop_check_state()
+
+add_library(cinder_cli_timer STATIC src/timer.c)
+target_include_directories(cinder_cli_timer PUBLIC "${PROJECT_SOURCE_DIR}/include")
+target_compile_definitions(cinder_cli_timer PRIVATE ${CINDER_TIMER_PLATFORM_DEFINITIONS}
+    CINDER_HAVE_MONOTONIC_RAW_CLOCK=$<BOOL:${CINDER_HAVE_MONOTONIC_RAW_CLOCK}>)
+target_link_libraries(cinder_cli_timer PUBLIC ${CINDER_TIMER_LIBRARIES})
+cinder_configure_target(cinder_cli_timer)
+
 add_executable(cinder src/cli.c src/cli_session.c src/input.c)
-target_link_libraries(cinder PRIVATE cinder_core)
+target_link_libraries(cinder PRIVATE cinder_core cinder_cli_timer)
 target_compile_definitions(cinder PRIVATE CINDER_VERSION="${PROJECT_VERSION}-dev")
 cinder_configure_target(cinder)
 
 if(BUILD_TESTING)
+    # Controlled clock values exercise errors/boundaries without real-time
+    # performance thresholds. The unavailable branch needs no POSIX clock API.
+    if(CINDER_HAVE_MONOTONIC_RAW_CLOCK)
+        add_executable(test_timer tests/test_timer.c)
+        target_include_directories(test_timer PRIVATE "${PROJECT_SOURCE_DIR}/include")
+        target_compile_definitions(test_timer PRIVATE ${CINDER_TIMER_PLATFORM_DEFINITIONS}
+            CINDER_HAVE_MONOTONIC_RAW_CLOCK=1)
+        cinder_configure_target(test_timer)
+        add_test(NAME timer_checked COMMAND test_timer)
+    endif()
+    add_executable(test_timer_unavailable tests/test_timer_unavailable.c src/timer.c)
+    target_include_directories(test_timer_unavailable PRIVATE "${PROJECT_SOURCE_DIR}/include")
+    target_compile_definitions(test_timer_unavailable PRIVATE CINDER_HAVE_MONOTONIC_RAW_CLOCK=0)
+    cinder_configure_target(test_timer_unavailable)
+    add_test(NAME timer_unavailable COMMAND test_timer_unavailable)
+
+    add_executable(test_timer_native tests/test_timer_native.c)
+    target_compile_definitions(test_timer_native PRIVATE ${CINDER_TIMER_PLATFORM_DEFINITIONS}
+        CINDER_HAVE_MONOTONIC_RAW_CLOCK=$<BOOL:${CINDER_HAVE_MONOTONIC_RAW_CLOCK}>)
+    target_link_libraries(test_timer_native PRIVATE cinder_cli_timer)
+    cinder_configure_target(test_timer_native)
+    add_test(NAME timer_native COMMAND test_timer_native)
+    set_tests_properties(timer_native timer_unavailable PROPERTIES TIMEOUT 10)
+    if(CINDER_HAVE_MONOTONIC_RAW_CLOCK)
+        set_tests_properties(timer_checked PROPERTIES TIMEOUT 10)
+    endif()
+
     add_test(NAME cli_version
         COMMAND "${CMAKE_COMMAND}"
             "-DCINDER_EXECUTABLE=$<TARGET_FILE:cinder>"

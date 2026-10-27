@@ -262,6 +262,13 @@ records the exact revision, results, GCC warnings, and remaining limitations.
   passes 39/39 tests; C-only Release and ASan/UBSan pass 30/30 each; native setup
   and actual-command leak checks report zero. These changes have not run in
   hosted CI yet.
+- The [monotonic timer](docs/BENCHMARK.md#monotonic-timer-implementation-and-verification)
+  now uses `CLOCK_MONOTONIC_RAW` on macOS/Linux, with checked resolution,
+  timestamps, integer elapsed times, failure recovery, and zero-duration
+  rejection. This Mac reports 42 ns resolution. Local Debug passes 42/42 tests;
+  C-only Release and ASan/UBSan pass 33/33 each; native timer leak checks report
+  zero. Linux execution and hosted CI for this step remain unverified. The
+  warm-up and measured inference loop are still pending.
 - The [`run` contract](docs/CLI.md) now defines two positional file paths, a
   zero-based prediction and up to three ranked raw scores, lower-index tie
   breaking, exit statuses `0/1/2`, and contextual errors. It accepts valid models
@@ -660,9 +667,11 @@ records that limitation and local reproduction commands.
 | `CMakeLists.txt` | Core library and executable targets, shared compiler/sanitizer settings, and CTest registration. |
 | `src/cli.c` | Version/run dispatch, model execution, ranking, escaped output, diagnostics, and cleanup. |
 | `src/cli_session.c`, `src/cli_session.h` | CLI-private reusable model/input/output preparation, ownership, failure context, and cleanup. |
+| `src/timer.c`, `src/timer.h` | CLI-private raw monotonic clock, checked resolution/timestamps/elapsed nanoseconds, and start/stop state. |
 | `src/input.c`, `src/input.h` | CLI-private exact-length finite little-endian float32 reader. |
 | `tests/test_input.c`, `tests/test_cli.c`, `tests/test_cli_process.c` | Reader/CLI failure audits and actual command processes against saved fixtures. |
 | `tests/test_cli_setup.c` | Real shared preparation, repeated inference without file access or allocations, forced failures, and cleanup/recovery. |
+| `tests/test_timer.c`, `tests/test_timer_unavailable.c`, `tests/test_timer_native.c` | Controlled clock boundary/failure checks, unavailable-backend rejection, and native clock smoke test. |
 | `examples/mnist/DEMO.md` | Offline demonstration, reproduction commands, actual output, measured results, limitations, and M4 verification gate. |
 | `src/tensor.c` | Tensor allocation, cleanup, checked access, matrix-vector multiplication, bias addition, ReLU, Softmax, and error reporting. |
 | `src/dense.c` | Dense creation, parameter copying, cleanup, and forward execution through tensor kernels. |
@@ -681,7 +690,7 @@ records that limitation and local reproduction commands.
 | `docs/LOADER.md` | C loader API, file/status rules, constructor ownership, cleanup, implementation results, and remaining checks. |
 | `docs/MODEL_FORMAT.md` | `.cnd` version 1 byte layout, layer IDs, limits, validation, input-file contract, and worked example. |
 | `docs/CLI.md` | Implemented `cinder run` syntax, score formatting, class mapping, exit statuses, diagnostics, cleanup, and implementation acceptance cases. |
-| `docs/BENCHMARK.md` | Planned benchmark contract, acceptance cases, and implemented shared preparation with verification results. |
+| `docs/BENCHMARK.md` | Planned benchmark contract, acceptance cases, and implemented shared preparation/timer with verification results. |
 | `docs/EXPORTER.md` | Python model validation, binary writing, file replacement, fixtures, dependencies, and tests. |
 | `docs/NUMPY_TESTS.md` | Reference calculations, fixtures, tolerances, regeneration, and verification results. |
 | `docs/ROUND_TRIP.md` | Saved and freshly exported model-prefix comparisons through C loading/inference, dependencies, and measured results. |
@@ -777,9 +786,10 @@ verified locally and in all five hosted jobs. The
 [demonstration report](examples/mnist/DEMO.md) consolidates reproduction commands,
 results, limitations, and M4 closure on October 27, 2026.
 The [Phase 5 benchmark contract](docs/BENCHMARK.md) is defined, and reusable CLI
-model/input setup and cleanup are implemented with the tested `run` behavior
-preserved. Benchmark dispatch, timing, warm-ups, statistics, and reporting remain
-pending. Next: implement and test the macOS/Linux monotonic timer.
+model/input setup, cleanup, and checked macOS/Linux monotonic timing are
+implemented with the tested `run` behavior preserved. Benchmark dispatch,
+warm-ups, the measured loop, statistics, and reporting remain pending.
+Next: implement the ten warm-up calls and measured inference loop.
 
 The v0.1.0 scope excludes training, GPU execution, convolutional layers,
 quantization, SIMD, multithreading, and arbitrary computation graphs.
