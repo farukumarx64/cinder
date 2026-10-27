@@ -255,6 +255,13 @@ records the exact revision, results, GCC warnings, and remaining limitations.
   required `--iterations N` (1–1,000,000), ten fixed warm-ups, per-call monotonic
   inference timing, checked statistics, exact reporting, and failure behavior.
   The command is not implemented and no performance results have been measured.
+- [Shared CLI preparation](docs/BENCHMARK.md#preparation-implementation-and-verification)
+  now loads the model once, reads input once, allocates output, and owns cleanup.
+  `run` uses it with unchanged behavior. Tiny/MNIST tests cover reuse without
+  file access, all 23 allocation failures per fixture, and recovery. Local Debug
+  passes 39/39 tests; C-only Release and ASan/UBSan pass 30/30 each; native setup
+  and actual-command leak checks report zero. These changes have not run in
+  hosted CI yet.
 - The [`run` contract](docs/CLI.md) now defines two positional file paths, a
   zero-based prediction and up to three ranked raw scores, lower-index tie
   breaking, exit statuses `0/1/2`, and contextual errors. It accepts valid models
@@ -652,8 +659,10 @@ records that limitation and local reproduction commands.
 | --- | --- |
 | `CMakeLists.txt` | Core library and executable targets, shared compiler/sanitizer settings, and CTest registration. |
 | `src/cli.c` | Version/run dispatch, model execution, ranking, escaped output, diagnostics, and cleanup. |
+| `src/cli_session.c`, `src/cli_session.h` | CLI-private reusable model/input/output preparation, ownership, failure context, and cleanup. |
 | `src/input.c`, `src/input.h` | CLI-private exact-length finite little-endian float32 reader. |
 | `tests/test_input.c`, `tests/test_cli.c`, `tests/test_cli_process.c` | Reader/CLI failure audits and actual command processes against saved fixtures. |
+| `tests/test_cli_setup.c` | Real shared preparation, repeated inference without file access or allocations, forced failures, and cleanup/recovery. |
 | `examples/mnist/DEMO.md` | Offline demonstration, reproduction commands, actual output, measured results, limitations, and M4 verification gate. |
 | `src/tensor.c` | Tensor allocation, cleanup, checked access, matrix-vector multiplication, bias addition, ReLU, Softmax, and error reporting. |
 | `src/dense.c` | Dense creation, parameter copying, cleanup, and forward execution through tensor kernels. |
@@ -672,7 +681,7 @@ records that limitation and local reproduction commands.
 | `docs/LOADER.md` | C loader API, file/status rules, constructor ownership, cleanup, implementation results, and remaining checks. |
 | `docs/MODEL_FORMAT.md` | `.cnd` version 1 byte layout, layer IDs, limits, validation, input-file contract, and worked example. |
 | `docs/CLI.md` | Implemented `cinder run` syntax, score formatting, class mapping, exit statuses, diagnostics, cleanup, and implementation acceptance cases. |
-| `docs/BENCHMARK.md` | Planned benchmark arguments, warm-up policy, timing boundary, statistics, exact output/errors, baseline reporting, and acceptance cases. |
+| `docs/BENCHMARK.md` | Planned benchmark contract, acceptance cases, and implemented shared preparation with verification results. |
 | `docs/EXPORTER.md` | Python model validation, binary writing, file replacement, fixtures, dependencies, and tests. |
 | `docs/NUMPY_TESTS.md` | Reference calculations, fixtures, tolerances, regeneration, and verification results. |
 | `docs/ROUND_TRIP.md` | Saved and freshly exported model-prefix comparisons through C loading/inference, dependencies, and measured results. |
@@ -767,9 +776,10 @@ The `cinder run` command and exact-length input reader are implemented and
 verified locally and in all five hosted jobs. The
 [demonstration report](examples/mnist/DEMO.md) consolidates reproduction commands,
 results, limitations, and M4 closure on October 27, 2026.
-The [Phase 5 benchmark contract](docs/BENCHMARK.md) is defined; implementation
-remains pending. Next: prepare reusable CLI model/input setup and cleanup while
-preserving the tested `run` behavior.
+The [Phase 5 benchmark contract](docs/BENCHMARK.md) is defined, and reusable CLI
+model/input setup and cleanup are implemented with the tested `run` behavior
+preserved. Benchmark dispatch, timing, warm-ups, statistics, and reporting remain
+pending. Next: implement and test the macOS/Linux monotonic timer.
 
 The v0.1.0 scope excludes training, GPU execution, convolutional layers,
 quantization, SIMD, multithreading, and arbitrary computation graphs.

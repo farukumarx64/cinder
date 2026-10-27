@@ -2,7 +2,12 @@
 
 **Defined October 26, 2026; implemented October 27, 2026.**
 [`src/cli.c`](../src/cli.c) supports `--version` and `run`, using the private
-[`input reader`](../src/input.c) and public model API. See the
+[`shared preparation helpers`](../src/cli_session.h),
+[`input reader`](../src/input.c), and public model API. Preparation loads once,
+reads input once, and allocates output before execution; release handles all
+ownership. This October 27 refactor preserves the command contract below. See
+the [preparation verification](BENCHMARK.md#preparation-implementation-and-verification)
+for reuse/failure tests and the
 [demonstration and verification report](../examples/mnist/DEMO.md) for actual
 output, reproduction commands, test results, and M4 closure status.
 

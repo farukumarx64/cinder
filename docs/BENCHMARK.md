@@ -1,9 +1,12 @@
 # `cinder bench` command and measurement contract
 
-**Defined October 27, 2026; implementation pending.** This document specifies
-the next Phase 5 feature. The executable currently supports only `--version`
-and `run`; none of the benchmark output below is a measured Cinder result.
-This step changes documentation only.
+**Defined October 27, 2026; shared preparation implemented that day.** The
+executable currently supports only `--version` and `run`. Model/input setup and
+cleanup are ready for reuse; benchmark dispatch, timing, warm-ups, statistics,
+and reporting remain pending. None of the benchmark output below is a measured
+Cinder result. The original contract step changed documentation only; the
+[preparation report](#preparation-implementation-and-verification) records the
+subsequent implementation and checks.
 
 The [run contract](CLI.md), [input format](MODEL_FORMAT.md#input-file-and-preprocessing-contract),
 and [model API](MODEL.md) remain authoritative for loading, input encoding,
@@ -381,6 +384,98 @@ a speedup against an allocation-heavy implementation that never existed.
    structure, counts, errors, and controlled-clock arithmetic; it must not impose
    a speed threshold or compare exact real-clock durations between machines.
 
-No benchmark implementation, performance measurement, build, sanitizer run, or
-new hosted CI result is claimed by this contract step. Next: prepare reusable
-CLI model/input setup and cleanup while preserving the implemented `run` behavior.
+## Preparation implementation and verification
+
+Implemented October 27, 2026 in [`src/cli_session.h`](../src/cli_session.h) and
+[`src/cli_session.c`](../src/cli_session.c). These are CLI-private helpers, not
+new public runtime APIs. `run` now uses them, and the future `bench` command can
+reuse the same preparation without duplicating loading or buffer ownership.
+
+`cinder_cli_session_t` holds the loaded model, input/output pointers, and their
+element counts. Initialize it with `{0}`. `cinder_cli_prepare` performs these
+steps once, in the existing `run` failure order:
+
+1. Call `cinder_model_load` and obtain positive input/output dimensions through
+   the public accessors. The loaded model already owns its layers, parameters,
+   and two reusable working buffers.
+2. Call `cinder_input_read` for exactly the required input count. This reuses its
+   byte-order, finite-value, exact-length, and file-close checks. Both files are
+   closed before preparation succeeds.
+3. Check `output_size * sizeof(float)` for overflow, then allocate one separate
+   output buffer with exactly that capacity.
+4. Publish the complete session to the caller. Preparation performs no inference,
+   clock queries, or printing. The output is uninitialized until inference
+   succeeds; no zero-fill is required by the model API.
+
+All ownership stays in a temporary session until success. Any operational
+failure releases partial allocations and leaves the caller's session empty.
+`cinder_cli_failure_t` preserves the original status/detail plus the existing
+`model`, `input`, or `inference` diagnostic context. Its path borrows the supplied
+argument; cleanup does not free it or replace the first failure. Failure details
+are optional. A NULL or already nonempty destination is rejected before I/O;
+an existing session is preserved, so accidental double preparation cannot lose
+its allocations.
+
+`cinder_cli_release` frees the output, input, and model, then clears every field.
+An empty session or NULL is safe, and a released object can be prepared again.
+Do not shallow-copy an owning session. The model still owns its internal storage;
+the session owns the separate input and destination output. Calls using the same
+model must remain serialized, and release must wait for inference to finish.
+
+The future benchmark will prepare once, query its clock, perform warm-ups and
+measured calls using these same buffers, then release. The shared helper does
+not start a timer or implement that loop. `run` still performs one inference,
+checks all scores, ranks up to three, releases ownership, and prints the same
+report. Arguments, usage, exit statuses, diagnostics, and formatting are unchanged.
+
+[`tests/test_cli_setup.c`](../tests/test_cli_setup.c), registered as `cli_setup`,
+instruments the real loader, reader, runtime, and preparation code with test-only
+allocation and file counters. It uses committed tiny-network and MNIST fixtures:
+
+- Each successful preparation calls the loader once and the input reader once,
+  closes both files, performs no inference, and allocates the exact input/output
+  capacities. The buffers are separate.
+- After deleting temporary copies of both source files, each prepared model
+  completes 100 repeated inferences. Outputs are overwritten with NaNs before
+  each call, then checked for shape, finiteness, and agreement with saved NumPy
+  probabilities at `atol = rtol = 1e-5`. Input contents and allocation,
+  deallocation, and file-operation counters remain unchanged.
+- Each fixture has 23 allocation points: 21 in loading/construction, one input
+  allocation, and one output allocation. Every point is forced to fail with and
+  without a diagnostic destination: 92 failure cases across the two fixtures.
+  Each failure leaves zero retained blocks, bytes, and streams; a subsequent
+  preparation and inference succeeds.
+- Model/input open and close failures, malformed input length, non-finite input,
+  first-error precedence, rejected double preparation, and repeated cleanup are
+  covered. Existing `cli_audit` assertions now exercise the extracted helper;
+  the 122 real `cli_process` cases still verify the public command behavior.
+
+Local results on macOS arm64 with Apple Clang 21.0.0 and CMake 4.4.4:
+
+| Check | Result |
+| --- | --- |
+| Debug with optional Python reference checks | 39/39 passed |
+| Release, ordinary C tests only | 30/30 passed |
+| Debug ASan + UBSan, ordinary C tests only | 30/30 passed; no findings |
+| Native `leaks --atExit` on `test_cli_setup` and an actual MNIST `cinder run` | Both exited 0; 0 leaks / 0 leaked bytes |
+| C11 syntax checks on changed/new C sources with `-Wall -Wextra -Wpedantic -Werror` | Passed |
+
+Reproduce the focused checks after building a Debug tree (here `build-mnist`):
+
+```sh
+ctest --test-dir build-mnist --output-on-failure -R '^cli_'
+leaks --atExit -- ./build-mnist/test_cli_setup "$PWD" "$PWD/build-mnist/cli-setup-files"
+leaks --atExit -- ./build-mnist/cinder run examples/mnist/mnist.cnd \
+  tests/fixtures/mnist/inputs/00000.f32
+```
+
+Run the manual setup audit separately from CTest when using the same scratch
+directory. It creates and removes temporary fixture copies there. All ordinary
+C tests use committed fixtures and require neither Python nor MNIST downloads.
+ASan used `detect_leaks=0` on this Mac; native leak checking provides separate
+evidence. The native tool reported its restricted-process inspection notice
+while completing both zero-leak checks. No hosted macOS/Linux CI result is
+claimed for these preparation changes; the existing matrix will run
+the new test on a later authorized push. Timing and performance are unmeasured.
+
+Next scoped step: implement and test the macOS/Linux monotonic timer.

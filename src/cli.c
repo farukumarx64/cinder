@@ -1,12 +1,10 @@
-#include "cinder/model.h"
-#include "input.h"
+#include "cli_session.h"
 
 #include <locale.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 static const char *status_name(cinder_status_t status)
@@ -75,63 +73,37 @@ typedef struct { size_t index; float value; } score_t;
 
 static int run(const char *model_path, const char *input_path)
 {
-    cinder_model_t *model = NULL;
-    float *input = NULL, *output = NULL;
-    cinder_error_t error = {0};
-    const char *stage = "model", *path = model_path;
-    cinder_status_t status = cinder_model_load(model_path, &model, &error);
+    cinder_cli_session_t session = {0};
+    cinder_cli_failure_t failure;
+    cinder_status_t status = cinder_cli_prepare(model_path, input_path, &session, &failure);
     score_t best[3];
     size_t used = 0;
     if (status != CINDER_OK) goto cleanup;
 
-    stage = "inference";
-    path = NULL;
-    size_t input_size = cinder_model_input_size(model);
-    size_t output_size = cinder_model_output_size(model);
-#define RUN_FAIL(code, ...) do { \
-    status = code; \
-    snprintf(error.message, sizeof(error.message), __VA_ARGS__); \
-    goto cleanup; \
-} while (0)
-    if (input_size == 0 || output_size == 0) {
-        RUN_FAIL(CINDER_ERROR_INVALID_ARGUMENT, "Loaded model dimensions must be positive.");
-    }
-    stage = "input";
-    path = input_path;
-    status = cinder_input_read(input_path, input_size, &input, &error);
+    status = cinder_model_run(session.model, session.input, session.input_size,
+                              session.output, session.output_size, &failure.detail);
     if (status != CINDER_OK) goto cleanup;
-
-    stage = "inference";
-    path = NULL;
-    if (output_size > SIZE_MAX / sizeof(float)) {
-        RUN_FAIL(CINDER_ERROR_OVERFLOW, "Output byte count is not representable.");
-    }
-    output = malloc(output_size * sizeof(float));
-    if (output == NULL) {
-        RUN_FAIL(CINDER_ERROR_ALLOCATION, "Could not allocate output buffer.");
-    }
-    status = cinder_model_run(model, input, input_size, output, output_size, &error);
-    if (status != CINDER_OK) goto cleanup;
-    for (size_t i = 0; i < output_size; ++i) {
-        if (!isfinite(output[i])) {
-            RUN_FAIL(CINDER_ERROR_NONFINITE, "Output value at index %zu is not finite.", i);
+    for (size_t i = 0; i < session.output_size; ++i) {
+        if (!isfinite(session.output[i])) {
+            status = CINDER_ERROR_NONFINITE;
+            failure.detail.code = status;
+            snprintf(failure.detail.message, sizeof(failure.detail.message),
+                     "Output value at index %zu is not finite.", i);
+            goto cleanup;
         }
         /* Ascending index traversal and strict comparison preserve tie order.
          * Only three entries are retained; the caller's vector is not sorted. */
         size_t position = 0;
-        while (position < used && output[i] <= best[position].value) ++position;
+        while (position < used && session.output[i] <= best[position].value) ++position;
         if (position < 3) {
             if (used < 3) ++used;
             for (size_t j = used - 1; j > position; --j) best[j] = best[j - 1];
-            best[position] = (score_t){i, output[i]};
+            best[position] = (score_t){i, session.output[i]};
         }
     }
 cleanup:
-    free(output);
-    free(input);
-    cinder_model_free(model);
-    if (status != CINDER_OK) return diagnostic(stage, path, status, &error);
-#undef RUN_FAIL
+    cinder_cli_release(&session);
+    if (status != CINDER_OK) return diagnostic(failure.stage, failure.path, status, &failure.detail);
 
     const char *basename = strrchr(model_path, '/');
     basename = basename != NULL ? basename + 1 : model_path;

@@ -60,7 +60,7 @@ if(UNIX)
     target_link_libraries(cinder_core PUBLIC m)
 endif()
 
-add_executable(cinder src/cli.c src/input.c)
+add_executable(cinder src/cli.c src/cli_session.c src/input.c)
 target_link_libraries(cinder PRIVATE cinder_core)
 target_compile_definitions(cinder PRIVATE CINDER_VERSION="${PROJECT_VERSION}-dev")
 cinder_configure_target(cinder)
@@ -88,6 +88,20 @@ if(BUILD_TESTING)
     endif()
     cinder_configure_target(test_cli)
     add_test(NAME cli_audit COMMAND test_cli)
+
+    # Audit the actual setup/reader/runtime with test-only allocation and I/O
+    # wrappers; do not link a second runtime copy from cinder_core.
+    add_executable(test_cli_setup tests/test_cli_setup.c)
+    target_include_directories(test_cli_setup PRIVATE
+        "${PROJECT_SOURCE_DIR}/include" "${PROJECT_SOURCE_DIR}/tests/fixtures")
+    if(UNIX)
+        target_link_libraries(test_cli_setup PRIVATE m)
+    endif()
+    cinder_configure_target(test_cli_setup)
+    file(MAKE_DIRECTORY "${PROJECT_BINARY_DIR}/cli-setup-files")
+    add_test(NAME cli_setup COMMAND test_cli_setup "${PROJECT_SOURCE_DIR}"
+        "${PROJECT_BINARY_DIR}/cli-setup-files")
+    set_tests_properties(cli_setup PROPERTIES TIMEOUT 60)
 
     # Supported CLI hosts are macOS/Linux; fork/exec tests use committed files
     # and never require Python, a dataset cache or a network connection.

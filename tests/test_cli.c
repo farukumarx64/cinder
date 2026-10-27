@@ -141,6 +141,7 @@ static int test_flush(FILE *file)
 #define cinder_model_free test_model_free
 #define cinder_model_run test_run
 #define cinder_input_read test_input
+#include "../src/cli_session.c"
 #define main cli_main
 #include "../src/cli.c"
 #undef main
