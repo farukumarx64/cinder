@@ -8,7 +8,8 @@ the saved final-epoch checkpoint, not estimates from synthetic tests.
 The model is `Dense(784,128) -> ReLU -> Dense(128,10)`, with biases and 101,770
 float32 parameters. Its outputs are logits. These measurements concern Python
 training/evaluation. The subsequent [export step](EXPORT.md) produces a trained
-`.cnd` model with Softmax; MNIST inference in Cinder is still a later step.
+`.cnd` model with Softmax. The [demonstration](DEMO.md) now executes it in C,
+with stage comparisons and runtime agreement recorded separately from accuracy.
 
 ## Fixed settings and split isolation
 
@@ -185,11 +186,11 @@ print(json.dumps(actual, indent=2))
 PY
 ```
 
-## Remaining work
+## Subsequent demonstration
 
-The subsequent [trained export](EXPORT.md) is now implemented and verified from
-this checkpoint, followed by [100-image reference fixtures](FIXTURES.md).
-The `cinder run` CLI, C/Python numerical comparisons, and larger-model lifecycle
-verification remain separate steps. M4 remains open. Ordinary C tests still need neither Python nor MNIST
-downloads. No hosted CI or full C rebuild was run for the original
-artifact/documentation-only training step; export checks are recorded separately.
+The [trained export](EXPORT.md), [100-image fixtures](FIXTURES.md),
+[C/Python comparisons](VALIDATION.md), and [lifecycle verification](LIFECYCLE.md)
+are implemented. The [demonstration guide](DEMO.md) adds the working CLI, current
+verification status, and limitations. Ordinary C tests need neither Python nor
+MNIST downloads. No hosted CI or full C rebuild was run for the original
+artifact/documentation-only training step; later checks retain their own dates.

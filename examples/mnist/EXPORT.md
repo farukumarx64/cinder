@@ -162,6 +162,6 @@ remain unchanged.
 The subsequent [fixture step](FIXTURES.md) now preserves the first 100 test
 images' inputs and Dense1/ReLU/logits/probability outputs. The
 [C validation](VALIDATION.md) now passes every saved stage and fresh checkpoint
-exports. The [`run` contract](../../docs/CLI.md) is defined; its input reader,
-CLI implementation, and final milestone documentation are still required to
-close M4. The [lifecycle audit and hosted verification](LIFECYCLE.md) are complete.
+exports. The [`run` command](../../docs/CLI.md) and input reader are implemented;
+see [the demonstration and M4 verification status](DEMO.md). The
+[lifecycle audit and its hosted verification](LIFECYCLE.md) are complete.

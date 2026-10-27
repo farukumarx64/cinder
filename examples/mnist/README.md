@@ -9,8 +9,9 @@ The trained [`mnist.cnd`](mnist.cnd) now includes inference Softmax and passes
 images now have [saved inputs and every stage reference](FIXTURES.md).
 [C inference validation](VALIDATION.md) now passes every saved stage with
 100/100 prediction agreement. Both runtimes classify 99/100 subset images
-correctly; this is separate from the full-test accuracy above. The CLI remains
-an upcoming step.
+correctly; this is separate from the full-test accuracy above.
+The [`cinder run` demonstration](DEMO.md) now executes these saved inputs with
+no Python or dataset download and records actual output and M4 verification status.
 The separate offline synthetic tests do not measure digit-recognition accuracy.
 
 ## Model and preprocessing
@@ -41,7 +42,7 @@ Training uses `CrossEntropyLoss` on unnormalized logits and integer labels
 
 Training and evaluation call this same helper. Future sample/reference
 generation must reuse it. There is no mean/std normalization, resizing,
-augmentation, or preprocessing inside the C runtime. One future raw C input
+augmentation, or preprocessing inside the C runtime. One raw C input
 file contains 784 little-endian float32 values, exactly 3,136 bytes.
 
 ## Dependencies and data
@@ -250,11 +251,12 @@ match the saved references; 28 corruption controls reject altered data.
 Hosted verification of this addition also passed. The [`cinder run`
 contract](../../docs/CLI.md) is now defined; it prints zero-based class indices
 and up to three raw scores, which are probabilities for this model. The command
-is not implemented yet. The subsequent [lifecycle audit](LIFECYCLE.md) passes
+is now implemented; see [the demonstration](DEMO.md). The [lifecycle audit](LIFECYCLE.md) passes
 locally and in hosted CI with repeated inference, failure recovery, ownership/concurrency,
 allocation-failure cleanup, and zero native leaks. Debug passes 35/35 tests;
 C-only Release and ASan/UBSan pass 26/26 each. All five hosted jobs passed
 October 27: Linux Debug 35/35; both macOS configurations, Linux Release, and Linux
 sanitizers 26/26 each. The report records the native hosted macOS leak-check
-limitation. Next: implement the CLI's finite float32
-input-file reader; M4 remains open.
+limitation. The subsequent CLI addition passes local Debug 38/38, C-only
+Release 29/29 and ASan/UBSan 29/29; [DEMO.md](DEMO.md) records its tests,
+native leak checks, reproduction commands, and outstanding hosted CI gate.

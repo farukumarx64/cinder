@@ -47,14 +47,16 @@ and [measured results](examples/mnist/RESULTS.md). Its trained
 and every intermediate stage. [C inference validation](examples/mnist/VALIDATION.md)
 passes all 27,600 saved stage values with `atol = rtol = 1e-5` and 100/100
 prediction agreement; C and Python each classify 99/100 subset images correctly.
-The [`cinder run` contract](docs/CLI.md) is defined;
-implementing its exact-length float32 input reader is next.
+The [`cinder run` command](docs/CLI.md) is implemented with exact-length finite
+float32 input reading, ranked output, contextual errors, and cleanup.
+Start with the [offline MNIST demonstration](examples/mnist/DEMO.md).
 [MNIST lifecycle verification](examples/mnist/LIFECYCLE.md) now passes locally and
 in all five hosted CI jobs,
 including failure recovery, independent owners, poisoned workspaces, and all
 construction allocation failures. Hosted verification completed October 27, 2026.
-The project contains a CMake build and a CLI that supports `--version`.
-The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
+The CLI supports `--version` and `run`. The new CLI passes local Debug 38/38,
+C-only Release 29/29, ASan/UBSan 29/29, and native leak checks. M4 awaits hosted
+verification of these additions; the demonstration report tracks that gate.
 
 - C11 compilation with `-Wall`, `-Wextra`, and `-Wpedantic` is configured.
 - A local Git repository on `main` tracks source and documentation. Generated
@@ -245,12 +247,12 @@ The command prints `Cinder 0.1.0-dev` and exits successfully with status `0`.
   for evidence: Linux Debug passes 35/35 hosted tests; macOS Debug/Release,
   Linux Release, and Linux sanitizers each pass 26/26. Native hosted macOS leak
   checking did not complete; local native checks and hosted Linux LeakSanitizer pass.
-- The `info`, `run`, and `bench` commands are
-  planned features; they are not implemented yet.
+- The `info` and `bench` commands remain planned features.
 - The [`run` contract](docs/CLI.md) now defines two positional file paths, a
   zero-based prediction and up to three ranked raw scores, lower-index tie
   breaking, exit statuses `0/1/2`, and contextual errors. It accepts valid models
-  with or without Softmax; the current executable still supports only `--version`.
+  with or without Softmax. The implementation and three new C tests now pass
+  locally; see [the demonstration report](examples/mnist/DEMO.md).
 
 See [the roadmap](ROADMAP.md#current-progress) for the current checklist and
 next scoped task.
@@ -290,14 +292,18 @@ Cinder 0.1.0-dev
 ```
 
 The version number comes from CMake's project version, with `-dev` appended for
-the development build. The CLI currently accepts exactly one argument:
-`--version`. Missing, unknown, or extra arguments print a usage message to
-standard error and return a nonzero exit status.
+the development build. Run the saved MNIST model without Python or downloads:
 
-The [planned inference-command contract](docs/CLI.md) specifies
-`cinder run <model.cnd> <input.bin>`, its exact display format, path/class
-semantics, errors, and cleanup. `run` and its planned usage-error exit status `2`
-are not implemented by this documentation step.
+```sh
+./build/cinder run examples/mnist/mnist.cnd tests/fixtures/mnist/inputs/00000.f32
+```
+
+This predicts digit 7 and prints the three highest scores. See the
+[demonstration](examples/mnist/DEMO.md) for actual output and measured results.
+The [command contract](docs/CLI.md) defines input layout, class mapping, ranking,
+and errors. Normal exit statuses are `0` for success, `1` for operational failure,
+and `2` for invalid usage. Errors go to stderr; failures before printing leave
+stdout empty.
 
 Keep generated files in a separate build directory. The ignore rules cover
 `build/`, `build-*/`, and `cmake-build-*/`, along with common generated CMake files.
@@ -638,7 +644,10 @@ records that limitation and local reproduction commands.
 | Path | Purpose |
 | --- | --- |
 | `CMakeLists.txt` | Core library and executable targets, shared compiler/sanitizer settings, and CTest registration. |
-| `src/cli.c` | Command-line argument handling and version output. |
+| `src/cli.c` | Version/run dispatch, model execution, ranking, escaped output, diagnostics, and cleanup. |
+| `src/input.c`, `src/input.h` | CLI-private exact-length finite little-endian float32 reader. |
+| `tests/test_input.c`, `tests/test_cli.c`, `tests/test_cli_process.c` | Reader/CLI failure audits and actual command processes against saved fixtures. |
+| `examples/mnist/DEMO.md` | Offline demonstration, reproduction commands, actual output, measured results, limitations, and M4 verification gate. |
 | `src/tensor.c` | Tensor allocation, cleanup, checked access, matrix-vector multiplication, bias addition, ReLU, Softmax, and error reporting. |
 | `src/dense.c` | Dense creation, parameter copying, cleanup, and forward execution through tensor kernels. |
 | `src/layer.c` | Common constructors, metadata validation, cleanup, and Dense/ReLU/Softmax dispatch. |
@@ -655,7 +664,7 @@ records that limitation and local reproduction commands.
 | `docs/MODEL.md` | Model ownership transfer, connections, dimensions, buffers, inference failures, and concurrency contract. |
 | `docs/LOADER.md` | C loader API, file/status rules, constructor ownership, cleanup, implementation results, and remaining checks. |
 | `docs/MODEL_FORMAT.md` | `.cnd` version 1 byte layout, layer IDs, limits, validation, input-file contract, and worked example. |
-| `docs/CLI.md` | Planned `cinder run` syntax, score formatting, class mapping, exit statuses, diagnostics, cleanup, and implementation acceptance cases. |
+| `docs/CLI.md` | Implemented `cinder run` syntax, score formatting, class mapping, exit statuses, diagnostics, cleanup, and implementation acceptance cases. |
 | `docs/EXPORTER.md` | Python model validation, binary writing, file replacement, fixtures, dependencies, and tests. |
 | `docs/NUMPY_TESTS.md` | Reference calculations, fixtures, tolerances, regeneration, and verification results. |
 | `docs/ROUND_TRIP.md` | Saved and freshly exported model-prefix comparisons through C loading/inference, dependencies, and measured results. |
@@ -746,8 +755,9 @@ Phase 4's Python reference model is trained and saved, with 97.48% official test
 accuracy and verified reload/repeatability results.
 The trained `mnist.cnd` includes inference Softmax and regenerates identically.
 Saved fixtures now cover 100 fixed test inputs and all four stage outputs.
-The `cinder run` contract is defined; implementation remains pending.
-Next: implement exact-length finite little-endian float32 input-file reading.
+The `cinder run` command and exact-length input reader are implemented and
+verified locally. The [demonstration report](examples/mnist/DEMO.md) consolidates
+reproduction commands and results. M4 awaits hosted CI for these additions.
 
 The v0.1.0 scope excludes training, GPU execution, convolutional layers,
 quantization, SIMD, multithreading, and arbitrary computation graphs.

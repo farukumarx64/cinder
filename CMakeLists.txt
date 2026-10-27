@@ -60,7 +60,7 @@ if(UNIX)
     target_link_libraries(cinder_core PUBLIC m)
 endif()
 
-add_executable(cinder src/cli.c)
+add_executable(cinder src/cli.c src/input.c)
 target_link_libraries(cinder PRIVATE cinder_core)
 target_compile_definitions(cinder PRIVATE CINDER_VERSION="${PROJECT_VERSION}-dev")
 cinder_configure_target(cinder)
@@ -73,6 +73,34 @@ if(BUILD_TESTING)
             -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/check_version.cmake"
     )
     set_tests_properties(cli_version PROPERTIES TIMEOUT 10)
+
+    add_executable(test_input tests/test_input.c)
+    target_include_directories(test_input PRIVATE "${PROJECT_SOURCE_DIR}/include")
+    cinder_configure_target(test_input)
+    file(MAKE_DIRECTORY "${PROJECT_BINARY_DIR}/input-test-files")
+    add_test(NAME cli_input COMMAND test_input "${PROJECT_BINARY_DIR}/input-test-files/input.bin")
+
+    add_executable(test_cli tests/test_cli.c)
+    target_include_directories(test_cli PRIVATE "${PROJECT_SOURCE_DIR}/include")
+    target_compile_definitions(test_cli PRIVATE CINDER_VERSION="${PROJECT_VERSION}-dev")
+    if(UNIX)
+        target_link_libraries(test_cli PRIVATE m)
+    endif()
+    cinder_configure_target(test_cli)
+    add_test(NAME cli_audit COMMAND test_cli)
+
+    # Supported CLI hosts are macOS/Linux; fork/exec tests use committed files
+    # and never require Python, a dataset cache or a network connection.
+    if(UNIX)
+        add_executable(test_cli_process tests/test_cli_process.c)
+        target_link_libraries(test_cli_process PRIVATE m)
+        cinder_configure_target(test_cli_process)
+        file(MAKE_DIRECTORY "${PROJECT_BINARY_DIR}/cli-test-files")
+        add_test(NAME cli_process COMMAND test_cli_process "$<TARGET_FILE:cinder>"
+            "${PROJECT_SOURCE_DIR}" "${PROJECT_BINARY_DIR}/cli-test-files")
+        set_tests_properties(cli_process PROPERTIES TIMEOUT 60)
+    endif()
+    set_tests_properties(cli_input cli_audit PROPERTIES TIMEOUT 10)
 
     add_executable(test_tensor tests/test_tensor.c)
     target_link_libraries(test_tensor PRIVATE cinder_core)

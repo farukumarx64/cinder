@@ -3,7 +3,8 @@
 **Verified locally October 26, 2026.** Cinder's loaded MNIST model matches every
 saved Python/PyTorch float32 stage for the first 100 official test images, using
 the unchanged `atol = rtol = 1e-5` rule. This exercises the public C loader and
-model APIs. The `cinder run` command remains an upcoming implementation step.
+model APIs. The later [`cinder run` demonstration](DEMO.md) adds command-level
+execution and verification using the same committed inputs and answers.
 
 ## Measured results
 
@@ -183,7 +184,8 @@ runtime. These observed rounding differences require no fixture or tolerance
 changes. All five jobs passed; lifecycle results and the native hosted macOS
 leak-check limitation are recorded in [LIFECYCLE.md](LIFECYCLE.md).
 
-The training script, checkpoint, exported model, saved answers, production C
-runtime, and CLI implementation are unchanged. M4 remains open: input-file
-reading, `cinder run`, and final documentation/closure remain in the roadmap.
-The larger-model lifecycle audit now passes locally and in hosted CI.
+This comparison step left the training script, checkpoint, exported model,
+saved answers, production C runtime, and CLI unchanged. The subsequent
+[lifecycle audit](LIFECYCLE.md) passes locally and in hosted CI. The
+[demonstration guide](DEMO.md) records the later CLI implementation, actual
+output, and M4 verification status.

@@ -28,7 +28,7 @@ There are **108 files totaling 548,481 bytes**:
 | `manifest.json` | Metadata and 100 case records | UTF-8 JSON | 45,281 |
 
 All binary files contain only the listed values: no header, padding, or footer.
-Every individual input is exactly **3,136 bytes**, matching the future CLI's raw
+Every individual input is exactly **3,136 bytes**, matching the CLI's raw
 input format. `images.u8` keeps just these selected original pixels so offline
 tests can independently verify preprocessing without downloading the dataset.
 The complete MNIST archives remain outside Git in the existing ignored cache.
@@ -167,8 +167,7 @@ That step adds C-only comparison, fresh-export integration, corruption controls,
 and local Debug/Release/sanitizer/leak verification. The subsequent
 [lifecycle step](LIFECYCLE.md) also passes all five hosted jobs.
 
-The [`cinder run` contract](../../docs/CLI.md) is now defined: digit labels map
-directly to zero-based output indices, and the CLI will show up to three raw
-scores (probabilities for this Softmax model). Next: implement exact-length
-finite float32 input-file reading, followed by CLI execution and final milestone
-documentation. Lifecycle verification is complete; M4 is still open.
+The [`cinder run` command](../../docs/CLI.md) now reads these inputs and prints
+zero-based output indices and up to three raw scores (probabilities for this
+Softmax model). See [the demonstration](DEMO.md) for actual output, CLI tests,
+and M4 verification status. The fixture answers remain unchanged.

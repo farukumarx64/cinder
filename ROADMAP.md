@@ -86,11 +86,12 @@ exports. See [the export guide](examples/mnist/EXPORT.md).
 The [reference fixtures](examples/mnist/FIXTURES.md) now preserve test indices
 `0..99`, labels, inputs, and every stage output. All 108 files reproduce exactly
 in the recorded environment; offline tests cover every selected image.
-The [`cinder run` contract](docs/CLI.md) now defines syntax, raw-score formatting,
-class indices, ties, exit statuses, contextual diagnostics, and cleanup. The
-executable still supports only `--version`.
-**Next scoped step: implement exact-length finite float32 little-endian
-input-file reading, including malformed-file and I/O checks.**
+The [`cinder run` command](docs/CLI.md) now implements exact-length finite
+little-endian float32 input reading, inference, ranking, contextual errors, and
+cleanup. Local checks pass: Debug 38/38, C-only Release 29/29, ASan/UBSan 29/29,
+122 real command cases, and zero native leaks. The [demonstration](examples/mnist/DEMO.md)
+records reproduction commands, actual output, accuracy, agreement, and limitations.
+**Next scoped step: verify the new CLI in all five hosted CI jobs, then close M4.**
 Implement and verify one scoped step at a time.
 
 ### Phase 0 checklist
@@ -179,11 +180,11 @@ remain documented in the M3 report.
 - [x] Export the saved model with inference Softmax, verified October 26, 2026. The wrapper strictly restores finite CPU float32 parameters, appends `Softmax(dim=-1)`, switches the entire sequence to evaluation mode, and calls the existing exporter. The 407,160-byte `mnist.cnd` contains all 101,770 trained parameter values unchanged. Two fresh processes produce identical bytes; independent inspection checks every parameter bit, all layer headers, and exact EOF. Save the binary and export provenance record; provide a non-mutating `--check` command. All 11 export tests and the combined 30/30 Debug CTest suite pass. Fix the pre-existing training CLI test to use a temporary output directory so saved experiments cannot affect its missing-data assertion. See [verification and remaining scope](examples/mnist/EXPORT.md); see the completed C comparison step below; M4 closure remains pending.
 - [x] Generate deterministic reference fixtures on October 26, 2026 for official test indices `0..99`, in original order without prediction filtering. Preserve indices/labels, 100 individual 784-value raw inputs, Dense1/ReLU/logits/probabilities as row-major float32 arrays, and the selected original pixels for offline verification. The generator checks archive provenance and checkpoint/model identity, uses single-vector CPU float32 evaluation, checks shapes/finiteness/normalization, and records hashes and `atol = rtol = 1e-5` in the manifest. Two fresh CLI processes reproduce all 108 files / 548,481 bytes exactly; the non-mutating `--check` also passes. All 11 fixture tests and the combined 31/31 Debug CTest suite pass. The fixed subset includes its one misclassification (index 8, label 5, prediction 6); 99/100 is a regression-subset result, separate from full-test accuracy. See [layout, commands, evidence, and limitations](examples/mnist/FIXTURES.md). C-side comparison is now complete as recorded below.
 - [x] Define the `cinder run <model.cnd> <input.bin>` contract on October 26, 2026. Specify exactly two nonempty literal file paths, one preprocessed vector, public loader/model API use, basename display, zero-based argmax prediction, and the top `min(3, output_size)` raw scores with lower-index ties and `%.9g` formatting. Define normal exits `0` success / `1` operational failure / `2` usage error; stderr templates, status tags, input-reader messages, failure precedence, delayed stdout, write-error handling, and ownership cleanup. Accept valid non-Softmax models without implicit activation or percentage claims. Align earlier illustrative roadmap output with this contract. Check worked display values against saved Python fixtures; no source/header/build change or new CLI implementation is part of this step. See [the contract and future acceptance cases](docs/CLI.md).
-- [ ] Implement exact-length finite float32 little-endian input-file reading, including malformed-file and I/O checks.
-- [ ] Implement `cinder run` by connecting model loading, input reading, inference, prediction printing, and cleanup; test successful and failed commands.
-- [x] Validate every saved MNIST stage against Python on October 26, 2026. The C-only test loads the saved model and byte-preserving prefixes, runs all 100 original inputs, and checks shapes, finite values, exact input/array lengths, preprocessing, caller buffers, and the unchanged `atol = rtol = 1e-5` rule. All 400 vectors / 27,600 values pass; maximum absolute errors are `6.19888306e-6` (Dense1), `5.7220459e-6` (ReLU/logits), and `3.57627869e-7` (probabilities). Runtime prediction agreement is 100/100; C and Python each classify 99/100 fixed-subset images correctly, separate from the prior 97.48% full-test Python result. The optional fresh-export test verifies prefix identities, rejects 28 corrupted cases, and proves that a valid label-only change affects accuracy without affecting agreement. Debug passes 33/33 tests; C-only Release and ASan/UBSan each pass 24/24; native leaks reports zero. Production code and saved answers are unchanged. See [measured results, commands, and hosted verification](examples/mnist/VALIDATION.md). CLI implementation and M4 closure remain pending.
-- [x] Verify larger-model lifecycle behavior and CI, completed October 27, 2026. Local verification passed October 26, 2026: 2,100 public-API inference calls and 1,384 instrumented calls cover repeated inputs, failure recovery, independent owners, deleted source files, caller-serialized shared access, poisoned 784-float workspaces, partial-write failures at all four layers, unchanged parameters, and all 21 allocation points failing with/without diagnostics. Debug passed 35/35 tests; C-only Release and ASan/UBSan passed 26/26 each; both native leak checks reported zero. Ordinary C tests use committed fixtures without Python or MNIST downloads. The workflow now covers Debug/Release on macOS/Linux and Linux sanitizer/leak checks. The first hosted macOS native leak step did not complete and was removed; native macOS checks passed locally. All five jobs passed for `bd6cbd9` in [run 40417063563](https://github.com/farukumarx64/cinder/actions/runs/40417063563): Linux Debug 35/35; macOS Debug/Release, Linux Release, and Linux ASan/UBSan/LeakSanitizer 26/26 each. See [the lifecycle report](examples/mnist/LIFECYCLE.md) for exact toolchains and the native hosted macOS leak-check limitation. M4 remains open for the input reader, CLI, and final documentation.
-- [ ] Document measured results, reproduction commands, sample output, and limitations; close M4 only after required verification passes.
+- [x] Implement exact-length finite float32 little-endian input-file reading on October 27, 2026. The CLI-private reader validates representation, checked extent, measured length before allocation, finite values, exact reads/EOF, and close. Tests force allocation and every file-operation failure, preserve the first error, and verify one close attempt and zero retained allocations. See [implementation and tests](examples/mnist/DEMO.md#verification-of-the-cli-addition).
+- [x] Implement `cinder run` on October 27, 2026 using the public model API, caller-owned input/output buffers, stable top-three ranking, escaped names/errors, and the documented `0/1/2` exits. Cleanup precedes output, and writes/flush are checked. Three new C tests cover controlled API/I/O/allocation/output failures plus 122 real executable cases, including all 100 MNIST inputs with matching predictions/top-three indices. Local Debug passes 38/38; C-only Release and ASan/UBSan pass 29/29 each; native leak checks report zero. See [the demonstration](examples/mnist/DEMO.md). Hosted verification remains the milestone gate.
+- [x] Validate every saved MNIST stage against Python on October 26, 2026. The C-only test loads the saved model and byte-preserving prefixes, runs all 100 original inputs, and checks shapes, finite values, exact input/array lengths, preprocessing, caller buffers, and the unchanged `atol = rtol = 1e-5` rule. All 400 vectors / 27,600 values pass; maximum absolute errors are `6.19888306e-6` (Dense1), `5.7220459e-6` (ReLU/logits), and `3.57627869e-7` (probabilities). Runtime prediction agreement is 100/100; C and Python each classify 99/100 fixed-subset images correctly, separate from the prior 97.48% full-test Python result. The optional fresh-export test verifies prefix identities, rejects 28 corrupted cases, and proves that a valid label-only change affects accuracy without affecting agreement. Debug passes 33/33 tests; C-only Release and ASan/UBSan each pass 24/24; native leaks reports zero. Production code and saved answers are unchanged. See [measured results, commands, and hosted verification](examples/mnist/VALIDATION.md). The subsequent CLI implementation is recorded below; M4 closure requires its hosted verification.
+- [x] Verify larger-model lifecycle behavior and CI, completed October 27, 2026. Local verification passed October 26, 2026: 2,100 public-API inference calls and 1,384 instrumented calls cover repeated inputs, failure recovery, independent owners, deleted source files, caller-serialized shared access, poisoned 784-float workspaces, partial-write failures at all four layers, unchanged parameters, and all 21 allocation points failing with/without diagnostics. Debug passed 35/35 tests; C-only Release and ASan/UBSan passed 26/26 each; both native leak checks reported zero. Ordinary C tests use committed fixtures without Python or MNIST downloads. The workflow now covers Debug/Release on macOS/Linux and Linux sanitizer/leak checks. The first hosted macOS native leak step did not complete and was removed; native macOS checks passed locally. All five jobs passed for `bd6cbd9` in [run 40417063563](https://github.com/farukumarx64/cinder/actions/runs/40417063563): Linux Debug 35/35; macOS Debug/Release, Linux Release, and Linux ASan/UBSan/LeakSanitizer 26/26 each. See [the lifecycle report](examples/mnist/LIFECYCLE.md) for exact toolchains and the native hosted macOS leak-check limitation. The subsequent [demonstration report](examples/mnist/DEMO.md) tracks CLI implementation and M4 closure.
+- [ ] Close M4 after the new CLI passes required hosted verification. [DEMO.md](examples/mnist/DEMO.md) now documents measured accuracy and agreement separately, all-stage numerical errors, offline build/run commands, Python reproduction, actual C output, local checks, and limitations. The saved export and all 108 fixture files regenerate identically. Local checks pass; hosted results for this addition are pending.
 
 ---
 
@@ -216,16 +217,16 @@ Inference:
 $ cinder run mnist.cnd digit.bin
 ```
 
-Planned output under the [CLI contract](docs/CLI.md), illustrated using saved
-Python probabilities for test index 0. The command is not implemented yet:
+Actual local output under the [CLI contract](docs/CLI.md) for saved test index 0
+(October 27, 2026); see [reproduction commands](examples/mnist/DEMO.md):
 
 ```text
 Model: mnist.cnd
 Prediction: 7
 Scores:
-7	0.99780184
-3	0.0018843807
-2	0.000236767693
+7	0.9978019
+3	0.0018843736
+2	0.000236767111
 ```
 
 Benchmarking:
@@ -261,7 +262,7 @@ That is enough for a strong `v0.1.0`.
 - [x] Model loading from disk (C API; parser, exact-limit, and forced-failure cleanup tests pass locally)
 - [x] Custom Cinder model-format contract (version 1; exporter and C loader implemented)
 - [x] Python model exporter (validation and binary writing; tiny fixtures verified locally)
-- [ ] CLI inference
+- [x] CLI inference
 - [ ] CLI model inspection
 - [ ] Benchmark command
 - [ ] Unit tests
@@ -498,7 +499,7 @@ model output size. Files contain no padding, end marker, names, or metadata.
   total parameter bytes. Validate lengths, available bytes, checked arithmetic,
   and native allocation sizes before use; release partial state on failure.
 - The file must end exactly after its last record. Any trailing byte is rejected.
-- The future CLI displays the supplied path's basename, including its extension,
+- The CLI displays the supplied path's basename, including its extension,
   such as `Model: mnist.cnd`. Descriptions and class labels live in example docs.
   The [run contract](docs/CLI.md) defines escaped display, raw top-three scores,
   zero-based class indices, errors, and process exit statuses.
@@ -509,8 +510,8 @@ has no checksum or authenticity mechanism.
 
 The specification includes the complete 168-byte encoding of our fixed
 `2 -> 4 -> 2` network, exact offsets, sample input bytes, and expected stages.
-The exporter now reproduces this fixture exactly; the C loader must later
-validate and execute it against the preserved reference cases.
+The exporter reproduces this fixture exactly; the C loader validates and
+executes it against the preserved reference cases.
 
 ### Input File Contract
 
@@ -525,8 +526,8 @@ The C runtime receives already-preprocessed values. The general input format
 allows any finite values; MNIST supplies the normalization convention.
 
 The [input-file specification](docs/MODEL_FORMAT.md#input-file-and-preprocessing-contract)
-defines the exact layout. The future MNIST README must repeat its preprocessing
-requirements, and example/export tooling must generate sample files.
+defines the exact layout. The [MNIST demonstration](examples/mnist/DEMO.md)
+repeats the preprocessing requirements and runs the saved sample files.
 
 ---
 
@@ -1125,9 +1126,9 @@ October 26, and the first 100 real-image reference fixtures were generated and
 verified the same day. Every saved stage now passes C comparison, with 100/100
 prediction agreement and 99/100 subset classification accuracy in both runtimes;
 see [the validation report](examples/mnist/VALIDATION.md). The `cinder run`
-contract was also defined October 26; the exact-length finite float32 input
-reader is next. CLI execution is pending.
-The Phase 4 checklist above records actual progress; M4 remains open.
+contract was defined October 26 and implemented October 27 with the input
+reader. [DEMO.md](examples/mnist/DEMO.md) records actual output and local checks.
+The Phase 4 checklist records actual progress; M4 awaits hosted CI for the new CLI.
 
 Create a simple MNIST classifier externally.
 
@@ -1185,16 +1186,16 @@ Example:
 cinder run mnist.cnd sample.bin
 ```
 
-Planned output under the [CLI contract](docs/CLI.md), illustrated from the saved
-Python probabilities rather than an implemented CLI:
+Actual local output under the [CLI contract](docs/CLI.md), captured October 27,
+2026 for saved test index 0; see [the demonstration](examples/mnist/DEMO.md):
 
 ```text
 Model: mnist.cnd
 Prediction: 7
 Scores:
-7	0.99780184
-3	0.0018843807
-2	0.000236767693
+7	0.9978019
+3	0.0018843736
+2	0.000236767111
 ```
 
 ---
@@ -1509,7 +1510,7 @@ Cinder `v0.1.0` is finished when:
 - [x] Softmax works
 - [ ] `.cnd` models load from disk
 - [x] Python exporter works for the supported subset; tiny model and fixtures verified locally
-- [x] MNIST model executes through the public C API on 100 saved real inputs; CLI execution remains pending
+- [x] MNIST model executes through the public C API and CLI on 100 saved real inputs
 - [ ] Tiny exported-network fixture matches each reference layer before MNIST integration
 - [x] Saved tiny-network and 100-image MNIST stages satisfy documented tolerances with matching shapes and finite values
 - [ ] Input layout and preprocessing are documented and identical in Python and C inputs
@@ -1764,7 +1765,7 @@ Documentation + release
 CINDER v0.1.0
 ```
 
-Follow these milestones in order even if individual daily targets shift. M0 through M3 are complete. The full tiny network matches NumPy, and the lifecycle audit passes locally and in hosted macOS/Linux CI. Revision `f5424a4`, including the NumPy/lifecycle tests, passed all three CI jobs, closing M2 on October 23, 2026. See the M2 verification report for actual results and limitations. Phase 3's format contract, exporter validation, binary writing, reproducible tiny-network fixtures, and C loader are implemented. Loader rejection, resource-boundary, forced-failure cleanup, complete stage-by-stage export/load/inference, and loaded-model lifecycle checks pass locally. Hosted revision `5ad7dc4` passed all three jobs, closing M3 on October 25, 2026; see the M3 verification report. Phase 4's reproducible training script and full MNIST training/evaluation are complete: the saved reference achieved 97.48% official test accuracy, with reload and repeat-training checks passing. That checkpoint now exports with inference Softmax to mnist.cnd; byte identity, parameter preservation, and the combined 30-test suite pass. Reference fixtures now preserve the first 100 official test images and every stage; all 108 files regenerate identically and the combined 31-test suite passes. All 27,600 saved MNIST stage values now pass C comparisons, with 100/100 runtime prediction agreement and 99/100 subset accuracy for both runtimes. The subsequent lifecycle audit passes locally with Debug 35/35, C-only Release and ASan/UBSan 26/26 each, and zero native leaks. On October 27, revision `bd6cbd9` passed all five hosted jobs: Linux Debug 35/35, macOS Debug/Release, Linux Release, and Linux sanitizer/leak checks 26/26 each. Native hosted macOS leak checking did not complete and remains a documented limitation; native local checks and hosted Linux LeakSanitizer passed. The cinder run contract defines raw top-three scores, class mapping, exit statuses, and errors; input-file reading is next. The CLI still supports only --version, and M4 remains open.
+Follow these milestones in order even if individual daily targets shift. M0 through M3 are complete. The full tiny network matches NumPy, and the lifecycle audit passes locally and in hosted macOS/Linux CI. Revision `f5424a4`, including the NumPy/lifecycle tests, passed all three CI jobs, closing M2 on October 23, 2026. See the M2 verification report for actual results and limitations. Phase 3's format contract, exporter validation, binary writing, reproducible tiny-network fixtures, and C loader are implemented. Loader rejection, resource-boundary, forced-failure cleanup, complete stage-by-stage export/load/inference, and loaded-model lifecycle checks pass locally. Hosted revision `5ad7dc4` passed all three jobs, closing M3 on October 25, 2026; see the M3 verification report. Phase 4's reproducible training script and full MNIST training/evaluation are complete: the saved reference achieved 97.48% official test accuracy, with reload and repeat-training checks passing. That checkpoint now exports with inference Softmax to mnist.cnd; byte identity, parameter preservation, and the combined 30-test suite pass. Reference fixtures now preserve the first 100 official test images and every stage; all 108 files regenerate identically and the combined 31-test suite passes. All 27,600 saved MNIST stage values now pass C comparisons, with 100/100 runtime prediction agreement and 99/100 subset accuracy for both runtimes. The subsequent lifecycle audit passes locally with Debug 35/35, C-only Release and ASan/UBSan 26/26 each, and zero native leaks. On October 27, revision `bd6cbd9` passed all five hosted jobs: Linux Debug 35/35, macOS Debug/Release, Linux Release, and Linux sanitizer/leak checks 26/26 each. Native hosted macOS leak checking did not complete and remains a documented limitation; native local checks and hosted Linux LeakSanitizer passed. The cinder run command and private input reader are now implemented, with 122 passing real command cases. Local Debug passes 38/38 tests; C-only Release and ASan/UBSan pass 29/29 each; native CLI/reader leak checks report zero. The demonstration guide records commands, measured results, actual output, and limits. M4 awaits hosted CI for the new CLI.
 
 The **October 25 deadline is the internal deadline**.
 

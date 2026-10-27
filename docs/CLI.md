@@ -1,9 +1,10 @@
 # `cinder run` command contract
 
-**Defined October 26, 2026; implementation pending.** The current
-[`src/cli.c`](../src/cli.c) still accepts only `--version`. This document defines
-the behavior to implement and test in the next CLI steps. It does not announce
-a working `run` command or a completed C/Python MNIST comparison.
+**Defined October 26, 2026; implemented October 27, 2026.**
+[`src/cli.c`](../src/cli.c) supports `--version` and `run`, using the private
+[`input reader`](../src/input.c) and public model API. See the
+[demonstration and verification report](../examples/mnist/DEMO.md) for actual
+output, reproduction commands, test results, and M4 closure status.
 
 The [.cnd format](MODEL_FORMAT.md), [loader](LOADER.md), and [model API](MODEL.md)
 remain authoritative for binary encoding, validation, ownership, and inference.
@@ -32,7 +33,7 @@ cinder run <model.cnd> <input.bin>
 - One invocation loads one model and executes exactly one input vector. It
   does not modify either source file or create result files.
 
-A future invocation using the saved fixtures will be:
+Run the saved fixture from the repository root:
 
 ```sh
 ./build/cinder run examples/mnist/mnist.cnd tests/fixtures/mnist/inputs/00000.f32
@@ -110,21 +111,20 @@ The ellipsis above describes repetition; it is never printed. Formatting rules:
 - Print no timing, progress, accuracy, banners, or additional model metadata.
   Timing belongs to the later benchmark command. Success leaves stderr empty.
 
-For example, applying this display format to the **saved Python probabilities**
-for MNIST test index 0 gives the following illustration. It is not output from
-an implemented C command; future C numerical checks still use the fixture tolerance.
-There is one tab between each index and score below:
+Actual local C output for MNIST test index 0, captured October 27, 2026.
+Cross-platform numerical checks use the fixture tolerance; the final printed
+digits need not be identical on every host. Each score row contains one tab:
 
 ```text
 Model: mnist.cnd
 Prediction: 7
 Scores:
-7	0.99780184
-3	0.0018843807
-2	0.000236767693
+7	0.9978019
+3	0.0018843736
+2	0.000236767111
 ```
 
-The tiny worked fixture has only two outputs, so its analogous illustration is:
+Actual output for the tiny worked fixture has only two score rows:
 
 ```text
 Model: tiny.cnd
@@ -149,10 +149,6 @@ printed scores stay negative; the CLI does not apply Softmax.
 These are CLI process statuses, independent of `cinder_status_t` enum values.
 Do not return a library enum directly as the process status. The table covers
 normal program exits; host signal termination is outside this mapping.
-
-The current version-only implementation returns `EXIT_FAILURE` for every rejected
-invocation. Status `2` and the expanded usage text are planned changes when `run`
-is implemented, not behavior already available today.
 
 Usage errors write the diagnostic and usage block below to stderr and nothing
 to stdout. Other failures write one diagnostic line to stderr without usage.
@@ -249,7 +245,7 @@ unsupported host uses input / `UNSUPPORTED` with detail
 `Host float encoding is not IEEE binary32.` The model loader normally detects
 this first, since model loading precedes input reading.
 
-Examples of the planned diagnostic presentation:
+Examples of the diagnostic presentation:
 
 ```text
 cinder: input "digit.bin" [FORMAT]: Expected 3136 bytes (784 float32 values); found 3135 bytes.
@@ -283,7 +279,7 @@ cleanup error. A close failure with no earlier error prevents inference.
 The library continues to return errors without printing; only the CLI writes
 diagnostics. The process uses one model call and introduces no concurrent-run API.
 
-## Acceptance cases for later implementation
+## Implemented acceptance coverage
 
 - Preserve exact `--version` output and empty stderr; reject every unsupported
   invocation with the defined status/reason/usage and no file access.
@@ -301,8 +297,8 @@ diagnostics. The process uses one model call and introduces no concurrent-run AP
 - Force input I/O/allocation/close, inference/output-allocation, and stdout-write
   failures. Verify precedence, exit status, diagnostics, and cleanup.
 
-This contract step adds documentation only. Existing source/headers/build files
-and fixtures remain unchanged. Worked display values were checked against the
-saved Python fixtures; no new CLI implementation, build, test suite, or hosted
-CI result is claimed. Next: implement the exact-length finite float32 input
-reader, followed by command dispatch and the acceptance cases above.
+The original contract step changed documentation only. The subsequent
+implementation adds `cli_input`, `cli_audit`, and `cli_process` tests beside
+the version smoke test. Ordinary CTest uses committed fixtures without Python.
+See [the demonstration report](../examples/mnist/DEMO.md#verification-of-the-cli-addition)
+for measured local results, hosted status, and limits.

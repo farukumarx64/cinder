@@ -1,8 +1,9 @@
 # MNIST lifecycle and CI verification
 
 **Local checks passed October 26, 2026, and all five hosted CI jobs passed
-October 27, 2026 (Africa/Lagos).** M4 remains open because
-the input-file reader and `cinder run` implementation are still outstanding.
+October 27, 2026 (Africa/Lagos).** These results cover the lifecycle step.
+The subsequent [demonstration report](DEMO.md) records the input reader,
+`cinder run`, and M4 verification status.
 
 This step adds two CTest executables from
 [`test_mnist_lifecycle.c`](../../tests/test_mnist_lifecycle.c), with test-only
@@ -172,8 +173,8 @@ Python. Linux's slightly different numerical maxima are recorded in
 
 This completes the scoped lifecycle/CI step. Native hosted macOS leak checking
 remains an explicit limitation. Successful local native checks and mandatory
-hosted Linux LeakSanitizer provide the recorded leak evidence. M4 still requires the input-file reader,
-`cinder run`, and final milestone documentation.
+hosted Linux LeakSanitizer provide the recorded leak evidence. The later
+[demonstration report](DEMO.md) covers CLI implementation and milestone closure.
 
 ## Reproduce and limits
 
@@ -203,4 +204,4 @@ points, and synchronization patterns. It does not prove every possible thread
 schedule; ThreadSanitizer was not run. Same-model concurrency still requires
 caller serialization, and destruction must wait for all users. Big-endian and
 other unsupported host representations were not exercised. CLI file handling
-and command-level cleanup remain part of the upcoming `cinder run` work.
+and command-level cleanup are verified separately in [DEMO.md](DEMO.md).
