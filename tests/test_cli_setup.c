@@ -1,6 +1,8 @@
 /* Compile the real CLI setup, reader and runtime with test-only allocation/I/O
  * counters. Actual CLI process tests also exercise the normally linked sources. */
 #include "../src/cli_session.h"
+#include "../src/benchmark.h"
+#include "../src/timer.h"
 #include "numpy_compare.h"
 #include <stdint.h>
 #include <stdlib.h>
@@ -15,6 +17,7 @@ static block_t blocks[128];
 static size_t live, bytes_live, allocations, frees, fail_allocation;
 static size_t opens, closes, reads, fail_open, fail_close, loads, inputs, forwards;
 static size_t output_allocations;
+static size_t benchmark_runs, timer_inits, timer_starts, timer_stops;
 static bool input_ready;
 static FILE *stream;
 
@@ -118,6 +121,42 @@ static cinder_status_t tracked_input(const char *path, size_t count, float **val
 #include "../src/cli_session.c"
 #undef cinder_model_load
 #undef cinder_input_read
+static cinder_status_t benchmark_run(cinder_model_t *model, const float *input,
+    size_t count, float *output, size_t capacity, cinder_error_t *error)
+{
+    ++benchmark_runs;
+    return cinder_model_run(model, input, count, output, capacity, error);
+}
+static cinder_status_t benchmark_timer_init(cinder_timer_t *timer, cinder_error_t *error)
+{
+    ++timer_inits;
+    return cinder_timer_init(timer, error);
+}
+static cinder_status_t benchmark_timer_start(cinder_timer_t *timer, cinder_error_t *error)
+{
+    ++timer_starts;
+    return cinder_timer_start(timer, error);
+}
+static cinder_status_t benchmark_timer_stop(cinder_timer_t *timer, uint64_t *elapsed, cinder_error_t *error)
+{
+    ++timer_stops;
+    return cinder_timer_stop(timer, elapsed, error);
+}
+#define cinder_model_run benchmark_run
+#define cinder_timer_init benchmark_timer_init
+#define cinder_timer_start benchmark_timer_start
+#define cinder_timer_stop benchmark_timer_stop
+#define fopen tracked_open
+#define fclose tracked_close
+#define fread tracked_read
+#include "../src/benchmark.c"
+#undef cinder_model_run
+#undef cinder_timer_init
+#undef cinder_timer_start
+#undef cinder_timer_stop
+#undef fopen
+#undef fclose
+#undef fread
 #undef malloc
 #undef calloc
 #undef free
@@ -128,6 +167,7 @@ static void reset(void)
     allocations = frees = fail_allocation = opens = closes = reads = 0;
     fail_open = fail_close = loads = inputs = forwards = output_allocations = 0;
     input_ready = false;
+    benchmark_runs = timer_inits = timer_starts = timer_stops = 0;
 }
 static void empty(const cinder_cli_session_t *session)
 {
@@ -175,6 +215,41 @@ static void repeat(cinder_cli_session_t *session, numpy_vector_t reference, size
     CHECK(allocations == allocations_before && frees == frees_before && reads == reads_before);
     CHECK(opens == opens_before && closes == closes_before && loads == loads_before && inputs == inputs_before);
 }
+static void benchmark_reuse(cinder_cli_session_t *session, numpy_vector_t reference)
+{
+    size_t allocations_before = allocations, frees_before = frees, reads_before = reads;
+    size_t opens_before = opens, closes_before = closes, forwards_before = forwards;
+    cinder_model_t *model = session->model;
+    float *input = session->input, *output = session->output, saved[784];
+    CHECK(session->input_size <= COUNT(saved));
+    memcpy(saved, input, session->input_size * sizeof(float));
+    fail_allocation = allocations + 1;
+    cinder_benchmark_result_t result;
+    cinder_benchmark_failure_t problem;
+    CHECK(cinder_benchmark_execute(session, 1, &result, &problem) == CINDER_OK);
+    CHECK(result.iterations == 1 && result.total_ns == result.minimum_ns && result.total_ns == result.maximum_ns);
+    CHECK(result.resolution_ns > 0 && result.total_ns > 0);
+    CHECK(compare_vector(NULL, "benchmark", "probabilities", output, session->output_size, reference, true));
+    CHECK(benchmark_runs == 11 && timer_inits == 1 && timer_starts == 1 && timer_stops == 1);
+    /* Fail on warm-up input validation, then reuse the same session successfully. */
+    input[0] = NAN;
+    cinder_benchmark_result_t previous = result;
+    CHECK(cinder_benchmark_execute(session, 5, &result, &problem) == CINDER_ERROR_NONFINITE);
+    CHECK(result.iterations == previous.iterations && result.total_ns == previous.total_ns);
+    CHECK(problem.phase == CINDER_BENCHMARK_WARMUP && problem.iteration == 1);
+    CHECK(benchmark_runs == 12 && timer_inits == 2 && timer_starts == 1 && timer_stops == 1);
+    input[0] = saved[0];
+    CHECK(cinder_benchmark_execute(session, 5, &result, NULL) == CINDER_OK);
+    CHECK(result.iterations == 5 && result.minimum_ns > 0 && result.maximum_ns >= result.minimum_ns);
+    CHECK(result.total_ns >= result.maximum_ns && result.resolution_ns > 0);
+    CHECK(compare_vector(NULL, "benchmark", "probabilities", output, session->output_size, reference, true));
+    CHECK(benchmark_runs == 27 && timer_inits == 3 && timer_starts == 6 && timer_stops == 6);
+    CHECK(forwards == forwards_before + 26 * 4); /* Both fixtures have four layers. */
+    CHECK(session->model == model && session->input == input && session->output == output);
+    CHECK(memcmp(saved, input, session->input_size * sizeof(float)) == 0);
+    CHECK(allocations == allocations_before && frees == frees_before && reads == reads_before);
+    CHECK(opens == opens_before && closes == closes_before && loads == 1 && inputs == 1);
+}
 static size_t success(const char *model, const char *input, size_t input_size,
     numpy_vector_t reference, cinder_cli_session_t *session, bool remove_sources, size_t repetitions)
 {
@@ -199,6 +274,7 @@ static size_t success(const char *model, const char *input, size_t input_size,
     CHECK(allocations == count && loads == 1 && inputs == 1);
     if (remove_sources) CHECK(remove(model) == 0 && remove(input) == 0);
     repeat(session, reference, repetitions);
+    if (remove_sources) benchmark_reuse(session, reference);
     cinder_cli_release(session);
     empty(session);
     size_t released = frees;
@@ -274,7 +350,7 @@ static void exercise(const char *original_model, const char *original_input, con
     repeat(&session, reference, 1);
     cinder_cli_release(&session); empty(&session);
     CHECK(remove(model) == 0 && remove(input) == 0);
-    printf("CLI setup %zu -> %zu: one load/read, exact input/output allocations, 100 repeated calls after source deletion, 23 allocation points failed with/without details, I/O/format/non-finite failures and successful retries; zero retained blocks/bytes/streams.\n", input_size, reference.count);
+    printf("CLI setup %zu -> %zu: one load/read, exact input/output allocations, 100 repeated calls plus benchmark warm-up/measurement/recovery after source deletion, 23 allocation points failed with/without details, I/O/format/non-finite failures and successful retries; zero retained blocks/bytes/streams.\n", input_size, reference.count);
 }
 
 int main(int argc, char **argv)

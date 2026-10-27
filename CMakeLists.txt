@@ -101,12 +101,24 @@ target_compile_definitions(cinder_cli_timer PRIVATE ${CINDER_TIMER_PLATFORM_DEFI
 target_link_libraries(cinder_cli_timer PUBLIC ${CINDER_TIMER_LIBRARIES})
 cinder_configure_target(cinder_cli_timer)
 
+add_library(cinder_cli_benchmark STATIC src/benchmark.c)
+target_link_libraries(cinder_cli_benchmark PUBLIC cinder_core cinder_cli_timer)
+cinder_configure_target(cinder_cli_benchmark)
+
 add_executable(cinder src/cli.c src/cli_session.c src/input.c)
-target_link_libraries(cinder PRIVATE cinder_core cinder_cli_timer)
+target_link_libraries(cinder PRIVATE cinder_cli_benchmark)
 target_compile_definitions(cinder PRIVATE CINDER_VERSION="${PROJECT_VERSION}-dev")
 cinder_configure_target(cinder)
 
 if(BUILD_TESTING)
+    # The loop audit substitutes model/timer calls, including a cheap maximum-N
+    # case, to verify ordering/failure precedence without speed thresholds.
+    add_executable(test_benchmark tests/test_benchmark.c)
+    target_include_directories(test_benchmark PRIVATE "${PROJECT_SOURCE_DIR}/include")
+    cinder_configure_target(test_benchmark)
+    add_test(NAME benchmark_loop COMMAND test_benchmark)
+    set_tests_properties(benchmark_loop PROPERTIES TIMEOUT 30)
+
     # Controlled clock values exercise errors/boundaries without real-time
     # performance thresholds. The unavailable branch needs no POSIX clock API.
     if(CINDER_HAVE_MONOTONIC_RAW_CLOCK)
@@ -160,6 +172,7 @@ if(BUILD_TESTING)
     # Audit the actual setup/reader/runtime with test-only allocation and I/O
     # wrappers; do not link a second runtime copy from cinder_core.
     add_executable(test_cli_setup tests/test_cli_setup.c)
+    target_link_libraries(test_cli_setup PRIVATE cinder_cli_timer)
     target_include_directories(test_cli_setup PRIVATE
         "${PROJECT_SOURCE_DIR}/include" "${PROJECT_SOURCE_DIR}/tests/fixtures")
     if(UNIX)

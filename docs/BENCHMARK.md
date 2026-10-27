@@ -1,13 +1,14 @@
 # `cinder bench` command and measurement contract
 
-**Defined October 27, 2026; shared preparation and timer implemented that day.**
+**Defined October 27, 2026; shared preparation, timer, and execution loops implemented that day.**
 The executable currently supports only `--version` and `run`. Model/input setup,
-cleanup, and checked monotonic timing are ready for reuse; benchmark dispatch,
-warm-ups, the measured loop, statistics, and reporting remain pending.
-None of the benchmark output below is a measured
-Cinder result. The original contract step changed documentation only; the
-[preparation report](#preparation-implementation-and-verification) and
-[timer report](#monotonic-timer-implementation-and-verification) record the
+cleanup, monotonic timing, ten warm-ups, measured calls, and raw integer
+accumulation are ready for reuse. Benchmark argument dispatch, derived latency/
+throughput, and report formatting remain pending. No displayed benchmark report
+below is a measured Cinder result. The original contract step changed documentation only; the
+[preparation report](#preparation-implementation-and-verification),
+[timer report](#monotonic-timer-implementation-and-verification), and
+[loop report](#warm-up-and-measured-loop-implementation-and-verification) record the
 subsequent implementations and checks.
 
 The [run contract](CLI.md), [input format](MODEL_FORMAT.md#input-file-and-preprocessing-contract),
@@ -609,5 +610,127 @@ this timer step. The existing macOS/Linux CI matrix will automatically include
 these tests on a later authorized push. The legacy Linux `librt` fallback is
 implemented but not exercised on this Mac. No inference performance is measured.
 
-Next scoped step: implement the ten warm-up calls and measured inference loop,
-reusing prepared buffers and observing outputs outside each timed interval.
+The next step at the time of the timer report was the warm-up and measured
+inference loop; its implementation is recorded below.
+
+## Warm-up and measured-loop implementation and verification
+
+Implemented October 27, 2026 in [`src/benchmark.h`](../src/benchmark.h) and
+[`src/benchmark.c`](../src/benchmark.c). The CLI-private function is:
+
+```c
+cinder_status_t cinder_benchmark_execute(
+    const cinder_cli_session_t *session,
+    uint32_t iterations,
+    cinder_benchmark_result_t *result,
+    cinder_benchmark_failure_t *failure);
+```
+
+The caller prepares the session once with `cinder_cli_prepare`, passes it to
+this helper, and releases it afterwards on success or failure. The helper
+borrows the model and input/output buffers without loading, allocating, freeing,
+resetting workspaces, or printing. It validates required pointers, positive
+dimensions matching the model's public accessors, and `iterations` in
+`1..1,000,000` before querying the timer. The future command must still validate
+argument syntax before preparing the session. Ownership and pointer validity
+remain caller preconditions; destinations and session storage must be disjoint.
+
+One timer initialization precedes exactly ten warm-ups. Each warm-up calls the
+same public model API using the same buffers, then checks/consumes its output.
+Warm-ups use no start/end timestamps and contribute no measured samples or
+nanoseconds. Measured calls then execute in this order:
+
+```text
+start timer → model_run → stop timer → check errors
+           → check/consume output → accumulate integer measurements
+```
+
+Success performs exactly `N + 10` model calls, `N` starts, `N` stops, and one
+resolution query. There is no extra inference after the loop. A stack-local
+`volatile float` sink receives each finite output element in index order after
+every successful call. Input/output arrays remain ordinary float arrays. The
+sink makes the writes observable without adding allocation, output formatting,
+or a checksum to the measured interval. All additional storage is constant in N.
+The finite scan is an integrity check, not a replacement for NumPy comparisons.
+
+`cinder_benchmark_result_t` stores measured count, resolution, total, minimum,
+and maximum integer nanoseconds. A temporary result is updated only after a
+successful inference, valid timer interval, and finite output scan. Total
+addition is checked before it can overflow. Only a completely successful run
+publishes the result; any failure leaves the caller's previous result unchanged.
+The session output is reusable scratch storage and can already contain a prior
+completed call when a later call fails; it is not rolled back. Derived floating-
+point latency/throughput and exact CLI report formatting remain the next step.
+
+Failure details retain a typed phase (`SETUP`, `WARMUP`, or `MEASURED`) and a
+one-based call index within that phase; setup and cleared success use index zero.
+The optional diagnostic is cleared on success. Failure stops immediately without
+retrying or publishing partial measurements. A measured inference failure still
+gets its end-clock read; separate error objects preserve the inference error if
+the end read also fails. A timer failure precedes a non-finite output error,
+and output validation precedes a total-overflow error. Releasing the borrowed
+session remains the caller's responsibility on every return path.
+
+[`tests/test_benchmark.c`](../tests/test_benchmark.c), registered as
+`benchmark_loop`, substitutes model/timer APIs and observes finite-value scans:
+
+- Check exact call counts for 1, 3, and 1,000,000 measured iterations. The maximum
+  uses a cheap simulated model rather than a million real MNIST executions.
+- Inject large setup, warm-up, and observation costs; measured intervals
+  `[1000, 2000, 3000]` still produce count 3, total 6000, minimum 1000, and
+  maximum 3000 ns. Assert observation never occurs between start and stop.
+- Fail inference at every warm-up and measured position; check stopping,
+  one-based context, unchanged result storage, end-read behavior, and recovery.
+- Fail setup/start/end clocks, combine inference/end failures and clock/non-finite
+  failures, and check precedence. Inject NaN and both infinities at every output
+  position in every warm-up/measured call. Check total overflow after a maximum
+  interval, and accept a single interval exactly equal to `UINT64_MAX`.
+- Reject invalid arguments before clock/model execution. Test both optional
+  diagnostics paths. Direct allocations/frees, file access, or report-printing
+  calls in the loop are redirected to unresolved names so they fail the test link.
+
+The existing [`cli_setup` audit](../tests/test_cli_setup.c) now also exercises
+the real loop, real timer, and real tiny/MNIST runtime after removing temporary
+copies of the model/input files. For each model, it runs a successful N=1 loop,
+an input-failure loop, then a successful N=5 loop using the same session. This is
+27 model API calls, including one rejected warm-up; the 26 successful calls
+execute all four layers. Counters confirm three timer initializations, six
+starts/stops, unchanged allocation/deallocation and file-operation counts, one
+original load/read, stable buffer pointers, and preserved input after recovery.
+Final vectors match the saved NumPy probabilities with shape/finite checks and
+`atol = rtol = 1e-5`. Existing construction-failure and cleanup checks still pass.
+
+Local checks on macOS arm64, Apple Clang 21.0.0 and CMake 4.4.4:
+
+| Check | Result |
+| --- | --- |
+| Debug with optional Python reference checks | 43/43 passed |
+| Release, ordinary C tests only | 34/34 passed |
+| Debug ASan + UBSan, ordinary C tests only | 34/34 passed; no findings |
+| Release with ThinLTO (`-O3 -flto=thin`), loop and real setup audits | 2/2 passed |
+| Native `leaks --atExit`, loop and real setup audits | Both exited 0; 0 leaks / 0 leaked bytes |
+| C11 syntax checks for new/changed C sources, warnings as errors | Passed |
+
+An inspection of the optimized production assembly also confirmed measured
+start/model/stop calls remain inside the loop and each finite-element sink store
+follows the stop call. This verifies the current compiler output; it is not a
+performance baseline or a promise that every future compiler transformation is
+identical. The normal `run` and version regression tests remain unchanged.
+
+Reproduce focused checks after configuring/building a Debug tree:
+
+```sh
+ctest --test-dir build-mnist --output-on-failure -R '^(benchmark_loop|cli_setup)$'
+leaks --atExit -- ./build-mnist/test_benchmark
+leaks --atExit -- ./build-mnist/test_cli_setup "$PWD" "$PWD/build-mnist/cli-setup-files"
+```
+
+Run the manual setup audit separately from CTest when sharing its scratch
+directory. ASan used `detect_leaks=0` on this Mac; the separate native checks
+completed with zero leaks and the tool's restricted-process inspection notice.
+Ordinary C tests need neither Python nor downloads. Linux execution
+and hosted macOS/Linux CI are not claimed for these changes. No benchmark CLI
+report or Release performance baseline is published by this step.
+
+Next scoped step: derive and display latency and throughput from these raw
+measurements, and connect the `bench` command arguments and diagnostics.

@@ -268,7 +268,15 @@ records the exact revision, results, GCC warnings, and remaining limitations.
   rejection. This Mac reports 42 ns resolution. Local Debug passes 42/42 tests;
   C-only Release and ASan/UBSan pass 33/33 each; native timer leak checks report
   zero. Linux execution and hosted CI for this step remain unverified. The
-  warm-up and measured inference loop are still pending.
+  warm-up and measured inference loop were the next scoped step.
+- The [benchmark execution helper](docs/BENCHMARK.md#warm-up-and-measured-loop-implementation-and-verification)
+  now runs ten untimed warm-ups followed by N measured calls, consumes every
+  finite output outside timing, stops on the first error, and publishes checked
+  raw integer measurements only after full success. Tiny/MNIST reuse and recovery
+  checks pass with unchanged allocation/file counters. Debug passes 43/43 tests;
+  C-only Release and ASan/UBSan pass 34/34 each; focused Release/ThinLTO audits
+  pass 2/2; native loop/setup leak checks report zero. CLI argument dispatch and
+  latency/throughput reporting remain pending.
 - The [`run` contract](docs/CLI.md) now defines two positional file paths, a
   zero-based prediction and up to three ranked raw scores, lower-index tie
   breaking, exit statuses `0/1/2`, and contextual errors. It accepts valid models
@@ -668,10 +676,12 @@ records that limitation and local reproduction commands.
 | `src/cli.c` | Version/run dispatch, model execution, ranking, escaped output, diagnostics, and cleanup. |
 | `src/cli_session.c`, `src/cli_session.h` | CLI-private reusable model/input/output preparation, ownership, failure context, and cleanup. |
 | `src/timer.c`, `src/timer.h` | CLI-private raw monotonic clock, checked resolution/timestamps/elapsed nanoseconds, and start/stop state. |
+| `src/benchmark.c`, `src/benchmark.h` | Borrowed-session warm-up/measured execution, volatile output observation, raw integer accumulation, and contextual failures. |
 | `src/input.c`, `src/input.h` | CLI-private exact-length finite little-endian float32 reader. |
 | `tests/test_input.c`, `tests/test_cli.c`, `tests/test_cli_process.c` | Reader/CLI failure audits and actual command processes against saved fixtures. |
 | `tests/test_cli_setup.c` | Real shared preparation, repeated inference without file access or allocations, forced failures, and cleanup/recovery. |
 | `tests/test_timer.c`, `tests/test_timer_unavailable.c`, `tests/test_timer_native.c` | Controlled clock boundary/failure checks, unavailable-backend rejection, and native clock smoke test. |
+| `tests/test_benchmark.c` | Controlled benchmark call counts, timing boundaries, output observation, failures, precedence, and maximum-iteration checks. |
 | `examples/mnist/DEMO.md` | Offline demonstration, reproduction commands, actual output, measured results, limitations, and M4 verification gate. |
 | `src/tensor.c` | Tensor allocation, cleanup, checked access, matrix-vector multiplication, bias addition, ReLU, Softmax, and error reporting. |
 | `src/dense.c` | Dense creation, parameter copying, cleanup, and forward execution through tensor kernels. |
@@ -690,7 +700,7 @@ records that limitation and local reproduction commands.
 | `docs/LOADER.md` | C loader API, file/status rules, constructor ownership, cleanup, implementation results, and remaining checks. |
 | `docs/MODEL_FORMAT.md` | `.cnd` version 1 byte layout, layer IDs, limits, validation, input-file contract, and worked example. |
 | `docs/CLI.md` | Implemented `cinder run` syntax, score formatting, class mapping, exit statuses, diagnostics, cleanup, and implementation acceptance cases. |
-| `docs/BENCHMARK.md` | Planned benchmark contract, acceptance cases, and implemented shared preparation/timer with verification results. |
+| `docs/BENCHMARK.md` | Benchmark contract, acceptance cases, and implemented preparation/timer/execution loops with verification results. |
 | `docs/EXPORTER.md` | Python model validation, binary writing, file replacement, fixtures, dependencies, and tests. |
 | `docs/NUMPY_TESTS.md` | Reference calculations, fixtures, tolerances, regeneration, and verification results. |
 | `docs/ROUND_TRIP.md` | Saved and freshly exported model-prefix comparisons through C loading/inference, dependencies, and measured results. |
@@ -786,10 +796,10 @@ verified locally and in all five hosted jobs. The
 [demonstration report](examples/mnist/DEMO.md) consolidates reproduction commands,
 results, limitations, and M4 closure on October 27, 2026.
 The [Phase 5 benchmark contract](docs/BENCHMARK.md) is defined, and reusable CLI
-model/input setup, cleanup, and checked macOS/Linux monotonic timing are
-implemented with the tested `run` behavior preserved. Benchmark dispatch,
-warm-ups, the measured loop, statistics, and reporting remain pending.
-Next: implement the ten warm-up calls and measured inference loop.
+model/input setup, cleanup, checked monotonic timing, and warm-up/measured loops
+are implemented with the tested `run` behavior preserved. Benchmark argument
+dispatch, derived latency/throughput, and reporting remain pending.
+Next: derive and display the benchmark measurements and connect `bench` dispatch.
 
 The v0.1.0 scope excludes training, GPU execution, convolutional layers,
 quantization, SIMD, multithreading, and arbitrary computation graphs.
