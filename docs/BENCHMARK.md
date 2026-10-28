@@ -1,15 +1,14 @@
 # `cinder bench` command and measurement contract
 
-**Defined October 27, 2026; shared preparation, timer, and execution loops implemented that day.**
-The executable currently supports only `--version` and `run`. Model/input setup,
-cleanup, monotonic timing, ten warm-ups, measured calls, and raw integer
-accumulation are ready for reuse. Benchmark argument dispatch, derived latency/
-throughput, and report formatting remain pending. No displayed benchmark report
-below is a measured Cinder result. The original contract step changed documentation only; the
-[preparation report](#preparation-implementation-and-verification),
-[timer report](#monotonic-timer-implementation-and-verification), and
-[loop report](#warm-up-and-measured-loop-implementation-and-verification) record the
-subsequent implementations and checks.
+**Defined October 27, 2026; `cinder bench` implemented October 28, 2026.**
+The command now validates arguments, prepares one model/input/output session,
+runs ten warm-ups and the measured calls, derives statistics, releases ownership,
+and prints the report. The [preparation report](#preparation-implementation-and-verification),
+[timer report](#monotonic-timer-implementation-and-verification),
+[loop report](#warm-up-and-measured-loop-implementation-and-verification), and
+[statistics/report verification](#statistics-and-cli-report-implementation-and-verification)
+record the implementation and checks. The synthetic examples below illustrate
+arithmetic; a separately documented Release performance baseline remains pending.
 
 The [run contract](CLI.md), [input format](MODEL_FORMAT.md#input-file-and-preprocessing-contract),
 and [model API](MODEL.md) remain authoritative for loading, input encoding,
@@ -22,7 +21,7 @@ uses those same paths and public accessors.
 cinder bench <model.cnd> <input.bin> --iterations N
 ```
 
-Example invocation, once implemented:
+Example invocation:
 
 ```sh
 ./build-release/cinder bench examples/mnist/mnist.cnd \
@@ -246,8 +245,8 @@ Normal exit statuses retain the CLI convention:
 | `1` | Operational failure: model/input/allocation/inference/output errors, unavailable or invalid clock, zero/backward time, or unrepresentable timing/statistics. |
 | `2` | Invalid command syntax, paths, option, or iteration value. |
 
-Once `bench` is implemented, **all CLI usage errors** will use this expanded
-block, including errors for `run` and `--version`:
+**All CLI usage errors** use this expanded block, including errors for `run`
+and `--version`:
 
 ```text
 cinder: usage: <reason>
@@ -258,10 +257,10 @@ Usage:
 ```
 
 Every line ends with LF. The global reason for missing/unknown commands or extra
-arguments to `--version` becomes `expected --version, run, or bench.` Existing
+arguments to `--version` is `expected --version, run, or bench.` Existing
 `run` argument reasons, successful output, and operational errors stay as defined
-in [CLI.md](CLI.md). This is an intentional **future** usage-text change;
-the current binary still uses the two-command block.
+in [CLI.md](CLI.md). This intentional usage-text change took effect with the
+October 28 implementation; successful `run`/`--version` output is unchanged.
 
 For recognized `bench`, select the first applicable reason in this order:
 
@@ -366,7 +365,7 @@ a speedup against an allocation-heavy implementation that never existed.
 
 ## Acceptance cases for implementation
 
-1. Preserve version/run behavior except for the explicitly expanded future usage
+1. Preserve version/run behavior except for the explicitly expanded usage
    text. Test exact bench syntax, literal unusual paths, leading zeros, counts
    1 and 1,000,000, zero, above-limit/huge strings, invalid bytes, and wrong option
    positions. Argument failures must cause no file/clock/model/allocation calls.
@@ -732,5 +731,126 @@ Ordinary C tests need neither Python nor downloads. Linux execution
 and hosted macOS/Linux CI are not claimed for these changes. No benchmark CLI
 report or Release performance baseline is published by this step.
 
-Next scoped step: derive and display latency and throughput from these raw
-measurements, and connect the `bench` command arguments and diagnostics.
+The next step at the time of this loop report was statistics and CLI dispatch;
+its completed implementation is recorded below.
+
+## Statistics and CLI report implementation and verification
+
+**Completed locally October 28, 2026.** [`src/benchmark_stats.c`](../src/benchmark_stats.c)
+adds `cinder_benchmark_statistics` and the private header adds
+`cinder_benchmark_statistics_t`. The raw measurement object still holds exact
+integer count/resolution/total/minimum/maximum; the new object holds four
+`double` values: mean/minimum/maximum microseconds and inferences per second.
+Derivation occurs after execution, outside every timed interval, without heap
+allocation or I/O. It does not change the measurement loop or model arithmetic.
+
+The helper checks the count and all durations for zero **before any division**.
+It also checks the iteration limit, positive resolution, min/max ordering, and
+aggregate bounds. The bounds use integer quotient/remainder rather than
+`minimum * count` or `maximum * count`, which could overflow for large inputs.
+Missing pointers or inconsistent metadata return `INVALID_ARGUMENT`; zero
+counts/durations or invalid final statistics return `NONFINITE`. These metadata
+checks are defensive checks for this private helper: a successful execution
+already supplies consistent positive measurements. Output remains unchanged
+on failure, the raw measurements are never modified, and optional error details
+are cleared on success.
+
+The formulas above are implemented in their specified order. Converting the
+integer total to `double` before dividing preserves fractional means, and the
+rate uses the unrounded total. For example, durations 1 and 9 us produce a
+5 us mean and **200,000 inferences/s** (`2 / 0.000010`). Averaging their individual
+rates would incorrectly give about 555,556/s. All four calculated values must
+be finite and strictly positive before they are published. No epsilon,
+substitute duration, retry, clamping, or rounded-text calculation is used.
+
+[`src/cli.c`](../src/cli.c) now dispatches the documented fixed-order command.
+It checks the complete ASCII-digit syntax before parsing the decimal value,
+then checks the 1..1,000,000 bound before each multiply/add. All argument errors
+precede file/clock access. Leading zeros are accepted, including arbitrarily
+long runs of leading zeros; an excessive number followed by an invalid byte
+receives the lexical diagnostic. No parsing buffer is allocated.
+
+The command calls shared preparation once, the existing execution helper once,
+and the statistics helper once. It releases the model/input/output session on
+success and failure before any report or diagnostic. Execution failures retain
+the warm-up/measured phase and one-based call number. Final statistics errors
+use the unnumbered benchmark context. Successful output has exactly nine lines,
+with escaped model basename, unsigned counts/resolution, C-locale `%.9g` values,
+and final LF. Every write and the final flush is checked; a write failure returns
+1 and attempts the benchmark output diagnostic. A partially written report
+cannot be rolled back. Normal exits are 0 success, 1 operational error, and
+2 usage error. The common usage block gains `bench`; existing successful
+`run`/`--version` output and operational errors remain unchanged.
+
+New and expanded ordinary C tests:
+
+- `benchmark_statistics` checks known arithmetic, the unequal-duration rate
+  example, fractional means from `[1,1,2]` ns, one iteration, 1,000,000 iterations,
+  `UINT64_MAX` totals/resolution, zero denominators/durations, invalid metadata,
+  optional diagnostics, and unchanged output on rejection. It does not require
+  the clock, a model, Python, or downloads.
+- `cli_audit` uses controlled execution results and the real statistics helper
+  to check exact nine-line output, fractional/scientific formatting, uint64
+  resolution printing, basename escaping, parsing bounds/precedence, setup and
+  execution errors, bounded diagnostics, statistics failure, recovery, every
+  report-write failure, and flush failure. Ownership counters require cleanup
+  before the first output byte. The existing prediction tests remain in place.
+- `cli_process` now passes **133 actual commands**, preserving the 122 existing
+  cases and adding 11 benchmark cases. These cover real tiny/MNIST files,
+  non-Softmax output, escaped filenames, leading zeros, argument rejection,
+  missing files, arithmetic failure during warm-up, and recovery with valid
+  input. The MNIST runs use saved indices 0, 8, and 99. Reports must have the
+  exact structure, finite positive ordered statistics, and reciprocal mean/rate
+  consistency within display rounding. No speed threshold is imposed.
+- Existing controlled loop/timer checks and the real setup/reuse audit continue
+  to check measured boundaries, zero/overflow rejection, failure precedence,
+  buffer reuse, allocation/file counters, and numerical agreement.
+
+Local macOS arm64 checks (Apple Clang 21.0.0, CMake 4.4.4):
+
+| Check | Result |
+| --- | --- |
+| Debug with optional Python reference checks | 44/44 passed |
+| Release, ordinary C tests only | 35/35 passed |
+| Debug ASan + UBSan, ordinary C tests only | 35/35 passed; no findings |
+| Native `leaks --atExit`, CLI audit and actual MNIST benchmark | Both exited 0; 0 leaks / 0 leaked bytes |
+| New/changed C sources with C11 warnings as errors | Passed |
+
+ASan used `detect_leaks=0` on macOS; native leak checks completed separately,
+with the usual restricted-process inspection notice. The 100 saved MNIST
+prediction/top-three comparisons still agree 100/100, with maximum displayed
+score absolute error `3.57627869e-7`. All-stage comparison and lifecycle tests
+also pass. Classification accuracy is not a benchmark statistic.
+
+From the repository root, reproduce a report with:
+
+```sh
+cmake -S . -B build-mnist-c-only -DCMAKE_BUILD_TYPE=Release
+cmake --build build-mnist-c-only
+./build-mnist-c-only/cinder bench examples/mnist/mnist.cnd \
+  tests/fixtures/mnist/inputs/00000.f32 --iterations 1000
+```
+
+Actual output from one local functional run on October 28:
+
+```text
+Model: mnist.cnd
+Iterations: 1000
+Warm-up iterations: 10
+Clock: monotonic
+Clock resolution (ns): 42
+Mean latency (us): 112.477741
+Minimum latency (us): 98.417
+Maximum latency (us): 166.292
+Throughput (inferences/s): 8890.64797
+```
+
+These are observed values from the current uncommitted implementation, not a
+reproducible performance baseline or speed guarantee. Other verification work
+was running concurrently. A baseline still needs isolated repeated trials,
+exact revision/environment/build/model/input records, and the existing numerical
+and allocation evidence. Linux execution and hosted macOS/Linux CI have not
+been verified for this step; no commit or push was made.
+
+Next scoped step: complete the consolidated benchmark acceptance audit against
+this contract, then record the Release baseline. Phase 5 remains open.

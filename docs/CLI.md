@@ -1,7 +1,7 @@
 # `cinder run` command contract
 
 **Defined October 26, 2026; implemented October 27, 2026.**
-[`src/cli.c`](../src/cli.c) supports `--version` and `run`, using the private
+[`src/cli.c`](../src/cli.c) supports `--version`, `run`, and `bench`, using the private
 [`shared preparation helpers`](../src/cli_session.h),
 [`input reader`](../src/input.c), and public model API. Preparation loads once,
 reads input once, and allocates output before execution; release handles all
@@ -14,11 +14,10 @@ output, reproduction commands, test results, and M4 closure status.
 The [.cnd format](MODEL_FORMAT.md), [loader](LOADER.md), and [model API](MODEL.md)
 remain authoritative for binary encoding, validation, ownership, and inference.
 
-The separate [benchmark contract](BENCHMARK.md) defines the planned `bench`
-command. It is not implemented yet. Its future integration will add a third
-line to the common usage block and change the global unknown-command reason;
-the two-command usage text below describes the current executable. Successful
-`run`/`--version` output and `run` operational errors will retain this contract.
+The separate [benchmark contract](BENCHMARK.md) defines `bench`, implemented
+October 28, 2026. Its integration adds a third line to the common usage block
+and changes the global unknown-command reason as shown below. Successful
+`run`/`--version` output and `run` operational errors retain this contract.
 
 ## Invocation and argument rules
 
@@ -120,7 +119,7 @@ The ellipsis above describes repetition; it is never printed. Formatting rules:
   scientific notation where `%g` selects it. Use a decimal point, no grouping
   separators, and normalize either signed zero to the displayed text `0`.
 - Print no timing, progress, accuracy, banners, or additional model metadata.
-  Timing belongs to the later benchmark command. Success leaves stderr empty.
+  Timing belongs to the separate benchmark command. Success leaves stderr empty.
 
 Actual local C output for MNIST test index 0, captured October 27, 2026.
 Cross-platform numerical checks use the fixture tolerance; the final printed
@@ -181,13 +180,16 @@ cinder: usage: <reason>
 Usage:
   cinder --version
   cinder run <model.cnd> <input.bin>
+  cinder bench <model.cnd> <input.bin> --iterations N
 ```
 
-Each line ends with LF, with no extra blank line. Select the reason in this order:
+Each line ends with LF, with no extra blank line. For `bench`, use the argument
+rules and reasons in [BENCHMARK.md](BENCHMARK.md#exit-statuses-and-usage-diagnostics).
+For the commands documented here, select the reason in this order:
 
 | Condition | Exact reason |
 | --- | --- |
-| No command, an unknown top-level command, or `--version` with extra arguments | `expected --version or run.` |
+| No command, an unknown top-level command, or `--version` with extra arguments | `expected --version, run, or bench.` |
 | Command is `run`, but not exactly two path arguments | `run requires exactly two file paths.` |
 | Correct argument count but model path is empty | `model path must not be empty.` |
 | Model path nonempty but input path is empty | `input path must not be empty.` |

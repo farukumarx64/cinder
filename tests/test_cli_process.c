@@ -1,6 +1,7 @@
 #define _POSIX_C_SOURCE 200809L
 #include <errno.h>
 #include <fcntl.h>
+#include <inttypes.h>
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -13,7 +14,7 @@
     fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, #x); exit(1); \
 } } while (0)
 static char output[4096], error[4096];
-static size_t commands;
+static size_t commands, benchmark_commands;
 
 static void read_text(const char *path, char *text, size_t capacity)
 {
@@ -24,7 +25,8 @@ static void read_text(const char *path, char *text, size_t capacity)
     text[count] = '\0';
     CHECK(fclose(file) == 0 && remove(path) == 0);
 }
-static void execute(const char *executable, const char *model, const char *input, int expected)
+static void execute_command(const char *executable, const char *model, const char *input,
+                            const char *iterations, int expected)
 {
     pid_t child = fork();
     CHECK(child >= 0);
@@ -33,7 +35,11 @@ static void execute(const char *executable, const char *model, const char *input
         int err = open("stderr.txt", O_WRONLY | O_CREAT | O_TRUNC, 0600);
         if (out < 0 || err < 0 || dup2(out, STDOUT_FILENO) < 0 || dup2(err, STDERR_FILENO) < 0) _exit(126);
         close(out); close(err);
-        execl(executable, executable, "run", model, input, (char *)NULL);
+        if (iterations != NULL) {
+            execl(executable, executable, "bench", model, input, "--iterations", iterations, (char *)NULL);
+        } else {
+            execl(executable, executable, "run", model, input, (char *)NULL);
+        }
         _exit(127);
     }
     int status;
@@ -46,6 +52,36 @@ static void execute(const char *executable, const char *model, const char *input
     CHECK(WEXITSTATUS(status) == expected);
     if (expected == 0) CHECK(error[0] == '\0'); else CHECK(output[0] == '\0');
     ++commands;
+    if (iterations != NULL) ++benchmark_commands;
+}
+static void execute(const char *executable, const char *model, const char *input, int expected)
+{
+    execute_command(executable, model, input, NULL, expected);
+}
+static void compare_benchmark(const char *name, unsigned expected_count)
+{
+    char header[512];
+    int length = snprintf(header, sizeof(header), "Model: %s\nIterations: %u\n"
+        "Warm-up iterations: 10\nClock: monotonic\nClock resolution (ns): ", name, expected_count);
+    CHECK(length > 0 && (size_t)length < sizeof(header) && strncmp(output, header, (size_t)length) == 0);
+    const char *cursor = output + length;
+    uint64_t resolution;
+    double mean, minimum, maximum, throughput;
+    int consumed = 0;
+    CHECK(sscanf(cursor, "%" SCNu64 "\nMean latency (us): %lf\nMinimum latency (us): %lf\n"
+        "Maximum latency (us): %lf\nThroughput (inferences/s): %lf%n",
+        &resolution, &mean, &minimum, &maximum, &throughput, &consumed) == 5);
+    CHECK(consumed > 0 && cursor[consumed] == '\n' && cursor[consumed+1] == '\0');
+    CHECK(resolution > 0 && isfinite(mean) && isfinite(minimum) && isfinite(maximum) && isfinite(throughput));
+    CHECK(minimum > 0 && mean >= minimum && maximum >= mean && throughput > 0);
+    /* Display rounding is allowed; no latency/speed threshold is imposed. */
+    CHECK(fabs(mean * throughput - 1000000.0) <= .02);
+    if (expected_count == 1) CHECK(mean == minimum && mean == maximum);
+    char formatted[512];
+    snprintf(formatted, sizeof(formatted), "%" PRIu64 "\nMean latency (us): %.9g\n"
+        "Minimum latency (us): %.9g\nMaximum latency (us): %.9g\nThroughput (inferences/s): %.9g\n",
+        resolution, mean, minimum, maximum, throughput);
+    CHECK(strcmp(cursor, formatted) == 0);
 }
 static void word(FILE *file, uint32_t value)
 {
@@ -136,18 +172,26 @@ int main(int argc, char **argv)
     write_model(odd, bias, 4);
     execute(executable, odd, "-", 0);
     compare_output("a \\\"\\\\\\x0A\\x09\\xC3\\xA9", bias, 4);
+    execute_command(executable, odd, "-", "0003", 0);
+    compare_benchmark("a \\\"\\\\\\x0A\\x09\\xC3\\xA9", 3);
     CHECK(symlink(odd, "alias.cnd") == 0);
     execute(executable, "alias.cnd", "-", 0);
     compare_output("alias.cnd", bias, 4);
     CHECK(unlink("alias.cnd") == 0 && remove(odd) == 0);
     execute(executable, odd, "missing", 1);
     CHECK(strstr(error, "cinder: model \"a \\\"\\\\\\x0A\\x09\\xC3\\xA9\" [IO]: ") == error);
+    execute_command(executable, odd, "missing", "3", 1);
+    CHECK(strstr(error, "cinder: model \"a \\\"\\\\\\x0A\\x09\\xC3\\xA9\" [IO]: ") == error);
+    execute_command(executable, "missing", "missing", "999999999999x", 2);
+    CHECK(strstr(error, "cinder: usage: iterations must contain only ASCII decimal digits.\n") == error);
     for (size_t count = 1; count <= 3; ++count) {
         bias[0] = -2.75f; bias[1] = -0.5f; bias[2] = -1.0f;
         write_model("scores", bias, count);
         execute(executable, "scores", "-", 0); compare_output("scores", bias, count);
     }
     execute(executable, "scores", "missing", 1);
+    CHECK(strcmp(error, "cinder: input \"missing\" [IO]: Could not open input file for reading.\n") == 0);
+    execute_command(executable, "scores", "missing", "3", 1);
     CHECK(strcmp(error, "cinder: input \"missing\" [IO]: Could not open input file for reading.\n") == 0);
     for (size_t bytes = 0; bytes <= 5; ++bytes) {
         if (bytes == 4) continue;
@@ -174,14 +218,20 @@ int main(int argc, char **argv)
     write_model("scores", bias, 1); mutate_word("scores", 32, UINT32_C(0x7f7fffff));
     write_input("bad-input", 2.0f); execute(executable, "scores", "bad-input", 1);
     CHECK(strstr(error, "cinder: inference [NONFINITE]: ") == error);
+    execute_command(executable, "scores", "bad-input", "3", 1);
+    CHECK(strstr(error, "cinder: benchmark warm-up 1 [NONFINITE]: ") == error);
     write_input("bad-input", 0.0f); execute(executable, "scores", "bad-input", 0);
     compare_output("scores", bias, 1);
+    execute_command(executable, "scores", "bad-input", "1", 0);
+    compare_benchmark("scores", 1);
 
     char model[4096], input[4096], references[4096];
     CHECK(snprintf(model, sizeof(model), "%s/tests/fixtures/tiny/tiny.cnd", source) < (int)sizeof(model));
     CHECK(snprintf(input, sizeof(input), "%s/tests/fixtures/tiny/inputs/worked.f32", source) < (int)sizeof(input));
     execute(executable, model, input, 0);
     const float tiny[] = {0.904650509f, 0.0953494608f}; compare_output("tiny.cnd", tiny, 2);
+    execute_command(executable, model, input, "1", 0); compare_benchmark("tiny.cnd", 1);
+    execute_command(executable, model, input, "17", 0); compare_benchmark("tiny.cnd", 17);
     CHECK(snprintf(model, sizeof(model), "%s/examples/mnist/mnist.cnd", source) < (int)sizeof(model));
     CHECK(snprintf(references, sizeof(references), "%s/tests/fixtures/mnist/probabilities.f32", source) < (int)sizeof(references));
     FILE *file = fopen(references, "rb"); CHECK(file != NULL);
@@ -193,9 +243,13 @@ int main(int argc, char **argv)
         execute(executable, model, input, 0);
         double difference = compare_output("mnist.cnd", reference, 10);
         if (difference > maximum) maximum = difference;
+        if (sample == 0 || sample == 8 || sample == 99) {
+            execute_command(executable, model, input, sample == 0 ? "1" : "17", 0);
+            compare_benchmark("mnist.cnd", sample == 0 ? 1 : 17);
+        }
     }
     CHECK(fgetc(file) == EOF && feof(file) && !ferror(file) && fclose(file) == 0);
     CHECK(remove("-") == 0 && remove("-model with spaces") == 0 && remove("scores") == 0 && remove("bad-input") == 0);
-    printf("CLI processes: %zu passed; MNIST prediction/top-three index agreement 100/100; maximum displayed-score absolute error %.9g.\n", commands, maximum);
+    printf("CLI processes: %zu passed (%zu benchmark cases); MNIST prediction/top-three index agreement 100/100; maximum displayed-score absolute error %.9g.\n", commands, benchmark_commands, maximum);
     return 0;
 }

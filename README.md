@@ -54,7 +54,7 @@ Start with the [offline MNIST demonstration](examples/mnist/DEMO.md).
 in all five hosted CI jobs,
 including failure recovery, independent owners, poisoned workspaces, and all
 construction allocation failures. Hosted verification completed October 27, 2026.
-The CLI supports `--version` and `run`. The new CLI passes local Debug 38/38,
+The CLI supports `--version`, `run`, and now `bench`. The M4 CLI passed local Debug 38/38,
 C-only Release 29/29, ASan/UBSan 29/29, and native leak checks. All five hosted
 jobs passed for `7aa4bda`: Linux Debug 38/38; macOS Debug/Release, Linux Release,
 and Linux sanitizer/leak checks 29/29 each. The
@@ -250,11 +250,11 @@ records the exact revision, results, GCC warnings, and remaining limitations.
   for evidence: Linux Debug passes 35/35 hosted tests; macOS Debug/Release,
   Linux Release, and Linux sanitizers each pass 26/26. Native hosted macOS leak
   checking did not complete; local native checks and hosted Linux LeakSanitizer pass.
-- The `info` and `bench` commands remain planned features.
+- The `info` command remains planned; `bench` is implemented.
 - The [benchmark contract](docs/BENCHMARK.md), defined October 27, specifies
   required `--iterations N` (1–1,000,000), ten fixed warm-ups, per-call monotonic
   inference timing, checked statistics, exact reporting, and failure behavior.
-  The command is not implemented and no performance results have been measured.
+  The command now runs; a reproducible performance baseline remains pending.
 - [Shared CLI preparation](docs/BENCHMARK.md#preparation-implementation-and-verification)
   now loads the model once, reads input once, allocates output, and owns cleanup.
   `run` uses it with unchanged behavior. Tiny/MNIST tests cover reuse without
@@ -275,8 +275,16 @@ records the exact revision, results, GCC warnings, and remaining limitations.
   raw integer measurements only after full success. Tiny/MNIST reuse and recovery
   checks pass with unchanged allocation/file counters. Debug passes 43/43 tests;
   C-only Release and ASan/UBSan pass 34/34 each; focused Release/ThinLTO audits
-  pass 2/2; native loop/setup leak checks report zero. CLI argument dispatch and
-  latency/throughput reporting remain pending.
+  pass 2/2; native loop/setup leak checks report zero. Statistics and CLI
+  reporting were completed in the following step.
+- [`cinder bench` statistics and reporting](docs/BENCHMARK.md#statistics-and-cli-report-implementation-and-verification)
+  were implemented October 28. The command validates 1..1,000,000 iterations,
+  derives mean/minimum/maximum microseconds and throughput from raw measured
+  durations, and prints after cleanup. Zero denominators and invalid statistics
+  are rejected. Debug passes 44/44; C-only Release and ASan/UBSan pass 35/35 each;
+  native CLI/benchmark leak checks report zero. The process suite now covers
+  133 commands, including 11 benchmark cases. Hosted CI and the reproducible
+  Release baseline remain pending for this step.
 - The [`run` contract](docs/CLI.md) now defines two positional file paths, a
   zero-based prediction and up to three ranked raw scores, lower-index tie
   breaking, exit statuses `0/1/2`, and contextual errors. It accepts valid models
@@ -676,11 +684,12 @@ records that limitation and local reproduction commands.
 | `src/cli.c` | Version/run dispatch, model execution, ranking, escaped output, diagnostics, and cleanup. |
 | `src/cli_session.c`, `src/cli_session.h` | CLI-private reusable model/input/output preparation, ownership, failure context, and cleanup. |
 | `src/timer.c`, `src/timer.h` | CLI-private raw monotonic clock, checked resolution/timestamps/elapsed nanoseconds, and start/stop state. |
-| `src/benchmark.c`, `src/benchmark.h` | Borrowed-session warm-up/measured execution, volatile output observation, raw integer accumulation, and contextual failures. |
+| `src/benchmark.c`, `src/benchmark_stats.c`, `src/benchmark.h` | Borrowed-session warm-up/measured execution, output observation, checked raw accumulation, and final latency/throughput derivation. |
 | `src/input.c`, `src/input.h` | CLI-private exact-length finite little-endian float32 reader. |
 | `tests/test_input.c`, `tests/test_cli.c`, `tests/test_cli_process.c` | Reader/CLI failure audits and actual command processes against saved fixtures. |
 | `tests/test_cli_setup.c` | Real shared preparation, repeated inference without file access or allocations, forced failures, and cleanup/recovery. |
 | `tests/test_timer.c`, `tests/test_timer_unavailable.c`, `tests/test_timer_native.c` | Controlled clock boundary/failure checks, unavailable-backend rejection, and native clock smoke test. |
+| `tests/test_benchmark_stats.c` | Known statistics, rate definition, fractional means, integer limits, and zero/inconsistent measurement rejection. |
 | `tests/test_benchmark.c` | Controlled benchmark call counts, timing boundaries, output observation, failures, precedence, and maximum-iteration checks. |
 | `examples/mnist/DEMO.md` | Offline demonstration, reproduction commands, actual output, measured results, limitations, and M4 verification gate. |
 | `src/tensor.c` | Tensor allocation, cleanup, checked access, matrix-vector multiplication, bias addition, ReLU, Softmax, and error reporting. |
@@ -797,9 +806,9 @@ verified locally and in all five hosted jobs. The
 results, limitations, and M4 closure on October 27, 2026.
 The [Phase 5 benchmark contract](docs/BENCHMARK.md) is defined, and reusable CLI
 model/input setup, cleanup, checked monotonic timing, and warm-up/measured loops
-are implemented with the tested `run` behavior preserved. Benchmark argument
-dispatch, derived latency/throughput, and reporting remain pending.
-Next: derive and display the benchmark measurements and connect `bench` dispatch.
+are implemented with the tested `run` behavior preserved. `cinder bench` now
+validates arguments, derives latency/throughput, and prints its nine-line report.
+Next: finish the benchmark acceptance audit, then record a reproducible Release baseline.
 
 The v0.1.0 scope excludes training, GPU execution, convolutional layers,
 quantization, SIMD, multithreading, and arbitrary computation graphs.

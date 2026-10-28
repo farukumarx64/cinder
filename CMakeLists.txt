@@ -101,7 +101,7 @@ target_compile_definitions(cinder_cli_timer PRIVATE ${CINDER_TIMER_PLATFORM_DEFI
 target_link_libraries(cinder_cli_timer PUBLIC ${CINDER_TIMER_LIBRARIES})
 cinder_configure_target(cinder_cli_timer)
 
-add_library(cinder_cli_benchmark STATIC src/benchmark.c)
+add_library(cinder_cli_benchmark STATIC src/benchmark.c src/benchmark_stats.c)
 target_link_libraries(cinder_cli_benchmark PUBLIC cinder_core cinder_cli_timer)
 cinder_configure_target(cinder_cli_benchmark)
 
@@ -111,6 +111,15 @@ target_compile_definitions(cinder PRIVATE CINDER_VERSION="${PROJECT_VERSION}-dev
 cinder_configure_target(cinder)
 
 if(BUILD_TESTING)
+    add_executable(test_benchmark_stats tests/test_benchmark_stats.c src/benchmark_stats.c)
+    target_include_directories(test_benchmark_stats PRIVATE "${PROJECT_SOURCE_DIR}/include")
+    if(UNIX)
+        target_link_libraries(test_benchmark_stats PRIVATE m)
+    endif()
+    cinder_configure_target(test_benchmark_stats)
+    add_test(NAME benchmark_statistics COMMAND test_benchmark_stats)
+    set_tests_properties(benchmark_statistics PROPERTIES TIMEOUT 10)
+
     # The loop audit substitutes model/timer calls, including a cheap maximum-N
     # case, to verify ordering/failure precedence without speed thresholds.
     add_executable(test_benchmark tests/test_benchmark.c)
@@ -160,7 +169,7 @@ if(BUILD_TESTING)
     file(MAKE_DIRECTORY "${PROJECT_BINARY_DIR}/input-test-files")
     add_test(NAME cli_input COMMAND test_input "${PROJECT_BINARY_DIR}/input-test-files/input.bin")
 
-    add_executable(test_cli tests/test_cli.c)
+    add_executable(test_cli tests/test_cli.c src/benchmark_stats.c)
     target_include_directories(test_cli PRIVATE "${PROJECT_SOURCE_DIR}/include")
     target_compile_definitions(test_cli PRIVATE CINDER_VERSION="${PROJECT_VERSION}-dev")
     if(UNIX)

@@ -2,6 +2,7 @@
  * process test covers real files, loader, input decoder and model execution. */
 #include "cinder/model.h"
 #include "../src/input.h"
+#include "../src/benchmark.h"
 #include <locale.h>
 #include <math.h>
 #include <stdarg.h>
@@ -25,6 +26,13 @@ static char api_message[CINDER_ERROR_MESSAGE_CAPACITY];
 static float scores[8] = {0.5f, 0.5f, 0.1f, 0.5f};
 static int model_token;
 static void *blocks[2];
+static size_t benchmarks;
+static uint32_t requested_iterations;
+static cinder_status_t benchmark_status;
+static cinder_benchmark_phase_t benchmark_phase;
+static uint32_t benchmark_iteration;
+static int invalid_statistics;
+static cinder_benchmark_result_t benchmark_result;
 
 static void *test_malloc(size_t bytes)
 {
@@ -96,6 +104,27 @@ static cinder_status_t test_run(cinder_model_t *model, const float *input,
     memcpy(output, scores, output_size * sizeof(float));
     return answer(error, run_status);
 }
+static cinder_status_t test_benchmark(const cinder_cli_session_t *session, uint32_t iterations,
+    cinder_benchmark_result_t *result, cinder_benchmark_failure_t *failure)
+{
+    CHECK(model_live == 1 && live == 2 && loads == 1 && inputs == 1 && runs == 0);
+    CHECK(session->model == (cinder_model_t *)&model_token && session->input != session->output);
+    CHECK(session->input_size == input_size && session->output_size == output_size);
+    ++benchmarks; requested_iterations = iterations;
+    *failure = (cinder_benchmark_failure_t){.phase = benchmark_phase, .iteration = benchmark_iteration};
+    answer(&failure->detail, benchmark_status);
+    if (benchmark_status == CINDER_OK) {
+        *failure = (cinder_benchmark_failure_t){0};
+        *result = benchmark_result;
+        result->iterations = iterations;
+        if (invalid_statistics) result->total_ns = 0;
+        else if (iterations != 3) {
+            result->minimum_ns = result->maximum_ns = 1000;
+            result->total_ns = (uint64_t)iterations * 1000;
+        }
+    }
+    return benchmark_status;
+}
 static int fail_output(FILE *file)
 {
     CHECK(live == 0 && model_live == 0); /* Cleanup must precede all output. */
@@ -141,6 +170,7 @@ static int test_flush(FILE *file)
 #define cinder_model_free test_model_free
 #define cinder_model_run test_run
 #define cinder_input_read test_input
+#define cinder_benchmark_execute test_benchmark
 #include "../src/cli_session.c"
 #define main cli_main
 #include "../src/cli.c"
@@ -159,6 +189,7 @@ static int test_flush(FILE *file)
 #undef cinder_model_free
 #undef cinder_model_run
 #undef cinder_input_read
+#undef cinder_benchmark_execute
 
 static void reset(void)
 {
@@ -171,6 +202,9 @@ static void reset(void)
     memset(api_message, 0, sizeof(api_message));
     input_size = 1; output_size = 4;
     scores[0] = scores[1] = scores[3] = 0.5f; scores[2] = 0.1f;
+    benchmarks = requested_iterations = benchmark_iteration = invalid_statistics = 0;
+    benchmark_status = CINDER_OK; benchmark_phase = CINDER_BENCHMARK_SETUP;
+    benchmark_result = (cinder_benchmark_result_t){3, 1, 6000, 1000, 3000};
 }
 static char out_text[4096], err_text[4096];
 static void capture(FILE *file, char *text, size_t capacity)
@@ -192,8 +226,114 @@ static void expect_failure(const char *detail)
 {
     CHECK(out_text[0] == '\0' && strcmp(err_text, detail) == 0);
 }
+
+static void benchmark_cases(void)
+{
+    char *args[] = {"cinder", "bench", "dir/model.cnd", "input.f32", "--iterations", "3", "extra", NULL};
+    reset(); invoke(6, args, 0);
+    CHECK(strcmp(out_text, "Model: model.cnd\nIterations: 3\nWarm-up iterations: 10\n"
+        "Clock: monotonic\nClock resolution (ns): 1\nMean latency (us): 2\n"
+        "Minimum latency (us): 1\nMaximum latency (us): 3\nThroughput (inferences/s): 500000\n") == 0);
+    CHECK(err_text[0] == '\0' && loads == 1 && inputs == 1 && benchmarks == 1 && runs == 0);
+    CHECK(requested_iterations == 3 && allocations == 2);
+    size_t successful_writes = write_calls;
+    for (size_t i = 1; i <= successful_writes; ++i) {
+        reset(); fail_write = i; invoke(6, args, 1);
+        CHECK(strcmp(err_text, "cinder: output [IO]: Could not write benchmark output.\n") == 0);
+    }
+    reset(); fail_flush = 1; invoke(6, args, 1);
+    CHECK(strcmp(err_text, "cinder: output [IO]: Could not write benchmark output.\n") == 0);
+    reset(); fail_flush = fail_stderr = 1; invoke(6, args, 1); CHECK(err_text[0] == '\0');
+
+    reset(); benchmark_result = (cinder_benchmark_result_t){3, 42, 4, 1, 2}; invoke(6, args, 0);
+    CHECK(strstr(out_text, "Mean latency (us): 0.00133333333\nMinimum latency (us): 0.001\n"
+        "Maximum latency (us): 0.002\nThroughput (inferences/s): 750000000\n") != NULL);
+    reset(); benchmark_result = (cinder_benchmark_result_t){3, UINT64_MAX, UINT64_MAX, 1, UINT64_MAX-2};
+    invoke(6, args, 0);
+    CHECK(strstr(out_text, "Clock resolution (ns): 18446744073709551615\n") != NULL);
+    CHECK(strstr(out_text, "Mean latency (us): 6.14891469e+15\n") != NULL);
+    CHECK(strstr(out_text, "Throughput (inferences/s): 1.62630326e-10\n") != NULL);
+    args[2] = "dir/a \"\\\n\t\xC3\xA9.cnd";
+    reset(); invoke(6, args, 0);
+    CHECK(strstr(out_text, "Model: a \\\"\\\\\\x0A\\x09\\xC3\\xA9.cnd\n") == out_text);
+    args[2] = "dir/model.cnd";
+
+    const char *valid[] = {"1", "0003", "1000000", "00000000000000000000000000000000000000000000000000001"};
+    const uint32_t counts[] = {1, 3, 1000000, 1};
+    for (size_t i = 0; i < sizeof(valid)/sizeof(valid[0]); ++i) {
+        args[5] = (char *)valid[i]; reset(); invoke(6, args, 0);
+        CHECK(requested_iterations == counts[i] && benchmarks == 1 && err_text[0] == '\0');
+        char expected[64]; snprintf(expected, sizeof(expected), "Iterations: %" PRIu32 "\n", counts[i]);
+        CHECK(strstr(out_text, expected) != NULL);
+    }
+    args[5] = "3";
+    args[2] = "--iterations"; args[3] = "-";
+    reset(); invoke(6, args, 0); CHECK(strstr(out_text, "Model: --iterations\n") == out_text);
+    args[2] = "dir/model.cnd"; args[3] = "input.f32";
+
+    const struct { int argc; const char *model, *input, *option, *count, *reason; } invalid[] = {
+        {2,"","","","","bench requires two file paths followed by --iterations N."},
+        {5,"x","y","--iterations","3","bench requires two file paths followed by --iterations N."},
+        {7,"x","y","--iterations","3","bench requires two file paths followed by --iterations N."},
+        {6,"","","wrong","x","model path must not be empty."},
+        {6,"x","","wrong","x","input path must not be empty."},
+        {6,"x","y","--iterations=3","","bench requires --iterations after the two file paths."},
+        {6,"x","y","--help","3","bench requires --iterations after the two file paths."},
+        {6,"--iterations","3","x","y","bench requires --iterations after the two file paths."},
+        {6,"x","y","--","3","bench requires --iterations after the two file paths."},
+        {6,"x","y","--warmup","3","bench requires --iterations after the two file paths."}
+    };
+    for (size_t i = 0; i < sizeof(invalid)/sizeof(invalid[0]); ++i) {
+        args[2] = (char *)invalid[i].model; args[3] = (char *)invalid[i].input;
+        args[4] = (char *)invalid[i].option; args[5] = (char *)invalid[i].count;
+        reset(); invoke(invalid[i].argc, args, 2);
+        char expected[512]; snprintf(expected, sizeof(expected), "cinder: usage: %s\nUsage:\n"
+            "  cinder --version\n  cinder run <model.cnd> <input.bin>\n"
+            "  cinder bench <model.cnd> <input.bin> --iterations N\n", invalid[i].reason);
+        expect_failure(expected); CHECK(loads == 0 && inputs == 0 && benchmarks == 0 && allocations == 0);
+    }
+    args[2] = "dir/model.cnd"; args[3] = "input.f32"; args[4] = "--iterations";
+    const char *numbers[] = {"", "+1", "-1", " 1", "1 ", "1\n", "0x10", "1e3", "1.0",
+        "\xD9\xA1", "999999999999999999999999x", "0", "000", "1000001", "4294967296",
+        "99999999999999999999999999999999999999999999999999999999999"};
+    for (size_t i = 0; i < sizeof(numbers)/sizeof(numbers[0]); ++i) {
+        args[5] = (char *)numbers[i]; reset(); invoke(6, args, 2);
+        const char *reason = i < 11 ? "iterations must contain only ASCII decimal digits." :
+                                     "iterations must be between 1 and 1000000.";
+        char expected[512]; snprintf(expected, sizeof(expected), "cinder: usage: %s\nUsage:\n"
+            "  cinder --version\n  cinder run <model.cnd> <input.bin>\n"
+            "  cinder bench <model.cnd> <input.bin> --iterations N\n", reason);
+        expect_failure(expected); CHECK(loads == 0 && benchmarks == 0 && allocations == 0);
+    }
+    args[5] = "3";
+    reset(); load_status = input_status = CINDER_ERROR_IO; invoke(6, args, 1);
+    expect_failure("cinder: model \"dir/model.cnd\" [IO]: Operation failed.\n");
+    CHECK(inputs == 0 && benchmarks == 0);
+    reset(); input_status = CINDER_ERROR_FORMAT; invoke(6, args, 1);
+    expect_failure("cinder: input \"input.f32\" [FORMAT]: Operation failed.\n"); CHECK(benchmarks == 0);
+    reset(); fail_allocation = 2; invoke(6, args, 1);
+    expect_failure("cinder: inference [ALLOCATION]: Could not allocate output buffer.\n"); CHECK(benchmarks == 0);
+    const cinder_benchmark_phase_t phases[] = {CINDER_BENCHMARK_SETUP, CINDER_BENCHMARK_WARMUP, CINDER_BENCHMARK_MEASURED};
+    const char *stages[] = {"benchmark", "benchmark warm-up 10", "benchmark iteration 3"};
+    for (size_t i = 0; i < 3; ++i) {
+        reset(); benchmark_status = CINDER_ERROR_IO; benchmark_phase = phases[i];
+        benchmark_iteration = i == 1 ? 10 : i == 2 ? 3 : 0;
+        strcpy(api_message, "bad\n\xFF"); invoke(6, args, 1);
+        char expected[256]; snprintf(expected, sizeof(expected), "cinder: %s [IO]: bad\\x0A\\xFF\n", stages[i]);
+        expect_failure(expected); CHECK(benchmarks == 1);
+    }
+    reset(); benchmark_status = CINDER_ERROR_UNSUPPORTED; invoke(6, args, 1);
+    expect_failure("cinder: benchmark [UNSUPPORTED]: Operation failed.\n");
+    reset(); benchmark_status = CINDER_ERROR_IO; memset(api_message, 'X', sizeof(api_message));
+    invoke(6, args, 1);
+    CHECK(out_text[0] == '\0' && strlen(err_text) == strlen("cinder: benchmark [IO]: \n") + sizeof(api_message));
+    reset(); invalid_statistics = 1; invoke(6, args, 1);
+    expect_failure("cinder: benchmark [NONFINITE]: Benchmark statistics must be finite and positive.\n");
+    reset(); invoke(6, args, 0); CHECK(err_text[0] == '\0'); /* Recovery. */
+}
 int main(void)
 {
+    benchmark_cases();
     char *args[] = {"cinder", "run", "dir/model.cnd", "input.f32", "extra", NULL};
     reset(); invoke(4, args, 0);
     CHECK(strcmp(out_text, "Model: model.cnd\nPrediction: 0\nScores:\n0\t0.5\n1\t0.5\n3\t0.5\n") == 0);
@@ -257,10 +397,10 @@ int main(void)
     }
 
     const struct { int argc; const char *command, *model, *input, *reason; } usages[] = {
-        {1, "", "x", "y", "expected --version or run."},
-        {2, "--help", "x", "y", "expected --version or run."},
-        {4, "Run", "x", "y", "expected --version or run."},
-        {3, "--version", "x", "y", "expected --version or run."},
+        {1, "", "x", "y", "expected --version, run, or bench."},
+        {2, "--help", "x", "y", "expected --version, run, or bench."},
+        {4, "Run", "x", "y", "expected --version, run, or bench."},
+        {3, "--version", "x", "y", "expected --version, run, or bench."},
         {2, "run", "x", "y", "run requires exactly two file paths."},
         {3, "run", "x", "y", "run requires exactly two file paths."},
         {5, "run", "x", "y", "run requires exactly two file paths."},
@@ -270,8 +410,8 @@ int main(void)
     for (size_t i = 0; i < sizeof(usages) / sizeof(usages[0]); ++i) {
         args[1] = (char *)usages[i].command; args[2] = (char *)usages[i].model; args[3] = (char *)usages[i].input;
         reset(); invoke(usages[i].argc, args, 2);
-        char expected[256];
-        snprintf(expected, sizeof(expected), "cinder: usage: %s\nUsage:\n  cinder --version\n  cinder run <model.cnd> <input.bin>\n", usages[i].reason);
+        char expected[512];
+        snprintf(expected, sizeof(expected), "cinder: usage: %s\nUsage:\n  cinder --version\n  cinder run <model.cnd> <input.bin>\n  cinder bench <model.cnd> <input.bin> --iterations N\n", usages[i].reason);
         expect_failure(expected); CHECK(loads == 0 && inputs == 0 && allocations == 0);
     }
     args[1] = "--version";

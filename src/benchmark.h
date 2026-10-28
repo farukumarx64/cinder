@@ -17,6 +17,24 @@ typedef struct {
     uint64_t maximum_ns;
 } cinder_benchmark_result_t;
 
+typedef struct {
+    double mean_us;
+    double minimum_us;
+    double maximum_us;
+    double inferences_per_second;
+} cinder_benchmark_statistics_t;
+
+/* Derive display values from a completed measurement, outside timing. Check
+ * positive counts/durations before division, then require finite positive
+ * statistics. Throughput is count / total measured seconds, never an average
+ * of per-call rates or a reciprocal of rounded display text. No allocation/I/O.
+ * Reject missing pointers/inconsistent metadata with INVALID_ARGUMENT; zero
+ * counts/durations or nonpositive/nonfinite statistics with NONFINITE. Publish
+ * only on success; optional error is cleared on success. Arguments and error
+ * storage must be disjoint. Raw measurements remain unchanged. */
+cinder_status_t cinder_benchmark_statistics(const cinder_benchmark_result_t *result,
+    cinder_benchmark_statistics_t *statistics, cinder_error_t *error);
+
 typedef enum {
     CINDER_BENCHMARK_SETUP = 0,
     CINDER_BENCHMARK_WARMUP,
