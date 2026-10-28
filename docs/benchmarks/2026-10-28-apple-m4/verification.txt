@@ -1,0 +1,120 @@
+Release verification for cd461c696aea932e6ea53e4093008d6463c42fa9
+Command: ctest --test-dir build-baseline-release-20261028 --output-on-failure
+Test project <repo>/build-baseline-release-20261028
+      Start  1: benchmark_statistics
+ 1/37 Test  #1: benchmark_statistics .............   Passed    0.97 sec
+      Start  2: benchmark_loop
+ 2/37 Test  #2: benchmark_loop ...................   Passed    0.67 sec
+      Start  3: timer_checked
+ 3/37 Test  #3: timer_checked ....................   Passed    0.53 sec
+      Start  4: timer_unavailable
+ 4/37 Test  #4: timer_unavailable ................   Passed    0.63 sec
+      Start  5: timer_native
+ 5/37 Test  #5: timer_native .....................   Passed    0.50 sec
+      Start  6: cli_version
+ 6/37 Test  #6: cli_version ......................   Passed    1.04 sec
+      Start  7: cli_input
+ 7/37 Test  #7: cli_input ........................   Passed    0.51 sec
+      Start  8: cli_audit
+ 8/37 Test  #8: cli_audit ........................   Passed    0.59 sec
+      Start  9: cli_setup
+ 9/37 Test  #9: cli_setup ........................   Passed    0.57 sec
+      Start 10: cli_process
+10/37 Test #10: cli_process ......................   Passed    0.84 sec
+      Start 11: benchmark_controlled
+11/37 Test #11: benchmark_controlled .............   Passed    1.47 sec
+      Start 12: benchmark_unavailable
+12/37 Test #12: benchmark_unavailable ............   Passed    0.64 sec
+      Start 13: tensor_allocation
+13/37 Test #13: tensor_allocation ................   Passed    0.50 sec
+      Start 14: dense_allocation
+14/37 Test #14: dense_allocation .................   Passed    0.56 sec
+      Start 15: dense_forward
+15/37 Test #15: dense_forward ....................   Passed    0.53 sec
+      Start 16: layer_interface
+16/37 Test #16: layer_interface ..................   Passed    0.51 sec
+      Start 17: model_allocation
+17/37 Test #17: model_allocation .................   Passed    0.51 sec
+      Start 18: model_run
+18/37 Test #18: model_run ........................   Passed    0.56 sec
+      Start 19: model_load
+19/37 Test #19: model_load .......................   Passed    1.00 sec
+      Start 20: loader_failures
+20/37 Test #20: loader_failures ..................   Passed    1.01 sec
+      Start 21: tensor_access
+21/37 Test #21: tensor_access ....................   Passed    0.50 sec
+      Start 22: tensor_matvec
+22/37 Test #22: tensor_matvec ....................   Passed    0.51 sec
+      Start 23: tensor_bias
+23/37 Test #23: tensor_bias ......................   Passed    0.52 sec
+      Start 24: tensor_relu
+24/37 Test #24: tensor_relu ......................   Passed    0.50 sec
+      Start 25: tensor_softmax
+25/37 Test #25: tensor_softmax ...................   Passed    0.50 sec
+      Start 26: tensor_numpy_fixtures
+26/37 Test #26: tensor_numpy_fixtures ............   Passed    0.50 sec
+      Start 27: model_numpy_fixtures
+27/37 Test #27: model_numpy_fixtures .............   Passed    0.54 sec
+      Start 28: model_round_trip_fixtures
+28/37 Test #28: model_round_trip_fixtures ........   Passed    0.52 sec
+      Start 29: mnist_inference_fixtures
+29/37 Test #29: mnist_inference_fixtures .........   Passed    0.56 sec
+      Start 30: mnist_lifecycle_audit
+30/37 Test #30: mnist_lifecycle_audit ............   Passed    0.75 sec
+      Start 31: mnist_lifecycle
+31/37 Test #31: mnist_lifecycle ..................   Passed    0.69 sec
+      Start 32: model_lifecycle
+32/37 Test #32: model_lifecycle ..................   Passed    0.51 sec
+      Start 33: model_loaded_lifecycle
+33/37 Test #33: model_loaded_lifecycle ...........   Passed    0.05 sec
+      Start 34: tensor_allocation_failures
+34/37 Test #34: tensor_allocation_failures .......   Passed    0.52 sec
+      Start 35: dense_allocation_failures
+35/37 Test #35: dense_allocation_failures ........   Passed    0.53 sec
+      Start 36: layer_allocation_failures
+36/37 Test #36: layer_allocation_failures ........   Passed    0.56 sec
+      Start 37: model_allocation_failures
+37/37 Test #37: model_allocation_failures ........   Passed    0.51 sec
+
+100% tests passed out of 37
+
+Label Time Summary:
+benchmark    =   8.96 sec*proc (12 tests)
+
+Total Test time (real) =  22.95 sec
+
+Selected captured test output (from the same CTest run):
+
+cli_setup
+CLI setup 2 -> 2: one load/read, exact input/output allocations, 100 repeated calls plus benchmark warm-up/measurement/recovery after source deletion, 23 allocation points failed with/without details, I/O/format/non-finite failures and successful retries; zero retained blocks/bytes/streams.
+CLI setup 784 -> 10: one load/read, exact input/output allocations, 100 repeated calls plus benchmark warm-up/measurement/recovery after source deletion, 23 allocation points failed with/without details, I/O/format/non-finite failures and successful retries; zero retained blocks/bytes/streams.
+
+benchmark_controlled
+Benchmark acceptance tiny: real model/CLI, deterministic clock/report, faults and recovery; zero retained blocks/bytes/files.
+Benchmark acceptance MNIST: real model/CLI, deterministic clock/report, faults and recovery; zero retained blocks/bytes/files.
+Benchmark acceptance: 1088 command invocations passed; clock backend controlled; no speed threshold.
+
+benchmark_unavailable
+Benchmark acceptance: 2 command invocations passed; clock backend unavailable; no speed threshold.
+
+model_round_trip_fixtures
+dense1: 10 vectors / 40 values, max absolute error 0.
+relu: 10 vectors / 40 values, max absolute error 0.
+logits: 10 vectors / 20 values, max absolute error 0.
+softmax: 10 vectors / 20 values, max absolute error 5.96046448e-08.
+Round trip: 40 vectors / 120 values, max absolute error 5.96046448e-08, max fraction of tolerance 0.00303036345 (atol = rtol = 1e-5).
+
+mnist_inference_fixtures
+dense1: 100 vectors / 12800 values, max absolute error 6.19888306e-06, max fraction of tolerance 0.178311515.
+relu: 100 vectors / 12800 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.178311515.
+logits: 100 vectors / 1000 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.176519426.
+probabilities: 100 vectors / 1000 values, max absolute error 3.57627869e-07, max fraction of tolerance 0.0287552465.
+MNIST: 400 vectors / 27600 values passed (atol = rtol = 1e-5).
+Runtime prediction agreement (C vs saved Python): 100/100.
+Classification on fixed test subset: C 99/100; Python 99/100.
+
+mnist_lifecycle_audit
+MNIST audit: 104 successful loads, 62 rejected loads, 300 cycles / 1384 inference calls; poisoned 784-float workspaces, partial-write failures at all four layers, unchanged parameters, zero allocations/frees or loader I/O during cycles, all 21 allocation points failed twice, and zero final live blocks/bytes/streams.
+
+model_loaded_lifecycle
+Loaded lifecycle passed: 502 successful loads, 100 rejected loads, 4720 success/failure/recovery cycles (14160 inference calls), concurrent independent loads, deleted source files, and caller-serialized threads.

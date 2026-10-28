@@ -1,0 +1,652 @@
+{
+  "schema_version": 1,
+  "recorded_date_local": "2026-10-28",
+  "local_timezone": "Africa/Lagos (UTC+01:00)",
+  "commit": "cd461c696aea932e6ea53e4093008d6463c42fa9",
+  "git_tree": "b781d189da2e0a14c6fffbe6136e127520dda2d8",
+  "clean_before_trials": true,
+  "machine": {
+    "cpu": "Apple M4",
+    "model": "Mac16,12",
+    "architecture": "arm64",
+    "physical_cores": 10,
+    "logical_cores": 10,
+    "performance_cores": 4,
+    "efficiency_cores": 6,
+    "memory_bytes": 17179869184,
+    "source": "selected sysctl hardware keys"
+  },
+  "operating_system": {
+    "argv": [
+      "sw_vers"
+    ],
+    "exit_status": 0,
+    "stdout": "ProductName:\t\tmacOS\nProductVersion:\t\t27.0.1\nBuildVersion:\t\t26A434\n",
+    "stderr": ""
+  },
+  "compiler": {
+    "argv": [
+      "/usr/bin/cc",
+      "--version"
+    ],
+    "exit_status": 0,
+    "stdout": "Apple clang version 21.0.0 (clang-2100.3.34.2)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Library/Developer/CommandLineTools/usr/bin\n",
+    "stderr": ""
+  },
+  "cmake": {
+    "argv": [
+      "cmake",
+      "--version"
+    ],
+    "exit_status": 0,
+    "stdout": "cmake version 4.4.4\n\nCMake suite maintained and supported by Kitware (kitware.com/cmake).\n",
+    "stderr": ""
+  },
+  "sdk_version": {
+    "argv": [
+      "xcrun",
+      "--show-sdk-version"
+    ],
+    "exit_status": 0,
+    "stdout": "27.0\n",
+    "stderr": ""
+  },
+  "build": {
+    "directory": "build-baseline-release-20261028",
+    "cache": {
+      "BUILD_TESTING": "ON",
+      "CINDER_ENABLE_ASAN": "OFF",
+      "CINDER_ENABLE_EXPORTER_TESTS": "OFF",
+      "CINDER_ENABLE_MNIST_TESTS": "OFF",
+      "CINDER_ENABLE_NUMPY_TESTS": "OFF",
+      "CINDER_ENABLE_UBSAN": "OFF",
+      "CMAKE_BUILD_TYPE": "Release",
+      "CMAKE_C_COMPILER": "/usr/bin/cc",
+      "CMAKE_C_FLAGS": "",
+      "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG",
+      "CMAKE_EXE_LINKER_FLAGS": "",
+      "CMAKE_INTERPROCEDURAL_OPTIMIZATION": "OFF",
+      "CMAKE_OSX_ARCHITECTURES": "",
+      "CMAKE_OSX_DEPLOYMENT_TARGET": "",
+      "CMAKE_OSX_SYSROOT": "",
+      "CINDER_HAVE_MONOTONIC_RAW_CLOCK": "1",
+      "CMAKE_GENERATOR": "Unix Makefiles"
+    },
+    "production_compile_commands": [
+      "/usr/bin/cc  -I<repo>/include -O3 -DNDEBUG -std=c11 -Wall -Wextra -Wpedantic -o CMakeFiles/cinder_core.dir/src/tensor.c.o -c <repo>/src/tensor.c",
+      "/usr/bin/cc  -I<repo>/include -O3 -DNDEBUG -std=c11 -Wall -Wextra -Wpedantic -o CMakeFiles/cinder_core.dir/src/dense.c.o -c <repo>/src/dense.c",
+      "/usr/bin/cc  -I<repo>/include -O3 -DNDEBUG -std=c11 -Wall -Wextra -Wpedantic -o CMakeFiles/cinder_core.dir/src/layer.c.o -c <repo>/src/layer.c",
+      "/usr/bin/cc  -I<repo>/include -O3 -DNDEBUG -std=c11 -Wall -Wextra -Wpedantic -o CMakeFiles/cinder_core.dir/src/model.c.o -c <repo>/src/model.c",
+      "/usr/bin/cc  -I<repo>/include -O3 -DNDEBUG -std=c11 -Wall -Wextra -Wpedantic -o CMakeFiles/cinder_core.dir/src/loader.c.o -c <repo>/src/loader.c",
+      "/usr/bin/cc -DCINDER_HAVE_MONOTONIC_RAW_CLOCK=1 -D_DARWIN_C_SOURCE -D_POSIX_C_SOURCE=200809L -I<repo>/include -O3 -DNDEBUG -std=c11 -Wall -Wextra -Wpedantic -o CMakeFiles/cinder_cli_timer.dir/src/timer.c.o -c <repo>/src/timer.c",
+      "/usr/bin/cc  -I<repo>/include -O3 -DNDEBUG -std=c11 -Wall -Wextra -Wpedantic -o CMakeFiles/cinder_cli_benchmark.dir/src/benchmark.c.o -c <repo>/src/benchmark.c",
+      "/usr/bin/cc  -I<repo>/include -O3 -DNDEBUG -std=c11 -Wall -Wextra -Wpedantic -o CMakeFiles/cinder_cli_benchmark.dir/src/benchmark_stats.c.o -c <repo>/src/benchmark_stats.c",
+      "/usr/bin/cc -DCINDER_VERSION=\\\"0.1.0-dev\\\" -I<repo>/include -O3 -DNDEBUG -std=c11 -Wall -Wextra -Wpedantic -o CMakeFiles/cinder.dir/src/cli.c.o -c <repo>/src/cli.c",
+      "/usr/bin/cc -DCINDER_VERSION=\\\"0.1.0-dev\\\" -I<repo>/include -O3 -DNDEBUG -std=c11 -Wall -Wextra -Wpedantic -o CMakeFiles/cinder.dir/src/cli_session.c.o -c <repo>/src/cli_session.c",
+      "/usr/bin/cc -DCINDER_VERSION=\\\"0.1.0-dev\\\" -I<repo>/include -O3 -DNDEBUG -std=c11 -Wall -Wextra -Wpedantic -o CMakeFiles/cinder.dir/src/input.c.o -c <repo>/src/input.c"
+    ],
+    "link_command": "/usr/bin/cc -O3 -DNDEBUG -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cinder.dir/src/cli.c.o CMakeFiles/cinder.dir/src/cli_session.c.o CMakeFiles/cinder.dir/src/input.c.o -o cinder  libcinder_cli_benchmark.a libcinder_core.a -lm libcinder_cli_timer.a"
+  },
+  "executable": {
+    "path": "build-baseline-release-20261028/cinder",
+    "bytes": 53384,
+    "sha256": "766f38969630db0335468d89658559660337ec24167ae23e8c2ecea03aed4e05"
+  },
+  "fixtures": [
+    {
+      "name": "tiny",
+      "architecture": [
+        2,
+        4,
+        2
+      ],
+      "model": {
+        "path": "tests/fixtures/tiny/tiny.cnd",
+        "bytes": 168,
+        "sha256": "3f6f2942084b334e2c9e8b59a1b0e702057554f4253473ae86ffd7cde7d86fa5"
+      },
+      "input": {
+        "path": "tests/fixtures/tiny/inputs/worked.f32",
+        "bytes": 8,
+        "sha256": "29f16f743de29d3d29fb51bb15c62b3592bdfcf27c18836a90e16e2b1063b01b"
+      },
+      "input_description": "float32 [2, -1]"
+    },
+    {
+      "name": "mnist",
+      "architecture": [
+        784,
+        128,
+        10
+      ],
+      "model": {
+        "path": "examples/mnist/mnist.cnd",
+        "bytes": 407160,
+        "sha256": "b0376dd2562f0a89d95cc4f9f1172005e293d0ab9c4a0c9c345fff2dd98fb8bd"
+      },
+      "input": {
+        "path": "tests/fixtures/mnist/inputs/00000.f32",
+        "bytes": 3136,
+        "sha256": "25c7cba0509b7d1e068a5793c8bbd5cd421f4b92792aae3484e3a8dbb218e73f"
+      },
+      "input_description": "official MNIST test index 0, label 7"
+    }
+  ],
+  "protocol": {
+    "trials_per_model": 5,
+    "measured_iterations_per_trial": 100000,
+    "warmup_iterations": 10,
+    "order": "tiny then mnist, repeated five times",
+    "pause_after_each_trial_seconds": 1,
+    "clock": "CLOCK_MONOTONIC_RAW",
+    "runtime_threads": 1,
+    "process_per_trial": true,
+    "core_affinity": "not pinned",
+    "frequency_control": "system managed",
+    "background_conditions": "active desktop; no agent builds/tests during trials; other applications left running",
+    "filtering": "none; every attempted trial retained; no retries",
+    "instrumentation_environment_keys_present": [],
+    "interruption_after_first_trial": "Collector stopped after the first tiny trial returned a zero-interval error. Remaining planned trials were resumed without rerunning or discarding that attempt; timestamps preserve the gap."
+  },
+  "environment_before": {
+    "at_utc": "2026-10-28T18:50:13.997779+00:00",
+    "load_averages_1_5_15_minutes": [
+      4.466796875,
+      3.724609375,
+      2.89990234375
+    ],
+    "power": {
+      "argv": [
+        "pmset",
+        "-g",
+        "batt"
+      ],
+      "exit_status": 0,
+      "stdout": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=23003235)\t81%; discharging; 5:51 remaining present: true\n",
+      "stderr": ""
+    },
+    "power_settings": {
+      "argv": [
+        "pmset",
+        "-g",
+        "custom"
+      ],
+      "exit_status": 0,
+      "stdout": "AC Power:\n Sleep On Power Button 1\n lowpowermode         0\n standby              1\n ttyskeepawake        1\n hibernatemode        3\n powernap             1\n hibernatefile        /var/vm/sleepimage\n displaysleep         30\n womp                 1\n networkoversleep     0\n sleep                1\n tcpkeepalive         1\n disksleep            10\n",
+      "stderr": ""
+    },
+    "thermal": {
+      "argv": [
+        "pmset",
+        "-g",
+        "therm"
+      ],
+      "exit_status": 0,
+      "stdout": "Error:Failed to get thermal warning level with error code 0xe00002bc\nError: Failed to get performance warning level with error code 0xe00002bc\nError: No CPU power status with error code 0xe00002bc\n",
+      "stderr": ""
+    }
+  },
+  "trials": [
+    {
+      "model": "tiny",
+      "trial": 1,
+      "started_at_utc": "2026-10-28T18:50:14.019910+00:00",
+      "finished_at_utc": "2026-10-28T18:50:14.025555+00:00",
+      "load_averages_before": [
+        4.466796875,
+        3.724609375,
+        2.89990234375
+      ],
+      "load_averages_after": [
+        4.466796875,
+        3.724609375,
+        2.89990234375
+      ],
+      "command": [
+        "./build-baseline-release-20261028/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "exit_status": 1,
+      "stderr": "cinder: benchmark iteration 37270 [IO]: Measured interval is zero; clock resolution is insufficient.\n",
+      "valid": false
+    },
+    {
+      "model": "mnist",
+      "trial": 1,
+      "started_at_utc": "2026-10-28T18:52:02.608503+00:00",
+      "finished_at_utc": "2026-10-28T18:52:13.051886+00:00",
+      "load_averages_before": [
+        3.10205078125,
+        3.439453125,
+        2.87939453125
+      ],
+      "load_averages_after": [
+        3.00439453125,
+        3.40087890625,
+        2.875
+      ],
+      "command": [
+        "./build-baseline-release-20261028/cinder",
+        "bench",
+        "examples/mnist/mnist.cnd",
+        "tests/fixtures/mnist/inputs/00000.f32",
+        "--iterations",
+        "100000"
+      ],
+      "exit_status": 0,
+      "stderr": "",
+      "valid": true,
+      "metrics": {
+        "iterations": 100000,
+        "warmups": 10,
+        "resolution_ns": 42,
+        "mean_us": 104.349249,
+        "min_us": 97.125,
+        "max_us": 839.667,
+        "inferences_per_second": 9583.20265
+      }
+    },
+    {
+      "model": "tiny",
+      "trial": 2,
+      "started_at_utc": "2026-10-28T18:52:14.058637+00:00",
+      "finished_at_utc": "2026-10-28T18:52:14.089245+00:00",
+      "load_averages_before": [
+        3.00439453125,
+        3.40087890625,
+        2.875
+      ],
+      "load_averages_after": [
+        3.00439453125,
+        3.40087890625,
+        2.875
+      ],
+      "command": [
+        "./build-baseline-release-20261028/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "exit_status": 0,
+      "stderr": "",
+      "valid": true,
+      "metrics": {
+        "iterations": 100000,
+        "warmups": 10,
+        "resolution_ns": 42,
+        "mean_us": 0.15640399,
+        "min_us": 0.083,
+        "max_us": 22.333,
+        "inferences_per_second": 6393698.78
+      }
+    },
+    {
+      "model": "mnist",
+      "trial": 2,
+      "started_at_utc": "2026-10-28T18:52:15.096423+00:00",
+      "finished_at_utc": "2026-10-28T18:52:25.691002+00:00",
+      "load_averages_before": [
+        3.00439453125,
+        3.40087890625,
+        2.875
+      ],
+      "load_averages_after": [
+        3.00341796875,
+        3.38720703125,
+        2.8759765625
+      ],
+      "command": [
+        "./build-baseline-release-20261028/cinder",
+        "bench",
+        "examples/mnist/mnist.cnd",
+        "tests/fixtures/mnist/inputs/00000.f32",
+        "--iterations",
+        "100000"
+      ],
+      "exit_status": 0,
+      "stderr": "",
+      "valid": true,
+      "metrics": {
+        "iterations": 100000,
+        "warmups": 10,
+        "resolution_ns": 42,
+        "mean_us": 105.786189,
+        "min_us": 97.125,
+        "max_us": 1456.417,
+        "inferences_per_second": 9453.02979
+      }
+    },
+    {
+      "model": "tiny",
+      "trial": 3,
+      "started_at_utc": "2026-10-28T18:52:26.697134+00:00",
+      "finished_at_utc": "2026-10-28T18:52:26.715186+00:00",
+      "load_averages_before": [
+        3.00341796875,
+        3.38720703125,
+        2.8759765625
+      ],
+      "load_averages_after": [
+        3.00341796875,
+        3.38720703125,
+        2.8759765625
+      ],
+      "command": [
+        "./build-baseline-release-20261028/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "exit_status": 0,
+      "stderr": "",
+      "valid": true,
+      "metrics": {
+        "iterations": 100000,
+        "warmups": 10,
+        "resolution_ns": 42,
+        "mean_us": 0.09371174,
+        "min_us": 0.041,
+        "max_us": 11.833,
+        "inferences_per_second": 10671021.6
+      }
+    },
+    {
+      "model": "mnist",
+      "trial": 3,
+      "started_at_utc": "2026-10-28T18:52:27.721397+00:00",
+      "finished_at_utc": "2026-10-28T18:52:38.332568+00:00",
+      "load_averages_before": [
+        3.00341796875,
+        3.38720703125,
+        2.8759765625
+      ],
+      "load_averages_after": [
+        2.990234375,
+        3.36669921875,
+        2.87744140625
+      ],
+      "command": [
+        "./build-baseline-release-20261028/cinder",
+        "bench",
+        "examples/mnist/mnist.cnd",
+        "tests/fixtures/mnist/inputs/00000.f32",
+        "--iterations",
+        "100000"
+      ],
+      "exit_status": 0,
+      "stderr": "",
+      "valid": true,
+      "metrics": {
+        "iterations": 100000,
+        "warmups": 10,
+        "resolution_ns": 42,
+        "mean_us": 105.936159,
+        "min_us": 97.125,
+        "max_us": 3550.0,
+        "inferences_per_second": 9439.64753
+      }
+    },
+    {
+      "model": "tiny",
+      "trial": 4,
+      "started_at_utc": "2026-10-28T18:52:39.338700+00:00",
+      "finished_at_utc": "2026-10-28T18:52:39.371404+00:00",
+      "load_averages_before": [
+        2.990234375,
+        3.36669921875,
+        2.87744140625
+      ],
+      "load_averages_after": [
+        2.990234375,
+        3.36669921875,
+        2.87744140625
+      ],
+      "command": [
+        "./build-baseline-release-20261028/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "exit_status": 0,
+      "stderr": "",
+      "valid": true,
+      "metrics": {
+        "iterations": 100000,
+        "warmups": 10,
+        "resolution_ns": 42,
+        "mean_us": 0.16313806,
+        "min_us": 0.083,
+        "max_us": 24.292,
+        "inferences_per_second": 6129777.44
+      }
+    },
+    {
+      "model": "mnist",
+      "trial": 4,
+      "started_at_utc": "2026-10-28T18:52:40.378408+00:00",
+      "finished_at_utc": "2026-10-28T18:52:51.044074+00:00",
+      "load_averages_before": [
+        2.990234375,
+        3.36669921875,
+        2.87744140625
+      ],
+      "load_averages_after": [
+        2.763671875,
+        3.3046875,
+        2.86083984375
+      ],
+      "command": [
+        "./build-baseline-release-20261028/cinder",
+        "bench",
+        "examples/mnist/mnist.cnd",
+        "tests/fixtures/mnist/inputs/00000.f32",
+        "--iterations",
+        "100000"
+      ],
+      "exit_status": 0,
+      "stderr": "",
+      "valid": true,
+      "metrics": {
+        "iterations": 100000,
+        "warmups": 10,
+        "resolution_ns": 42,
+        "mean_us": 106.506521,
+        "min_us": 97.041,
+        "max_us": 360.333,
+        "inferences_per_second": 9389.09645
+      }
+    },
+    {
+      "model": "tiny",
+      "trial": 5,
+      "started_at_utc": "2026-10-28T18:52:52.046758+00:00",
+      "finished_at_utc": "2026-10-28T18:52:52.079322+00:00",
+      "load_averages_before": [
+        2.763671875,
+        3.3046875,
+        2.86083984375
+      ],
+      "load_averages_after": [
+        2.763671875,
+        3.3046875,
+        2.86083984375
+      ],
+      "command": [
+        "./build-baseline-release-20261028/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "exit_status": 0,
+      "stderr": "",
+      "valid": true,
+      "metrics": {
+        "iterations": 100000,
+        "warmups": 10,
+        "resolution_ns": 42,
+        "mean_us": 0.17047407,
+        "min_us": 0.083,
+        "max_us": 27.958,
+        "inferences_per_second": 5865994.75
+      }
+    },
+    {
+      "model": "mnist",
+      "trial": 5,
+      "started_at_utc": "2026-10-28T18:52:53.085676+00:00",
+      "finished_at_utc": "2026-10-28T18:53:03.758732+00:00",
+      "load_averages_before": [
+        2.763671875,
+        3.3046875,
+        2.86083984375
+      ],
+      "load_averages_after": [
+        2.51953125,
+        3.2236328125,
+        2.8388671875
+      ],
+      "command": [
+        "./build-baseline-release-20261028/cinder",
+        "bench",
+        "examples/mnist/mnist.cnd",
+        "tests/fixtures/mnist/inputs/00000.f32",
+        "--iterations",
+        "100000"
+      ],
+      "exit_status": 0,
+      "stderr": "",
+      "valid": true,
+      "metrics": {
+        "iterations": 100000,
+        "warmups": 10,
+        "resolution_ns": 42,
+        "mean_us": 106.561481,
+        "min_us": 97.166,
+        "max_us": 329.917,
+        "inferences_per_second": 9384.25394
+      }
+    }
+  ],
+  "environment_after": {
+    "at_utc": "2026-10-28T18:53:04.764904+00:00",
+    "load_averages_1_5_15_minutes": [
+      2.51953125,
+      3.2236328125,
+      2.8388671875
+    ],
+    "power": {
+      "argv": [
+        "pmset",
+        "-g",
+        "batt"
+      ],
+      "exit_status": 0,
+      "stdout": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=23003235)\t80%; discharging; 5:43 remaining present: true\n",
+      "stderr": ""
+    },
+    "power_settings": {
+      "argv": [
+        "pmset",
+        "-g",
+        "custom"
+      ],
+      "exit_status": 0,
+      "stdout": "AC Power:\n Sleep On Power Button 1\n lowpowermode         0\n standby              1\n ttyskeepawake        1\n hibernatemode        3\n powernap             1\n hibernatefile        /var/vm/sleepimage\n displaysleep         30\n womp                 1\n networkoversleep     0\n sleep                1\n tcpkeepalive         1\n disksleep            10\n",
+      "stderr": ""
+    },
+    "thermal": {
+      "argv": [
+        "pmset",
+        "-g",
+        "therm"
+      ],
+      "exit_status": 0,
+      "stdout": "Error:Failed to get thermal warning level with error code 0xe00002bc\nError: Failed to get performance warning level with error code 0xe00002bc\nError: No CPU power status with error code 0xe00002bc\n",
+      "stderr": ""
+    }
+  },
+  "clean_after_trials": true,
+  "summaries": {
+    "tiny": {
+      "attempted_trials": 5,
+      "valid_trials": 4,
+      "failed_trials": 1,
+      "total_measured_calls_in_valid_trials": 400000,
+      "median_trial_mean_us": 0.159771025,
+      "range_of_trial_means_us": [
+        0.09371174,
+        0.17047407
+      ],
+      "median_trial_throughput": 6261738.11,
+      "fastest_individual_call_us": 0.041,
+      "slowest_individual_call_us": 27.958
+    },
+    "mnist": {
+      "attempted_trials": 5,
+      "valid_trials": 5,
+      "failed_trials": 0,
+      "total_measured_calls_in_valid_trials": 500000,
+      "median_trial_mean_us": 105.936159,
+      "range_of_trial_means_us": [
+        104.349249,
+        106.561481
+      ],
+      "median_trial_throughput": 9439.64753,
+      "fastest_individual_call_us": 97.041,
+      "slowest_individual_call_us": 3550.0
+    }
+  },
+  "raw_trials": {
+    "path": "raw-trials.txt",
+    "bytes": 5067,
+    "sha256": "85a4a75893b3f6e205f3e118ad0033c41127883dc09c9f0499ef4ac265bd0067"
+  },
+  "collection_notes": [
+    "A single failed tiny trial is retained. Its partial timings were not published or reconstructed.",
+    "Summary medians are computed from the rounded CLI fields of valid trials, not from individual inference samples.",
+    "CPU details were read with sysctl; no serial numbers or process listings were collected.",
+    "The pre-trial top sample (19:48:02 WAT) reported 83.7% idle; it is a snapshot, not utilization measured throughout trials."
+  ],
+  "verification": {
+    "ctest": {
+      "build_type": "Release",
+      "passed": 37,
+      "total": 37,
+      "optional_python_tests": false
+    },
+    "evidence_file": "verification.txt",
+    "evidence_sha256": "39dbc4b603061aa8d79820d5dce8bb29df4e26fb184ba6d87fc49160a01188f0",
+    "runtime_allocation_audits": {
+      "cli_setup": "zero allocation/file-count changes during repeated calls and native-clock benchmark/recovery for both fixtures",
+      "benchmark_controlled": "1088 invocations; allocations/frees prohibited during execution, zero final tracked ownership",
+      "mnist_lifecycle_audit": "1384 inference calls; zero allocation/free attempts or loader I/O during cycles"
+    },
+    "numerical": {
+      "atol": 1e-05,
+      "rtol": 1e-05,
+      "tiny_values": 120,
+      "tiny_max_absolute_error": 5.96046448e-08,
+      "mnist_values": 27600,
+      "mnist_max_absolute_errors": {
+        "dense1": 6.19888306e-06,
+        "relu": 5.7220459e-06,
+        "logits": 5.7220459e-06,
+        "probabilities": 3.57627869e-07
+      },
+      "mnist_prediction_agreement": "100/100",
+      "classification_accuracy_is_a_separate_measure": true
+    }
+  }
+}

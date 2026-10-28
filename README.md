@@ -254,7 +254,7 @@ records the exact revision, results, GCC warnings, and remaining limitations.
 - The [benchmark contract](docs/BENCHMARK.md), defined October 27, specifies
   required `--iterations N` (1–1,000,000), ten fixed warm-ups, per-call monotonic
   inference timing, checked statistics, exact reporting, and failure behavior.
-  The command now runs; a reproducible performance baseline remains pending.
+  The command now runs; the first recorded Release baseline is linked below.
 - [Shared CLI preparation](docs/BENCHMARK.md#preparation-implementation-and-verification)
   now loads the model once, reads input once, allocates output, and owns cleanup.
   `run` uses it with unchanged behavior. Tiny/MNIST tests cover reuse without
@@ -283,8 +283,8 @@ records the exact revision, results, GCC warnings, and remaining limitations.
   durations, and prints after cleanup. Zero denominators and invalid statistics
   are rejected. Debug passes 44/44; C-only Release and ASan/UBSan pass 35/35 each;
   native CLI/benchmark leak checks report zero. The process suite now covers
-  133 commands, including 11 benchmark cases. Hosted CI and the reproducible
-  Release baseline remain pending for this step.
+  133 commands, including 11 benchmark cases. Hosted verification remains
+  separate; the subsequent baseline report is linked below.
 - The [benchmark acceptance audit](docs/BENCHMARK.md#benchmark-acceptance-audit)
   completed locally October 28. It tests the full command with real tiny/MNIST
   ownership and controlled clock values, plus a compiled unavailable backend.
@@ -292,8 +292,18 @@ records the exact revision, results, GCC warnings, and remaining limitations.
   inference/output failures, allocation/file cleanup, and recovery. Debug passes
   46/46; C-only Release and ASan/UBSan pass 37/37 each; native leak checks report
   zero. All twelve benchmark-related tests have the CTest label `benchmark`;
-  CI imposes no latency/throughput threshold. Hosted verification and the
-  reproducible Release baseline remain pending.
+  CI imposes no latency/throughput threshold. Hosted verification remains
+  separate; the following step records the Release baseline.
+- The [first Release baseline](docs/benchmarks/2026-10-28-apple-m4/README.md)
+  records commit `cd461c6` on Apple M4/macOS 27.0.1, `-O3 -DNDEBUG`, and five
+  attempts per model with ten warm-ups and 100,000 measured iterations. Four
+  tiny trials and all five MNIST trials succeeded; tiny trial 1's zero-interval
+  failure is retained. Median trial means are 0.159771025 us (tiny, valid trials)
+  and 105.936159 us (MNIST). All raw attempts, hashes, build/environment details,
+  and validation evidence are saved. Fresh Release passes 37/37; instrumented
+  inference paths still make zero allocation/free attempts. Tiny timing
+  variability and clock resolution limit performance conclusions. Phase 5
+  remains open for evidence-based evaluation and hosted verification.
 - The [`run` contract](docs/CLI.md) now defines two positional file paths, a
   zero-based prediction and up to three ranked raw scores, lower-index tie
   breaking, exit statuses `0/1/2`, and contextual errors. It accepts valid models
@@ -819,7 +829,9 @@ model/input setup, cleanup, checked monotonic timing, and warm-up/measured loops
 are implemented with the tested `run` behavior preserved. `cinder bench` now
 validates arguments, derives latency/throughput, and prints its nine-line report.
 The local benchmark acceptance audit now passes with controlled timing and no
-speed threshold. Next: record a reproducible Release baseline.
+speed threshold. The first Release baseline now records all attempts, including
+a tiny-model timing failure. Next: evaluate the evidence and timing limitations
+before deciding whether any runtime improvement is justified.
 
 The v0.1.0 scope excludes training, GPU execution, convolutional layers,
 quantization, SIMD, multithreading, and arbitrary computation graphs.

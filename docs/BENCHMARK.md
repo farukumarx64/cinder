@@ -9,7 +9,8 @@ and prints the report. The [preparation report](#preparation-implementation-and-
 [statistics/report verification](#statistics-and-cli-report-implementation-and-verification), and
 [acceptance audit](#benchmark-acceptance-audit)
 record the implementation and checks. The synthetic examples below illustrate
-arithmetic; a separately documented Release performance baseline remains pending.
+arithmetic. The [first Release baseline](benchmarks/2026-10-28-apple-m4/README.md)
+records actual results, including a tiny-network zero-interval failure.
 
 The [run contract](CLI.md), [input format](MODEL_FORMAT.md#input-file-and-preprocessing-contract),
 and [model API](MODEL.md) remain authoritative for loading, input encoding,
@@ -1007,6 +1008,24 @@ leaks --atExit -- ./build-mnist/test_benchmark_unavailable "$PWD"
 Linux execution and hosted macOS/Linux CI have not been verified for this step.
 The existing CI workflow will run the tests when these changes are published;
 no commit or push was made here. Controlled times are evidence of correctness,
-not evidence of a speed improvement. The local acceptance step is complete;
-**next is the reproducible Release baseline**. Phase 5 remains open until its
-remaining baseline, evaluation, and hosted verification work is complete.
+not evidence of a speed improvement. The local acceptance step is complete. The next step was the Release baseline,
+now recorded below. Phase 5 remains open for evaluation and hosted verification.
+
+
+## First Release baseline
+
+The [October 28 Apple M4 report](benchmarks/2026-10-28-apple-m4/README.md) measures
+clean commit `cd461c696aea932e6ea53e4093008d6463c42fa9` with a fresh Release build,
+`-O3 -DNDEBUG`, sanitizers/LTO off, ten warm-ups, and 100,000 measured iterations
+requested per attempt. It retains all five attempts per model: four valid tiny
+reports and all five MNIST reports, plus tiny trial 1's zero-interval failure at
+iteration 37,270. No failed attempt was replaced and no slow results were trimmed.
+
+Median valid-trial means are 0.159771025 us for tiny and 105.936159 us for MNIST.
+The report preserves every result, source/binary/fixture hashes, environment,
+power/background-load observations, commands, and allocation/numerical evidence.
+The same Release build passed 37/37 tests; audited inference paths make zero
+allocation/free attempts. Tiny timing is close to the clock's granularity and
+varies substantially, so it needs further timing investigation before drawing
+optimization conclusions. This baseline does not close Phase 5 or establish a
+Linux performance result.
