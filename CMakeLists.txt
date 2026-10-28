@@ -206,6 +206,38 @@ if(BUILD_TESTING)
     endif()
     set_tests_properties(cli_input cli_audit PROPERTIES TIMEOUT 10)
 
+    # Exercise the complete benchmark command with real runtime ownership and
+    # controlled OS timestamps. No latency/throughput threshold or Python.
+    if(CINDER_HAVE_MONOTONIC_RAW_CLOCK)
+        foreach(backend IN ITEMS controlled unavailable)
+            add_executable(test_benchmark_${backend} tests/test_benchmark_acceptance.c)
+            target_include_directories(test_benchmark_${backend} PRIVATE
+                "${PROJECT_SOURCE_DIR}/include" "${PROJECT_SOURCE_DIR}/tests/fixtures")
+            target_compile_definitions(test_benchmark_${backend} PRIVATE
+                ${CINDER_TIMER_PLATFORM_DEFINITIONS}
+                CINDER_HAVE_MONOTONIC_RAW_CLOCK=$<STREQUAL:${backend},controlled>
+                CINDER_VERSION="${PROJECT_VERSION}-dev")
+            if(UNIX)
+                target_link_libraries(test_benchmark_${backend} PRIVATE m)
+            endif()
+            cinder_configure_target(test_benchmark_${backend})
+            add_test(NAME benchmark_${backend} COMMAND test_benchmark_${backend} "${PROJECT_SOURCE_DIR}")
+            set_tests_properties(benchmark_${backend} PROPERTIES TIMEOUT 120)
+        endforeach()
+    endif()
+    # This label is a convenient acceptance group, also exercised by the normal
+    # full CTest run in every macOS/Linux CI configuration. Timeouts catch hangs;
+    # they are not assertions about benchmark results or a performance budget.
+    set_tests_properties(benchmark_statistics benchmark_loop timer_unavailable timer_native
+        cli_version cli_input cli_audit cli_setup PROPERTIES LABELS benchmark)
+    if(UNIX)
+        set_tests_properties(cli_process PROPERTIES LABELS benchmark)
+    endif()
+    if(CINDER_HAVE_MONOTONIC_RAW_CLOCK)
+        set_tests_properties(timer_checked benchmark_controlled benchmark_unavailable
+            PROPERTIES LABELS benchmark)
+    endif()
+
     add_executable(test_tensor tests/test_tensor.c)
     target_link_libraries(test_tensor PRIVATE cinder_core)
     cinder_configure_target(test_tensor)

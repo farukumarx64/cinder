@@ -5,8 +5,9 @@ The command now validates arguments, prepares one model/input/output session,
 runs ten warm-ups and the measured calls, derives statistics, releases ownership,
 and prints the report. The [preparation report](#preparation-implementation-and-verification),
 [timer report](#monotonic-timer-implementation-and-verification),
-[loop report](#warm-up-and-measured-loop-implementation-and-verification), and
-[statistics/report verification](#statistics-and-cli-report-implementation-and-verification)
+[loop report](#warm-up-and-measured-loop-implementation-and-verification),
+[statistics/report verification](#statistics-and-cli-report-implementation-and-verification), and
+[acceptance audit](#benchmark-acceptance-audit)
 record the implementation and checks. The synthetic examples below illustrate
 arithmetic; a separately documented Release performance baseline remains pending.
 
@@ -852,5 +853,160 @@ exact revision/environment/build/model/input records, and the existing numerical
 and allocation evidence. Linux execution and hosted macOS/Linux CI have not
 been verified for this step; no commit or push was made.
 
-Next scoped step: complete the consolidated benchmark acceptance audit against
-this contract, then record the Release baseline. Phase 5 remains open.
+The next step at the time of this statistics report was the consolidated
+acceptance audit; its completed local results follow. Phase 5 remains open.
+
+## Benchmark acceptance audit
+
+**Completed locally October 28, 2026.** This step adds tests and documentation;
+production source and the command/measurement contract are unchanged.
+[`tests/test_benchmark_acceptance.c`](../tests/test_benchmark_acceptance.c) closes
+the integration gap between the existing component tests: a clock or inference
+failure now travels through the actual command, execution, and cleanup code in
+one test, with real model ownership.
+
+The audit compiles the real tensor, Dense, layer, model, loader, input reader,
+CLI session, timer, benchmark loop, statistics, and CLI sources with test-only
+wrappers. It reads the committed tiny/MNIST models and saved input/probability
+fixtures. No PyTorch, NumPy installation, downloads, or production test hooks
+are needed. The wrappers supply OS clock responses, requested layer/output
+faults, allocation/file failures, and captured stream failures. Normal calls
+still execute the real implementation. Test capture resources are separate
+from the tracked production allocations and file handles.
+
+Two ordinary CTest cases are registered on the supported raw-clock hosts:
+
+- `benchmark_controlled`: **1,088 command invocations** on this 64-bit Mac,
+  covering both tiny and MNIST. The real timer consumes deterministic timestamps;
+  inference itself runs the actual loaded models. Every successful model call
+  is checked against saved probabilities using shape/finite checks and
+  `atol = rtol = 1e-5`, before any intentionally injected output corruption.
+- `benchmark_unavailable`: compile the same sources with the clock backend
+  disabled. For each model, setup succeeds, the real timer returns `UNSUPPORTED`,
+  the command runs no inference, stdout stays empty, and cleanup releases all
+  23 successful setup allocations. This exercises the compiled fallback rather
+  than substituting a preassembled benchmark error.
+
+### What the integrated audit proves
+
+**Arguments and counts.** Reject representative missing/extra arguments, empty
+paths, wrong option positions, zero/above-limit/huge counts, signs, whitespace,
+fractions, exponents, hexadecimal text, and non-ASCII digits before any model
+load, file open, allocation, clock query, or inference. Accept the maximum count
+at the parser, then intentionally fail the first file open so CI does not run
+one million real MNIST inferences. The existing cheap `benchmark_loop` audit
+executes the actual loop at the maximum count. Successful integrated N=1 and
+N=3 runs require exactly N+10 model calls, one resolution query, 2N clock reads,
+one model load/input read, and 23 total setup allocations.
+
+**Warm-up and timing exclusion.** The test clock charges one simulated second
+for each setup allocation, each warm-up, and each observed output element,
+plus 100 seconds for clock setup. Measured calls advance it by exactly 1,000,
+2,000, and 3,000 ns. The complete command must still print the exact nine-line
+report with mean/minimum/maximum **2/1/3 us** and **500,000 inferences/s**.
+Timestamp counters require zero start/end reads during warm-up; the observer
+checks output order and prohibits observation between start and end. Timestamp
+values cross a second boundary. Separate runs retain a tiny elapsed duration
+at very large uptime and accept positive intervals below the 42 ns simulated
+resolution. Unsorted `[3000,1000,2000]` ns intervals must retain the same extrema,
+catching accidental first/last-sample reporting. `[1,1,2]` ns must print a fractional mean and 750,000,000/s.
+These numbers are synthetic correctness checks, not measured performance.
+
+**Timing failures.** Fail the resolution query; supply zero/negative/malformed
+resolution; and force resolution conversion overflow. Fail or corrupt every
+start/end read across three measured calls. Exercise zero duration, backward
+end timestamps, a start before the previous end, interval conversion overflow,
+and accumulated-total overflow. The command must stop at the failing call,
+retain the exact context/message, publish no summary, and clean up. Independent
+successful invocations verify recovery after the clock-failure cases.
+
+**Inference and error precedence.** Fail each of the four layers at each of
+10 warm-ups and three measured calls, after deliberately writing part of its
+private workspace. Check that subsequent layers/calls never run, caller output
+is unchanged by that failed model call, the end timestamp is still attempted
+for a measured inference failure, and the CLI identifies the correct one-based
+warm-up/iteration. Inject NaN, positive infinity, and negative infinity at every
+output position and call position. Simultaneous-failure cases require:
+
+1. Layer failure before end-clock failure.
+2. Invalid elapsed time before a non-finite output.
+3. Non-finite output before accumulated-total overflow.
+
+**Ownership and output failure.** Force each of the 23 real construction/input/
+output allocation points to fail, and fail each model/input open or close.
+Every invocation requires zero retained tracked blocks, bytes, and input/model
+streams; each successful allocation has exactly one free. Model/input/output
+addresses stay fixed across calls, input bytes stay unchanged, and allocations,
+frees (including `free(NULL)` attempts), and tracked file operations are
+prohibited during execution. All CLI writes require resources to have been
+released first. Fail each stdout write, including partial multi-byte writes;
+fail the final flush; and combine flush failure with unavailable stderr.
+Commands still return failure, stop attempting report writes, and retain no
+ownership. Before reporting, failures leave stdout empty; partial stdout after
+a write failure remains permitted by the contract.
+
+### Coverage map and CI policy
+
+The integration audit supplements the existing focused tests rather than
+replacing their more exhaustive boundary checks:
+
+| Contract area | Ordinary CTest coverage |
+| --- | --- |
+| Exact syntax/reasons, precedence, literal paths, leading zeros, upper limit | `cli_audit`, `cli_process`, `benchmark_controlled` |
+| Exact warm-up/measured counts through 1,000,000; observation outside timing | `benchmark_loop`, `benchmark_controlled` |
+| Known statistics, fractional means, uint64 boundaries, zero denominators | `benchmark_statistics`, `cli_audit`, `benchmark_controlled` |
+| Clock arithmetic/state, all timing failure categories, missing backend | `timer_checked`, `timer_unavailable`, `benchmark_controlled`, `benchmark_unavailable` |
+| Layer/inference errors, non-finite output, first-error precedence, recovery | `benchmark_loop`, `benchmark_controlled`, `cli_setup` |
+| Write/flush errors, bounded diagnostics, report formatting, cleanup | `cli_audit`, `benchmark_controlled` |
+| Actual linked binary, real clock, tiny/MNIST numerical regressions | `cli_process`, `timer_native`, `cli_setup`, existing model/MNIST tests |
+
+[`CMakeLists.txt`](../CMakeLists.txt) labels the twelve benchmark-related tests
+`benchmark`, including the two new cases. The existing macOS/Linux Debug/Release
+and Linux sanitizer CI jobs already run the full CTest suite, so registration
+includes these cases without another workflow job. Tests assert counts,
+structure, numerical correctness, error behavior, and controlled arithmetic;
+there is **no maximum latency or minimum throughput requirement**. Native-clock
+checks likewise do not impose a machine speed threshold. The new cases have
+120-second hang timeouts, separate from any benchmark-result assertion.
+
+Run the focused group after configuring and building:
+
+```sh
+ctest --test-dir build-mnist -L benchmark --output-on-failure
+```
+
+For a fresh ordinary C build, without optional Python dependencies:
+
+```sh
+cmake -S . -B build-benchmark-acceptance -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON
+cmake --build build-benchmark-acceptance --parallel
+ctest --test-dir build-benchmark-acceptance -L benchmark --output-on-failure
+```
+
+Local macOS arm64 results, Apple Clang 21.0.0 and CMake 4.4.4:
+
+| Check | Result |
+| --- | --- |
+| Full Debug, including optional Python reference checks | 46/46 passed |
+| Full Release, ordinary C tests | 37/37 passed |
+| Full Debug ASan + UBSan, ordinary C tests | 37/37 passed; no findings |
+| Final new-test rerun after adding precedence and unsorted-duration cases | 2/2 passed in each build |
+| Native `leaks --atExit`, controlled/unavailable audits | Both exited 0; 0 leaks / 0 leaked bytes |
+| Both compile-time backend variants, C11 warnings as errors | Passed |
+
+The full suites include the twelve labeled tests and all existing numerical,
+loader, and lifecycle regressions. ASan used `detect_leaks=0` on macOS; separate
+native leak checks completed with the usual restricted-process inspection
+notice. The native leak commands are:
+
+```sh
+leaks --atExit -- ./build-mnist/test_benchmark_controlled "$PWD"
+leaks --atExit -- ./build-mnist/test_benchmark_unavailable "$PWD"
+```
+
+Linux execution and hosted macOS/Linux CI have not been verified for this step.
+The existing CI workflow will run the tests when these changes are published;
+no commit or push was made here. Controlled times are evidence of correctness,
+not evidence of a speed improvement. The local acceptance step is complete;
+**next is the reproducible Release baseline**. Phase 5 remains open until its
+remaining baseline, evaluation, and hosted verification work is complete.

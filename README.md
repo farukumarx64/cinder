@@ -285,6 +285,15 @@ records the exact revision, results, GCC warnings, and remaining limitations.
   native CLI/benchmark leak checks report zero. The process suite now covers
   133 commands, including 11 benchmark cases. Hosted CI and the reproducible
   Release baseline remain pending for this step.
+- The [benchmark acceptance audit](docs/BENCHMARK.md#benchmark-acceptance-audit)
+  completed locally October 28. It tests the full command with real tiny/MNIST
+  ownership and controlled clock values, plus a compiled unavailable backend.
+  The 1,088 controlled and two unavailable-clock invocations check timing,
+  inference/output failures, allocation/file cleanup, and recovery. Debug passes
+  46/46; C-only Release and ASan/UBSan pass 37/37 each; native leak checks report
+  zero. All twelve benchmark-related tests have the CTest label `benchmark`;
+  CI imposes no latency/throughput threshold. Hosted verification and the
+  reproducible Release baseline remain pending.
 - The [`run` contract](docs/CLI.md) now defines two positional file paths, a
   zero-based prediction and up to three ranked raw scores, lower-index tie
   breaking, exit statuses `0/1/2`, and contextual errors. It accepts valid models
@@ -689,6 +698,7 @@ records that limitation and local reproduction commands.
 | `tests/test_input.c`, `tests/test_cli.c`, `tests/test_cli_process.c` | Reader/CLI failure audits and actual command processes against saved fixtures. |
 | `tests/test_cli_setup.c` | Real shared preparation, repeated inference without file access or allocations, forced failures, and cleanup/recovery. |
 | `tests/test_timer.c`, `tests/test_timer_unavailable.c`, `tests/test_timer_native.c` | Controlled clock boundary/failure checks, unavailable-backend rejection, and native clock smoke test. |
+| `tests/test_benchmark_acceptance.c` | Complete real CLI/runtime with controlled timestamps, unavailable-clock build, fault injection, reference comparisons, and ownership audits. |
 | `tests/test_benchmark_stats.c` | Known statistics, rate definition, fractional means, integer limits, and zero/inconsistent measurement rejection. |
 | `tests/test_benchmark.c` | Controlled benchmark call counts, timing boundaries, output observation, failures, precedence, and maximum-iteration checks. |
 | `examples/mnist/DEMO.md` | Offline demonstration, reproduction commands, actual output, measured results, limitations, and M4 verification gate. |
@@ -808,7 +818,8 @@ The [Phase 5 benchmark contract](docs/BENCHMARK.md) is defined, and reusable CLI
 model/input setup, cleanup, checked monotonic timing, and warm-up/measured loops
 are implemented with the tested `run` behavior preserved. `cinder bench` now
 validates arguments, derives latency/throughput, and prints its nine-line report.
-Next: finish the benchmark acceptance audit, then record a reproducible Release baseline.
+The local benchmark acceptance audit now passes with controlled timing and no
+speed threshold. Next: record a reproducible Release baseline.
 
 The v0.1.0 scope excludes training, GPU execution, convolutional layers,
 quantization, SIMD, multithreading, and arbitrary computation graphs.
