@@ -12,6 +12,12 @@ and its saved logs remain the latest full-suite evidence: local Debug 46/46,
 Release and ASan/UBSan 37/37 each, four zero-leak native checks, and five passing
 hosted jobs. This documentation audit does not claim a new full-suite or CI run.
 
+**Subsequent follow-up, October 29:** the [GCC investigation](GCC_WARNINGS.md)
+now resolves the four warning groups with fresh local Linux/macOS checks.
+That report identifies the changed code and its separate evidence. The audit
+snapshot below retains the work and evidence as they stood before that step;
+tiny timing reliability is now next, and final hosted verification remains open.
+
 The [roadmap checklist](../ROADMAP.md#16-definition-of-done) now distinguishes
 completed capabilities from remaining release gates and deferred scope. A
 checked capability is evidence of existing behavior, not a claim that the

@@ -66,9 +66,9 @@ static void check_rejected(cinder_layer_t **layers, size_t available_slots,
     if (layers != NULL) {
         memcpy(saved, layers, available_slots * sizeof(*layers));
         for (size_t i = 0; i < available_slots; ++i) {
-            if (layers[i] != NULL) {
-                metadata[i] = *layers[i];
-            }
+            /* Give NULL slots a defined invalid snapshot too. The pointer-list
+             * equality check below still proves that rejection changed no slot. */
+            metadata[i] = layers[i] != NULL ? *layers[i] : (cinder_layer_t){0};
         }
     }
     cinder_model_t *model = output_sentinel;

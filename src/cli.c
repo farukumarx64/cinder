@@ -130,7 +130,9 @@ static int bench(const char *model_path, const char *input_path, uint32_t iterat
         cinder_cli_release(&session);
         return diagnostic(setup_failure.stage, setup_failure.path, status, &setup_failure.detail);
     }
-    cinder_benchmark_result_t result;
+    /* Zero is an invalid measurement, not a fallback report. execute publishes
+     * only on success; statistics also rejects an unpopulated result. */
+    cinder_benchmark_result_t result = {0};
     cinder_benchmark_statistics_t statistics;
     cinder_benchmark_failure_t failure;
     status = cinder_benchmark_execute(&session, iterations, &result, &failure);

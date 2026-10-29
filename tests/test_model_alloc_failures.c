@@ -256,7 +256,9 @@ static void check_failure(size_t failure, int retry, cinder_error_t *error)
     }
     /* Failure must leave layers executable by their original owner. */
     const float input[] = {2, -1};
-    float output[4];
+    /* Every logical result must overwrite poison; stale contents cannot pass
+     * the finite expected-value checks after a failed ownership transfer. */
+    float output[] = {NAN, NAN, NAN, NAN};
     CHECK(cinder_layer_forward(layers[0], input, 2, output, 4, NULL) == CINDER_OK);
     CHECK(output[0] == 0.5f && output[1] == -3 && output[2] == 3.5f && output[3] == 5);
     CHECK(allocation_calls == layer_allocations + failure && free_calls == failure - 1);

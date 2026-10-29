@@ -1,0 +1,465 @@
+Cinder GCC warning investigation — October 29, 2026
+
+Before: 27bd04cedcb6a541a622f2c1a302151080d54f19 (git archive snapshot).
+After: working tree based on that commit, with these five source/test changes.
+SHA-256 identifies the verified contents independently of a future commit.
+No hosted CI run or publication is represented by this file.
+4a8c322348732036745328df1331029637eb1c8cb7403e8a1ca716b9d8a39cc1  src/loader.c
+ddbde6fe446942bb3ba11004bac537b4891d437556e42ec29fbb31f2d9e74f97  src/cli.c
+d4a684be5f5fcd97f349bf8afc75527f31bf523463e3c19578c8e2b5c2f043a1  tests/test_model.c
+426a7ffc2c473e6c2d5dd073c0fdb612980720651b6df96a92be9234479d9fe8  tests/test_model_alloc_failures.c
+dc4c749609a86696f947b3607b0137cbd8bc1307acf14cde7258fd0a4bd094cb  tests/test_loader_failures.c
+
+LINUX ENVIRONMENT (Docker linux/amd64 on Apple M4; emulated, not a performance measurement)
+Linux 5d4c559b611a 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux
+PRETTY_NAME="Ubuntu 24.04.5 LTS"
+NAME="Ubuntu"
+VERSION_ID="24.04"
+VERSION="24.04.5 LTS (Noble Numbat)"
+VERSION_CODENAME=noble
+ID=ubuntu
+ID_LIKE=debian
+HOME_URL="https://www.ubuntu.com/"
+SUPPORT_URL="https://help.ubuntu.com/"
+BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"
+PRIVACY_POLICY_URL="https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"
+UBUNTU_CODENAME=noble
+LOGO=ubuntu-logo
+gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+Copyright (C) 2023 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+cmake version 3.28.3
+
+CMake suite maintained and supported by Kitware (kitware.com/cmake).
+cmake	3.28.3-1build7
+gcc-13	13.3.0-6ubuntu2~24.04.1
+libc6-dev:amd64	2.39-0ubuntu8.9
+make	4.3-4.1build2
+
+MAC ENVIRONMENT
+macOS 27.0.1 (26A434), arm64 Apple M4
+Apple Clang 21.0.0.21000334, CMake 4.4.4
+Python 3.12.14 / NumPy 2.3.5 / PyTorch 2.14.1 for optional Debug checks
+
+BEFORE BUILD WARNING COUNTS
+Debug: build exit 0; 10 diagnostics, 10 type-limits, 0 maybe-uninitialized.
+Release: build exit 0; 20 diagnostics, 10 type-limits, 10 maybe-uninitialized.
+
+BEFORE RELEASE DIAGNOSTICS (all non-build-progress lines; duplicate source-including paths retained)
+/src/src/loader.c: In function 'cnd_dimension':
+/src/src/loader.c:118:29: warning: comparison is always false due to limited range of data type [-Wtype-limits]
+  118 |     if ((uint64_t)dimension > SIZE_MAX / sizeof(float)) {
+      |                             ^
+/src/src/loader.c: In function 'cinder_model_load':
+/src/src/loader.c:227:35: warning: comparison is always false due to limited range of data type [-Wtype-limits]
+  227 |     if ((uint64_t)declared_layers > SIZE_MAX / sizeof(*layers)) {
+      |                                   ^
+In file included from /src/tests/test_cli_setup.c:101:
+/src/tests/../src/loader.c: In function 'cnd_dimension':
+/src/tests/../src/loader.c:118:29: warning: comparison is always false due to limited range of data type [-Wtype-limits]
+  118 |     if ((uint64_t)dimension > SIZE_MAX / sizeof(float)) {
+      |                             ^
+/src/tests/../src/loader.c: In function 'cinder_model_load':
+/src/tests/../src/loader.c:227:35: warning: comparison is always false due to limited range of data type [-Wtype-limits]
+  227 |     if ((uint64_t)declared_layers > SIZE_MAX / sizeof(*layers)) {
+      |                                   ^
+In file included from /src/tests/test_benchmark_acceptance.c:121:
+/src/tests/../src/loader.c: In function 'cnd_dimension':
+/src/tests/../src/loader.c:118:29: warning: comparison is always false due to limited range of data type [-Wtype-limits]
+  118 |     if ((uint64_t)dimension > SIZE_MAX / sizeof(float)) {
+      |                             ^
+/src/tests/../src/loader.c: In function 'cinder_model_load':
+/src/tests/../src/loader.c:227:35: warning: comparison is always false due to limited range of data type [-Wtype-limits]
+  227 |     if ((uint64_t)declared_layers > SIZE_MAX / sizeof(*layers)) {
+      |                                   ^
+In file included from /src/tests/test_benchmark_acceptance.c:121:
+/src/tests/../src/loader.c: In function 'cnd_dimension':
+/src/tests/../src/loader.c:118:29: warning: comparison is always false due to limited range of data type [-Wtype-limits]
+  118 |     if ((uint64_t)dimension > SIZE_MAX / sizeof(float)) {
+      |                             ^
+/src/tests/../src/loader.c: In function 'cinder_model_load':
+/src/tests/../src/loader.c:227:35: warning: comparison is always false due to limited range of data type [-Wtype-limits]
+  227 |     if ((uint64_t)declared_layers > SIZE_MAX / sizeof(*layers)) {
+      |                                   ^
+In file included from /src/tests/test_benchmark_acceptance.c:282:
+/src/tests/../src/cli.c: In function 'bench':
+/src/tests/../src/cli.c:138:18: warning: 'result' may be used uninitialized [-Wmaybe-uninitialized]
+  138 |         status = cinder_benchmark_statistics(&result, &statistics, &failure.detail);
+      |                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /src/tests/test_benchmark_acceptance.c:222:
+/src/tests/../src/benchmark_stats.c:16:17: note: by argument 1 of type 'const cinder_benchmark_result_t *' to 'cinder_benchmark_statistics' declared here
+   16 | cinder_status_t cinder_benchmark_statistics(const cinder_benchmark_result_t *result,
+      |                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+/src/tests/../src/cli.c:133:31: note: 'result' declared here
+  133 |     cinder_benchmark_result_t result;
+      |                               ^~~~~~
+/src/tests/test_benchmark_acceptance.c:276:17: warning: 'result.resolution_ns' may be used uninitialized [-Wmaybe-uninitialized]
+  276 | #define fprintf output_printf
+/src/tests/../src/cli.c:156:9: note: in expansion of macro 'fprintf'
+  156 |         fprintf(stdout, "\nIterations: %" PRIu32 "\nWarm-up iterations: %" PRIu32
+      |         ^~~~~~~
+/src/tests/../src/cli.c:133:31: note: 'result' declared here
+  133 |     cinder_benchmark_result_t result;
+      |                               ^~~~~~
+/src/tests/test_benchmark_acceptance.c:276:17: warning: 'result.iterations' may be used uninitialized [-Wmaybe-uninitialized]
+  276 | #define fprintf output_printf
+/src/tests/../src/cli.c:156:9: note: in expansion of macro 'fprintf'
+  156 |         fprintf(stdout, "\nIterations: %" PRIu32 "\nWarm-up iterations: %" PRIu32
+      |         ^~~~~~~
+/src/tests/../src/cli.c:133:31: note: 'result' declared here
+  133 |     cinder_benchmark_result_t result;
+      |                               ^~~~~~
+In function 'check_rejected',
+    inlined from 'check_metadata_and_order' at /src/tests/test_model.c:148:9,
+    inlined from 'main' at /src/tests/test_model.c:290:9:
+/src/tests/test_model.c:11:8: warning: '*(unsigned int *)((char *)&metadata[0] + offsetof(cinder_layer_t, type))' may be used uninitialized [-Wmaybe-uninitialized]
+   11 |     if (!(condition)) { \
+      |        ^
+/src/tests/test_model.c:81:17: note: in expansion of macro 'CHECK'
+   81 |                 CHECK(layers[i]->type == metadata[i].type);
+      |                 ^~~~~
+/src/tests/test_model.c: In function 'main':
+/src/tests/test_model.c:64:20: note: '*(unsigned int *)((char *)&metadata[0] + offsetof(cinder_layer_t, type))' was declared here
+   64 |     cinder_layer_t metadata[4];
+      |                    ^~~~~~~~
+In function 'check_rejected',
+    inlined from 'check_metadata_and_order' at /src/tests/test_model.c:148:9,
+    inlined from 'main' at /src/tests/test_model.c:290:9:
+/src/tests/test_model.c:11:8: warning: 'metadata[0].input_size' may be used uninitialized [-Wmaybe-uninitialized]
+   11 |     if (!(condition)) { \
+      |        ^
+/src/tests/test_model.c:82:17: note: in expansion of macro 'CHECK'
+   82 |                 CHECK(layers[i]->input_size == metadata[i].input_size);
+      |                 ^~~~~
+/src/tests/test_model.c: In function 'main':
+/src/tests/test_model.c:64:20: note: 'metadata[0].input_size' was declared here
+   64 |     cinder_layer_t metadata[4];
+      |                    ^~~~~~~~
+In function 'check_rejected',
+    inlined from 'check_metadata_and_order' at /src/tests/test_model.c:148:9,
+    inlined from 'main' at /src/tests/test_model.c:290:9:
+/src/tests/test_model.c:11:8: warning: 'metadata[0].output_size' may be used uninitialized [-Wmaybe-uninitialized]
+   11 |     if (!(condition)) { \
+      |        ^
+/src/tests/test_model.c:83:17: note: in expansion of macro 'CHECK'
+   83 |                 CHECK(layers[i]->output_size == metadata[i].output_size);
+      |                 ^~~~~
+/src/tests/test_model.c: In function 'main':
+/src/tests/test_model.c:64:20: note: 'metadata[0].output_size' was declared here
+   64 |     cinder_layer_t metadata[4];
+      |                    ^~~~~~~~
+In function 'check_rejected',
+    inlined from 'check_metadata_and_order' at /src/tests/test_model.c:148:9,
+    inlined from 'main' at /src/tests/test_model.c:290:9:
+/src/tests/test_model.c:11:8: warning: 'metadata[0].dense' may be used uninitialized [-Wmaybe-uninitialized]
+   11 |     if (!(condition)) { \
+      |        ^
+/src/tests/test_model.c:84:17: note: in expansion of macro 'CHECK'
+   84 |                 CHECK(layers[i]->dense == metadata[i].dense);
+      |                 ^~~~~
+/src/tests/test_model.c: In function 'main':
+/src/tests/test_model.c:64:20: note: 'metadata[0].dense' was declared here
+   64 |     cinder_layer_t metadata[4];
+      |                    ^~~~~~~~
+In file included from /src/tests/mnist_lifecycle_audit.h:113,
+                 from /src/tests/test_mnist_lifecycle.c:23:
+/src/tests/../src/loader.c: In function 'cnd_dimension':
+/src/tests/../src/loader.c:118:29: warning: comparison is always false due to limited range of data type [-Wtype-limits]
+  118 |     if ((uint64_t)dimension > SIZE_MAX / sizeof(float)) {
+      |                             ^
+/src/tests/../src/loader.c: In function 'cinder_model_load':
+/src/tests/../src/loader.c:227:35: warning: comparison is always false due to limited range of data type [-Wtype-limits]
+  227 |     if ((uint64_t)declared_layers > SIZE_MAX / sizeof(*layers)) {
+      |                                   ^
+In file included from /src/tests/test_model_alloc_failures.c:4:
+In function 'cinder_tensor_relu',
+    inlined from 'cinder_tensor_relu' at /src/tests/../src/tensor.c:263:17,
+    inlined from 'cinder_layer_forward' at /src/tests/../src/layer.c:193:24,
+    inlined from 'check_failure' at /src/tests/test_model_alloc_failures.c:260:5:
+/src/tests/../src/tensor.c:280:29: warning: 'output' may be used uninitialized [-Wmaybe-uninitialized]
+  280 |         if (!isfinite(values[i])) {
+      |                       ~~~~~~^~~
+/src/tests/test_model_alloc_failures.c: In function 'check_failure':
+/src/tests/test_model_alloc_failures.c:259:11: note: 'output' declared here
+  259 |     float output[4];
+      |           ^~~~~~
+In function 'cinder_tensor_relu',
+    inlined from 'cinder_tensor_relu' at /src/tests/../src/tensor.c:263:17,
+    inlined from 'cinder_layer_forward' at /src/tests/../src/layer.c:193:24,
+    inlined from 'check_failure' at /src/tests/test_model_alloc_failures.c:260:5:
+/src/tests/../src/tensor.c:280:29: warning: 'output' may be used uninitialized [-Wmaybe-uninitialized]
+  280 |         if (!isfinite(values[i])) {
+      |                       ~~~~~~^~~
+/src/tests/test_model_alloc_failures.c: In function 'check_failure':
+/src/tests/test_model_alloc_failures.c:259:11: note: 'output' declared here
+  259 |     float output[4];
+      |           ^~~~~~
+In file included from /src/tests/test_model_alloc_failures.c:100:
+In function 'cinder_tensor_relu',
+    inlined from 'cinder_tensor_relu' at /src/tests/../src/tensor.c:263:17,
+    inlined from 'cinder_layer_forward' at /src/tests/../src/layer.c:193:24,
+    inlined from 'check_failure' at /src/tests/test_model_alloc_failures.c:260:5:
+/src/tests/../src/tensor.c:286:19: warning: 'output' may be used uninitialized [-Wmaybe-uninitialized]
+  286 |         if (values[i] < 0.0f) {
+      |             ~~~~~~^~~
+/src/tests/test_model_alloc_failures.c: In function 'check_failure':
+/src/tests/test_model_alloc_failures.c:259:11: note: 'output' declared here
+  259 |     float output[4];
+      |           ^~~~~~
+
+ISOLATED ORIGINAL BENCHMARK TRANSLATION-UNIT PROBES
+#!/bin/sh
+set -eu
+/usr/bin/gcc-13 -DCINDER_HAVE_MONOTONIC_RAW_CLOCK=1 '-DCINDER_VERSION="0.1.0-dev"' -D_POSIX_C_SOURCE=200809L -I/src/include -I/src/tests/fixtures -O3 -DNDEBUG -std=c11 -Wall -Wextra -Wpedantic -o /audit/probe-controlled.o -c /src/tests/test_benchmark_acceptance.c > /audit/probe-controlled.log 2>&1
+/usr/bin/gcc-13 -DCINDER_HAVE_MONOTONIC_RAW_CLOCK=0 '-DCINDER_VERSION="0.1.0-dev"' -D_POSIX_C_SOURCE=200809L -I/src/include -I/src/tests/fixtures -O3 -DNDEBUG -std=c11 -Wall -Wextra -Wpedantic -o /audit/probe-unavailable.o -c /src/tests/test_benchmark_acceptance.c > /audit/probe-unavailable.log 2>&1
+controlled: compilation exit 0; type-limits=2; maybe-uninitialized=0
+unavailable: compilation exit 0; type-limits=2; maybe-uninitialized=3
+
+AFTER VERIFICATION
+All five fresh configurations used -Werror in addition to project C11 / -Wall -Wextra -Wpedantic.
+Release retained -O3 -DNDEBUG. No warning suppression was added.
+Linux optional Python switches OFF; mac-Debug all three ON; mac-Release/mac-Sanitize OFF.
+mac-Sanitize ASan+UBSan ON; ASAN_OPTIONS=detect_leaks=0:halt_on_error=1; UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1.
+
+after-Debug: configure/build/CTest exit 0; build warning diagnostics=0.
+10: CLI processes: 133 passed (11 benchmark cases); MNIST prediction/top-three index agreement 100/100; maximum displayed-score absolute error 3.57627869e-07.
+11: Benchmark acceptance: 1088 command invocations passed; clock backend controlled; no speed threshold.
+12: Benchmark acceptance: 2 command invocations passed; clock backend unavailable; no speed threshold.
+20: Audit: all 21 allocation points failed individually, with/without details and successful retry.
+20: Audit: 29 file-failure scenarios, each with/without details and successful retry.
+20: Audit: native byte extents passed zero/one/exact-limit/overflow checks, preserved output on failure, and performed no allocations.
+20: Audit: loaded lifecycle passed: 284 poisoned-buffer success/failure/recovery cycles (852 inference calls), zero inference allocations/frees or loader I/O, unchanged parameters, and 42 allocation failures with a surviving model and successful retry.
+20: Audit: 1604 rejected calls checked for NULL output, unchanged prior owners, zero new live blocks, and no retained stream.
+28: Round trip: 40 vectors / 120 values, max absolute error 5.96046448e-08, max fraction of tolerance 0.00303036345 (atol = rtol = 1e-5).
+29: dense1: 100 vectors / 12800 values, max absolute error 6.67572021e-06, max fraction of tolerance 0.178311515.
+29: relu: 100 vectors / 12800 values, max absolute error 4.76837158e-06, max fraction of tolerance 0.178311515.
+29: logits: 100 vectors / 1000 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.206670881.
+29: probabilities: 100 vectors / 1000 values, max absolute error 3.57627869e-07, max fraction of tolerance 0.0287552465.
+29: MNIST: 400 vectors / 27600 values passed (atol = rtol = 1e-5).
+29: Runtime prediction agreement (C vs saved Python): 100/100.
+29: Classification on fixed test subset: C 99/100; Python 99/100.
+37: Model storage tests passed: allocation rollback, ownership, buffer reuse, and allocation-free inference.
+100% tests passed, 0 tests failed out of 37
+Total Test time (real) =  11.03 sec
+
+after-Release: configure/build/CTest exit 0; build warning diagnostics=0.
+10: CLI processes: 133 passed (11 benchmark cases); MNIST prediction/top-three index agreement 100/100; maximum displayed-score absolute error 3.57627869e-07.
+11: Benchmark acceptance: 1088 command invocations passed; clock backend controlled; no speed threshold.
+12: Benchmark acceptance: 2 command invocations passed; clock backend unavailable; no speed threshold.
+20: Audit: all 21 allocation points failed individually, with/without details and successful retry.
+20: Audit: 29 file-failure scenarios, each with/without details and successful retry.
+20: Audit: native byte extents passed zero/one/exact-limit/overflow checks, preserved output on failure, and performed no allocations.
+20: Audit: loaded lifecycle passed: 284 poisoned-buffer success/failure/recovery cycles (852 inference calls), zero inference allocations/frees or loader I/O, unchanged parameters, and 42 allocation failures with a surviving model and successful retry.
+20: Audit: 1604 rejected calls checked for NULL output, unchanged prior owners, zero new live blocks, and no retained stream.
+28: Round trip: 40 vectors / 120 values, max absolute error 5.96046448e-08, max fraction of tolerance 0.00303036345 (atol = rtol = 1e-5).
+29: dense1: 100 vectors / 12800 values, max absolute error 6.67572021e-06, max fraction of tolerance 0.178311515.
+29: relu: 100 vectors / 12800 values, max absolute error 4.76837158e-06, max fraction of tolerance 0.178311515.
+29: logits: 100 vectors / 1000 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.206670881.
+29: probabilities: 100 vectors / 1000 values, max absolute error 3.57627869e-07, max fraction of tolerance 0.0287552465.
+29: MNIST: 400 vectors / 27600 values passed (atol = rtol = 1e-5).
+29: Runtime prediction agreement (C vs saved Python): 100/100.
+29: Classification on fixed test subset: C 99/100; Python 99/100.
+37: Model storage tests passed: allocation rollback, ownership, buffer reuse, and allocation-free inference.
+100% tests passed, 0 tests failed out of 37
+Total Test time (real) =   5.58 sec
+
+mac-Debug: configure/build/CTest exit 0; build warning diagnostics=0.
+10: CLI processes: 133 passed (11 benchmark cases); MNIST prediction/top-three index agreement 100/100; maximum displayed-score absolute error 3.57627869e-07.
+11: Benchmark acceptance: 1088 command invocations passed; clock backend controlled; no speed threshold.
+12: Benchmark acceptance: 2 command invocations passed; clock backend unavailable; no speed threshold.
+20: Audit: all 21 allocation points failed individually, with/without details and successful retry.
+20: Audit: 29 file-failure scenarios, each with/without details and successful retry.
+20: Audit: native byte extents passed zero/one/exact-limit/overflow checks, preserved output on failure, and performed no allocations.
+20: Audit: loaded lifecycle passed: 284 poisoned-buffer success/failure/recovery cycles (852 inference calls), zero inference allocations/frees or loader I/O, unchanged parameters, and 42 allocation failures with a surviving model and successful retry.
+20: Audit: 1604 rejected calls checked for NULL output, unchanged prior owners, zero new live blocks, and no retained stream.
+28: Round trip: 40 vectors / 120 values, max absolute error 5.96046448e-08, max fraction of tolerance 0.00303036345 (atol = rtol = 1e-5).
+29: dense1: 100 vectors / 12800 values, max absolute error 6.19888306e-06, max fraction of tolerance 0.178311515.
+29: relu: 100 vectors / 12800 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.178311515.
+29: logits: 100 vectors / 1000 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.176519426.
+29: probabilities: 100 vectors / 1000 values, max absolute error 3.57627869e-07, max fraction of tolerance 0.0287552465.
+29: MNIST: 400 vectors / 27600 values passed (atol = rtol = 1e-5).
+29: Runtime prediction agreement (C vs saved Python): 100/100.
+29: Classification on fixed test subset: C 99/100; Python 99/100.
+38: Round trip: 40 vectors / 120 values, max absolute error 5.96046448e-08, max fraction of tolerance 0.00303036345 (atol = rtol = 1e-5).
+42: dense1: 100 vectors / 12800 values, max absolute error 6.19888306e-06, max fraction of tolerance 0.178311515.
+42: relu: 100 vectors / 12800 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.178311515.
+42: logits: 100 vectors / 1000 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.176519426.
+42: probabilities: 100 vectors / 1000 values, max absolute error 3.57627869e-07, max fraction of tolerance 0.0287552465.
+42: MNIST: 400 vectors / 27600 values passed (atol = rtol = 1e-5).
+42: Runtime prediction agreement (C vs saved Python): 100/100.
+42: Classification on fixed test subset: C 99/100; Python 99/100.
+46: Model storage tests passed: allocation rollback, ownership, buffer reuse, and allocation-free inference.
+100% tests passed out of 46
+Total Test time (real) =  50.15 sec
+
+mac-Release: configure/build/CTest exit 0; build warning diagnostics=0.
+10: CLI processes: 133 passed (11 benchmark cases); MNIST prediction/top-three index agreement 100/100; maximum displayed-score absolute error 3.57627869e-07.
+11: Benchmark acceptance: 1088 command invocations passed; clock backend controlled; no speed threshold.
+12: Benchmark acceptance: 2 command invocations passed; clock backend unavailable; no speed threshold.
+20: Audit: all 21 allocation points failed individually, with/without details and successful retry.
+20: Audit: 29 file-failure scenarios, each with/without details and successful retry.
+20: Audit: native byte extents passed zero/one/exact-limit/overflow checks, preserved output on failure, and performed no allocations.
+20: Audit: loaded lifecycle passed: 284 poisoned-buffer success/failure/recovery cycles (852 inference calls), zero inference allocations/frees or loader I/O, unchanged parameters, and 42 allocation failures with a surviving model and successful retry.
+20: Audit: 1604 rejected calls checked for NULL output, unchanged prior owners, zero new live blocks, and no retained stream.
+28: Round trip: 40 vectors / 120 values, max absolute error 5.96046448e-08, max fraction of tolerance 0.00303036345 (atol = rtol = 1e-5).
+29: dense1: 100 vectors / 12800 values, max absolute error 6.19888306e-06, max fraction of tolerance 0.178311515.
+29: relu: 100 vectors / 12800 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.178311515.
+29: logits: 100 vectors / 1000 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.176519426.
+29: probabilities: 100 vectors / 1000 values, max absolute error 3.57627869e-07, max fraction of tolerance 0.0287552465.
+29: MNIST: 400 vectors / 27600 values passed (atol = rtol = 1e-5).
+29: Runtime prediction agreement (C vs saved Python): 100/100.
+29: Classification on fixed test subset: C 99/100; Python 99/100.
+37: Model storage tests passed: allocation rollback, ownership, buffer reuse, and allocation-free inference.
+100% tests passed out of 37
+Total Test time (real) =  23.64 sec
+
+mac-Sanitize: configure/build/CTest exit 0; build warning diagnostics=0.
+10: CLI processes: 133 passed (11 benchmark cases); MNIST prediction/top-three index agreement 100/100; maximum displayed-score absolute error 3.57627869e-07.
+11: Benchmark acceptance: 1088 command invocations passed; clock backend controlled; no speed threshold.
+12: Benchmark acceptance: 2 command invocations passed; clock backend unavailable; no speed threshold.
+20: Audit: all 21 allocation points failed individually, with/without details and successful retry.
+20: Audit: 29 file-failure scenarios, each with/without details and successful retry.
+20: Audit: native byte extents passed zero/one/exact-limit/overflow checks, preserved output on failure, and performed no allocations.
+20: Audit: loaded lifecycle passed: 284 poisoned-buffer success/failure/recovery cycles (852 inference calls), zero inference allocations/frees or loader I/O, unchanged parameters, and 42 allocation failures with a surviving model and successful retry.
+20: Audit: 1604 rejected calls checked for NULL output, unchanged prior owners, zero new live blocks, and no retained stream.
+28: Round trip: 40 vectors / 120 values, max absolute error 5.96046448e-08, max fraction of tolerance 0.00303036345 (atol = rtol = 1e-5).
+29: dense1: 100 vectors / 12800 values, max absolute error 6.19888306e-06, max fraction of tolerance 0.178311515.
+29: relu: 100 vectors / 12800 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.178311515.
+29: logits: 100 vectors / 1000 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.176519426.
+29: probabilities: 100 vectors / 1000 values, max absolute error 3.57627869e-07, max fraction of tolerance 0.0287552465.
+29: MNIST: 400 vectors / 27600 values passed (atol = rtol = 1e-5).
+29: Runtime prediction agreement (C vs saved Python): 100/100.
+29: Classification on fixed test subset: C 99/100; Python 99/100.
+37: Model storage tests passed: allocation rollback, ownership, buffer reuse, and allocation-free inference.
+100% tests passed out of 37
+Total Test time (real) =  46.87 sec
+
+NATIVE LEAK CHECKS (all exit 0; full reports including restricted-process notice)
+
+mac-leaks-loader.log
+Reject: magic
+Reject: version zero
+Reject: future version
+Reject: wrong byte order
+Reject: zero header input
+Reject: header vector limit
+Reject: header connection
+Reject: zero layers
+Reject: layer count limit
+Reject: insufficient record space
+Reject: zero type
+Reject: unknown type
+Reject: unknown last type
+Reject: zero input
+Reject: zero output
+Reject: input limit
+Reject: output limit
+Reject: Dense payload short
+Reject: Dense payload long
+Reject: Dense payload huge
+Reject: ReLU connection
+Reject: ReLU shape change
+Reject: ReLU payload
+Reject: Dense connection
+Reject: Softmax shape change
+Reject: Softmax payload
+Reject: infinite weight
+Reject: negative infinite bias
+Reject: NaN later weight
+Reject: signaling NaN last bias
+Loader: 709 rejected cases (each with/without error details); 50 NumPy vectors, 100 values, max absolute error 5.96046448e-08.
+Audit: all 21 allocation points failed individually, with/without details and successful retry.
+Audit: 29 file-failure scenarios, each with/without details and successful retry.
+Audit: native byte extents passed zero/one/exact-limit/overflow checks, preserved output on failure, and performed no allocations.
+Audit: loaded lifecycle passed: 284 poisoned-buffer success/failure/recovery cycles (852 inference calls), zero inference allocations/frees or loader I/O, unchanged parameters, and 42 allocation failures with a surviving model and successful retry.
+Audit: 1604 rejected calls checked for NULL output, unchanged prior owners, zero new live blocks, and no retained stream.
+Process 69795 is not debuggable. Due to security restrictions, leaks can only show or save contents of readonly memory of restricted processes.
+
+Process:         test_loader_failures [69795]
+Path:            /Users/USER/*/test_loader_failures
+Load Address:    0x10080c000
+Identifier:      test_loader_failures
+Version:         0
+Code Type:       ARM64
+Platform:        macOS
+Parent Process:  leaks [69793]
+Target Type:     live task
+
+Date/Time:       2026-10-29 16:48:58.976 +0100
+Launch Time:     2026-10-29 16:48:57.874 +0100
+OS Version:      macOS 27.0.1 (26A434)
+Report Version:  7
+Analysis Tool:   /usr/bin/leaks
+
+Physical footprint:         323.5M
+Physical footprint (peak):  323.5M
+Idle exit:                  untracked
+----
+
+leaks Report Version: 4.0, multi-line stacks
+Process 69795: 191 nodes malloced for 16 KB
+Process 69795: 0 leaks for 0 total leaked bytes.
+
+
+mac-leaks-controlled.log
+Benchmark acceptance tiny: real model/CLI, deterministic clock/report, faults and recovery; zero retained blocks/bytes/files.
+Benchmark acceptance MNIST: real model/CLI, deterministic clock/report, faults and recovery; zero retained blocks/bytes/files.
+Benchmark acceptance: 1088 command invocations passed; clock backend controlled; no speed threshold.
+Process 69794 is not debuggable. Due to security restrictions, leaks can only show or save contents of readonly memory of restricted processes.
+
+Process:         test_benchmark_controlled [69794]
+Path:            /Users/USER/*/test_benchmark_controlled
+Load Address:    0x1003f8000
+Identifier:      test_benchmark_controlled
+Version:         0
+Code Type:       ARM64
+Platform:        macOS
+Parent Process:  leaks [69792]
+Target Type:     live task
+
+Date/Time:       2026-10-29 16:49:01.340 +0100
+Launch Time:     2026-10-29 16:48:57.868 +0100
+OS Version:      macOS 27.0.1 (26A434)
+Report Version:  7
+Analysis Tool:   /usr/bin/leaks
+
+Physical footprint:         4048K
+Physical footprint (peak):  4048K
+Idle exit:                  untracked
+----
+
+leaks Report Version: 4.0, multi-line stacks
+Process 69794: 191 nodes malloced for 16 KB
+Process 69794: 0 leaks for 0 total leaked bytes.
+
+
+mac-leaks-unavailable.log
+Benchmark acceptance: 2 command invocations passed; clock backend unavailable; no speed threshold.
+Process 69819 is not debuggable. Due to security restrictions, leaks can only show or save contents of readonly memory of restricted processes.
+
+Process:         test_benchmark_unavailable [69819]
+Path:            /Users/USER/*/test_benchmark_unavailable
+Load Address:    0x10048c000
+Identifier:      test_benchmark_unavailable
+Version:         0
+Code Type:       ARM64
+Platform:        macOS
+Parent Process:  leaks [69818]
+Target Type:     live task
+
+Date/Time:       2026-10-29 16:49:00.391 +0100
+Launch Time:     2026-10-29 16:49:00.384 +0100
+OS Version:      macOS 27.0.1 (26A434)
+Report Version:  7
+Analysis Tool:   /usr/bin/leaks
+
+Physical footprint:         3440K
+Physical footprint (peak):  3440K
+Idle exit:                  untracked
+----
+
+leaks Report Version: 4.0, multi-line stacks
+Process 69819: 188 nodes malloced for 16 KB
+Process 69819: 0 leaks for 0 total leaked bytes.

@@ -107,6 +107,18 @@ static cinder_status_t cnd_read(cnd_reader_t *reader, unsigned char *bytes, size
     return CINDER_OK;
 }
 
+/* Convert format counts to native byte extents before narrowing or multiplying.
+ * uint64_t covers both encoded u32 counts and derived Dense parameter counts.
+ * Keep the destination unchanged on failure. All callers use nonzero sizeofs. */
+static bool cnd_byte_extent(uint64_t count, size_t element_size, size_t *extent)
+{
+    if (element_size == 0 || count > SIZE_MAX / element_size) {
+        return false;
+    }
+    *extent = (size_t)count * element_size;
+    return true;
+}
+
 static cinder_status_t cnd_dimension(cnd_reader_t *reader, uint32_t dimension)
 {
     if (dimension == 0) {
@@ -115,7 +127,8 @@ static cinder_status_t cnd_dimension(cnd_reader_t *reader, uint32_t dimension)
     if (dimension > CND_MAX_VECTOR) {
         return loader_result(reader, CINDER_ERROR_LIMIT, "Vector dimension exceeds 65536.");
     }
-    if ((uint64_t)dimension > SIZE_MAX / sizeof(float)) {
+    size_t vector_bytes;
+    if (!cnd_byte_extent(dimension, sizeof(float), &vector_bytes)) {
         return loader_result(reader, CINDER_ERROR_OVERFLOW, "Vector byte extent exceeds SIZE_MAX.");
     }
     return CINDER_OK;
@@ -224,12 +237,13 @@ cinder_status_t cinder_model_load(
     if (status != CINDER_OK) {
         goto cleanup;
     }
-    if ((uint64_t)declared_layers > SIZE_MAX / sizeof(*layers)) {
+    size_t layer_bytes;
+    if (!cnd_byte_extent(declared_layers, sizeof(*layers), &layer_bytes)) {
         status = loader_result(&reader, CINDER_ERROR_OVERFLOW, "Layer list byte extent exceeds SIZE_MAX.");
         goto cleanup;
     }
     layer_count = (size_t)declared_layers;
-    layers = malloc(layer_count * sizeof(*layers));
+    layers = malloc(layer_bytes);
     if (layers == NULL) {
         status = loader_result(&reader, CINDER_ERROR_ALLOCATION, "Could not allocate temporary layer list.");
         goto cleanup;
@@ -280,7 +294,8 @@ cinder_status_t cinder_model_load(
             status = loader_result(&reader, CINDER_ERROR_LIMIT, "Cumulative parameter bytes exceed 64 MiB.");
             goto cleanup;
         }
-        if (count > SIZE_MAX / sizeof(float)) {
+        size_t parameter_bytes;
+        if (!cnd_byte_extent(count, sizeof(float), &parameter_bytes)) {
             status = loader_result(&reader, CINDER_ERROR_OVERFLOW, "Parameter staging byte extent exceeds SIZE_MAX.");
             goto cleanup;
         }
@@ -290,7 +305,7 @@ cinder_status_t cinder_model_load(
         }
         total_parameters += bytes;
         if (type == 1) {
-            parameters = malloc((size_t)count * sizeof(*parameters));
+            parameters = malloc(parameter_bytes);
             if (parameters == NULL) {
                 status = loader_result(&reader, CINDER_ERROR_ALLOCATION, "Could not allocate parameter staging.");
                 goto cleanup;

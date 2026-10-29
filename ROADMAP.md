@@ -132,8 +132,14 @@ requirements: seven satisfied, `cinder info` deferred beyond v0.1.0, and the
 final README review and GitHub release still open. Earlier M2-only test/CI
 entries now reference M5 evidence; final candidate verification remains a
 separate gate. Version finalization and release notes are still pending.
-**Next scoped step: investigate the GCC warnings.** Phase 6 stays open; keep
-the tiny timing limitation explicit and follow the [remaining work](docs/RELEASE_AUDIT.md#actual-work-remaining-before-release).
+**GCC warning investigation completed locally October 29, 2026.** All four
+groups reproduce with GCC 13.3; checked byte extents and explicit initialization
+resolve them without suppressing warnings. Linux Debug/Release pass 37/37 each;
+macOS Debug passes 46/46, Release and ASan/UBSan 37/37 each, all with `-Werror`
+and zero build warnings. Three focused native leak checks report zero. See the
+[causes, changes, and evidence](docs/GCC_WARNINGS.md). New hosted CI is pending.
+**Next scoped step: investigate tiny-model timing reliability.** Phase 6 stays
+open; follow the [remaining work](docs/RELEASE_AUDIT.md#actual-work-remaining-before-release).
 Implement and verify one scoped step at a time.
 
 ### Phase 0 checklist
@@ -242,7 +248,7 @@ remain documented in the M3 report.
 ### Phase 6 checklist
 
 - [x] Audit the remaining release checklist on October 29, 2026. Compare all ten unchecked requirements with source, registered tests, and saved M3–M5 evidence; correct seven stale entries, explicitly defer `cinder info`, and preserve open documentation/publication gates. Confirm the existing binary accepts `run`, rejects `info`, and reports `0.1.0-dev`; read-only GitHub checks report no releases or tags. See [the audit and scope decision](docs/RELEASE_AUDIT.md). This documentation step does not close M6.
-- [ ] Investigate the Linux GCC warnings. Reproduce each diagnostic, determine its cause, fix demonstrated defects or clarify valid code as appropriate, and verify the resulting changes without blanket suppression.
+- [x] Investigate the Linux GCC warnings locally on October 29, 2026. Reproduce all four groups with Ubuntu 24.04/GCC 13.3: size guards are always false for encoded counts on this host; metadata/output/result warnings reflect initialization facts not established by optimized analysis. Add shared checked byte extents with boundary tests, defined snapshots, NaN-poisoned test output, and an invalid initial benchmark result. No reachable uninitialized read or allocation overflow was found in these paths. Linux Debug/Release pass 37/37 each; macOS Debug 46/46, Release and ASan/UBSan 37/37 each, all warning-free under `-Werror`; three native leak checks report zero. Numerical/lifecycle/allocation checks pass. See [the investigation and limitations](docs/GCC_WARNINGS.md); new hosted CI remains part of the final M6 gate.
 - [ ] Investigate tiny-model timing reliability. Diagnose the saved zero-interval failures and record a correction or an explicit supported limitation; preserve the measurement contract unless a change is separately justified and defined.
 - [ ] Review the remaining robustness coverage. Map invalid models, dimensions, capacities, corrupted/truncated files, versions, allocation/I/O failures, cleanup, and recovery to existing tests; add focused tests/fixes for demonstrated gaps.
 - [ ] Verify the resulting revision and close M6. Run Debug/Release, numerical/lifecycle tests, ASan/UBSan, supported leak checks, and macOS/Linux CI; record actual results, warning dispositions, and remaining limitations.
@@ -1449,8 +1455,10 @@ The final week exists for making the existing runtime reliable.
 
 October 26–28 was the original planning target. M5 closed October 29; this
 phase remains open. The [release-checklist audit](docs/RELEASE_AUDIT.md) is
-complete and `cinder info` is deferred. Next, triage the GCC warnings, investigate
-the tiny-model timing limitation, and review remaining robustness coverage.
+complete and `cinder info` is deferred. The [GCC warning investigation](docs/GCC_WARNINGS.md)
+also passes locally. Next, investigate the tiny-model timing limitation and
+review remaining robustness coverage; hosted verification of the resulting
+revision remains required.
 The [Phase 6 checklist](#phase-6-checklist) records these scoped steps. Change
 behavior only for demonstrated defects or an explicitly revised contract.
 
@@ -1897,8 +1905,10 @@ justified; tiny clock failures, GCC warnings, and platform-check limitations
 are retained in [the M5 report](docs/M5_VERIFICATION.md). Next is Phase 6's
 final hardening review. Its release-checklist audit is complete: seven stale
 requirements are checked, inspection is explicitly deferred, and remaining
-release gates are recorded. Next: GCC warning triage. Phase 7 documentation/
-release remains afterward; neither phase is marked complete by this audit.
+release gates are recorded. GCC warning triage is now complete locally; next
+is the tiny timing investigation, followed by robustness review and final M6
+verification. Phase 7 documentation/release remains afterward; both phases
+remain open.
 
 The **October 25 deadline is the internal deadline**.
 

@@ -284,3 +284,9 @@ limitations recorded. **M5 is closed October 29, 2026.** Phase 6 is the final
 hardening pass: reconcile the remaining robustness checklist, investigate the
 compiler warnings and timing limitation, and address demonstrated defects one
 scoped step at a time. It is not yet marked complete.
+
+Subsequent Phase 6 work: the [October 29 GCC investigation](GCC_WARNINGS.md)
+reproduces and resolves the warning groups locally, with checked byte extents,
+explicit initialization, boundary coverage, and warning-free GCC/Clang builds.
+Its evidence is separate from the historical M5 results above; new hosted CI
+and the tiny-model timing investigation remain pending.

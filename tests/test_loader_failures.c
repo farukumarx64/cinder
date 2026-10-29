@@ -381,6 +381,31 @@ static void audit_first_error(const char *path, const char *scratch)
     AUDIT_CHECK(remove(scratch) == 0);
 }
 
+static void audit_byte_extents(void)
+{
+    audit_reset();
+    const size_t widths[] = {1, sizeof(float), sizeof(cinder_layer_t *)};
+    for (size_t i = 0; i < AUDIT_COUNT(widths); ++i) {
+        uint64_t limit = audit_size_max / widths[i];
+        size_t bytes = 17;
+        AUDIT_CHECK(cnd_byte_extent(0, widths[i], &bytes) && bytes == 0);
+        AUDIT_CHECK(cnd_byte_extent(1, widths[i], &bytes) && bytes == widths[i]);
+        /* Calculate only: these boundaries must never trigger huge allocations. */
+        AUDIT_CHECK(cnd_byte_extent(limit, widths[i], &bytes));
+        AUDIT_CHECK(bytes == (size_t)limit * widths[i]);
+        if (limit < UINT64_MAX) {
+            bytes = 17;
+            AUDIT_CHECK(!cnd_byte_extent(limit + 1, widths[i], &bytes) && bytes == 17);
+            AUDIT_CHECK(!cnd_byte_extent(UINT64_MAX, widths[i], &bytes) && bytes == 17);
+        }
+    }
+    size_t bytes = 17;
+    AUDIT_CHECK(!cnd_byte_extent(1, 0, &bytes) && bytes == 17);
+    AUDIT_CHECK(audit_allocations == 0 && audit_free_attempts == 0 && audit_stream == NULL);
+    puts("Audit: native byte extents passed zero/one/exact-limit/overflow checks, "
+         "preserved output on failure, and performed no allocations.");
+}
+
 static void audit_native_overflow(const char *path)
 {
     const size_t ceilings[] = {2 * sizeof(float) - 1, 4 * sizeof(cinder_layer_t *) - 1,
@@ -560,6 +585,7 @@ int main(int argc, char **argv)
     audit_allocation_failures(argv[1]);
     audit_io_failures(argv[1]);
     audit_first_error(argv[1], argv[2]);
+    audit_byte_extents();
     audit_native_overflow(argv[1]);
     audit_parameter_bits(argv[2]);
     audit_loaded_lifecycle(argv[1]);

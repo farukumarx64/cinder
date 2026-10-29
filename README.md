@@ -67,8 +67,10 @@ justifies a runtime optimization. Phase 6, the final hardening pass, is open.
 The [October 29 release audit](docs/RELEASE_AUDIT.md) reconciles the remaining
 checklist: seven stale entries are satisfied; `cinder info` is explicitly
 **deferred beyond v0.1.0**. The release CLI scope is `--version`, `run`, and
-`bench`. GCC warning triage is next; final hardening, README review, release
-version/notes, fresh-checkout verification, and publication remain pending.
+`bench`. [GCC warning triage](docs/GCC_WARNINGS.md) is complete locally:
+GCC 13.3 Debug/Release builds pass with zero warnings under `-Werror`.
+Next is the tiny-model timing investigation; final hardening, README review,
+release version/notes, fresh-checkout verification, and publication remain pending.
 
 - C11 compilation with `-Wall`, `-Wextra`, and `-Wpedantic` is configured.
 - A local Git repository on `main` tracks source and documentation. Generated
@@ -320,6 +322,13 @@ version/notes, fresh-checkout verification, and publication remain pending.
   four native leak checks report zero. All five hosted jobs passed for the
   unchanged code at `cd461c6`. Numerical agreement and zero inference allocation
   attempts are preserved. See the report for CI provenance and limitations.
+- The [October 29 GCC investigation](docs/GCC_WARNINGS.md) reproduces all four
+  warning groups and clarifies checked loader sizes, model-test initialization,
+  and the CLI benchmark result state. Boundary tests retain overflow/cleanup
+  coverage. Linux GCC Debug/Release pass 37/37 each; macOS Debug passes 46/46,
+  Release and ASan/UBSan 37/37 each, all with `-Werror` and zero build warnings.
+  Three focused native leak checks report zero. Numerical and allocation checks
+  pass; new hosted CI remains pending, and M6 stays open.
 - The [`run` contract](docs/CLI.md) now defines two positional file paths, a
   zero-based prediction and up to three ranked raw scores, lower-index tie
   breaking, exit statuses `0/1/2`, and contextual errors. It accepts valid models
@@ -753,6 +762,7 @@ records that limitation and local reproduction commands.
 | `docs/ROUND_TRIP.md` | Saved and freshly exported model-prefix comparisons through C loading/inference, dependencies, and measured results. |
 | `docs/M2_VERIFICATION.md` | Lifecycle/allocation audit, local and hosted evidence, M2 closure, and limitations. |
 | `docs/M3_VERIFICATION.md` | Loaded-model lifecycle, allocation/recovery audit, local/hosted evidence, M3 closure, and limitations. |
+| `docs/GCC_WARNINGS.md` | Reproduced GCC diagnostics, cause/disposition, checked-size and initialization changes, local verification, and limitations. |
 | `tests/check_version.cmake` | Checks the version command's exit status and output. |
 | `tests/test_tensor.c` | Tests the core library's allocation and cleanup API. |
 | `tests/test_dense.c` | Tests Dense shapes, validation, copied parameters, and independent ownership/lifetimes. |
@@ -852,8 +862,8 @@ a tiny-model timing failure. The [evaluation](docs/M5_VERIFICATION.md) retains
 the implementation: an identical-executable repeat shows variation without a
 code change, numerical/allocation checks pass, and hosted CI verifies the
 unchanged implementation on both platforms. M5 closed October 29. The Phase 6
-release-checklist audit is complete; next is GCC warning triage, followed by
-the tiny timing investigation and remaining robustness review. See the
+release-checklist audit and local GCC warning investigation are complete; next
+are the tiny timing investigation and remaining robustness review. See the
 [release gates](ROADMAP.md#remaining-release-gates); M6 and M7 remain open.
 
 The v0.1.0 scope excludes training, GPU execution, convolutional layers,
