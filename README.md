@@ -9,7 +9,7 @@ Training happens outside the runtime.
 
 ## Current status
 
-**M0 through M4 are complete; M4 closed on October 27, 2026.** Tensor allocation,
+**M0 through M5 are complete; M5 closed on October 29, 2026.** Tensor allocation,
 cleanup, basic access, matrix-vector multiplication, bias addition, ReLU, and stable Softmax are
 implemented and tested. The math operations match deterministic NumPy float32
 references within the documented tolerance.
@@ -60,6 +60,10 @@ jobs passed for `7aa4bda`: Linux Debug 38/38; macOS Debug/Release, Linux Release
 and Linux sanitizer/leak checks 29/29 each. The
 [demonstration report](examples/mnist/DEMO.md#hosted-verification-and-m4-closure)
 records the exact revision, results, GCC warnings, and remaining limitations.
+The [M5 evaluation and closure report](docs/M5_VERIFICATION.md) records the
+Release baseline, unchanged-executable repeat, current numerical/lifecycle
+checks, and five passing hosted jobs for `cd461c6`. No measured evidence
+justifies a runtime optimization. Phase 6, the final hardening pass, is next.
 
 - C11 compilation with `-Wall`, `-Wextra`, and `-Wpedantic` is configured.
 - A local Git repository on `main` tracks source and documentation. Generated
@@ -74,8 +78,8 @@ records the exact revision, results, GCC warnings, and remaining limitations.
   smoke test on macOS, both separately and together.
 - The public GitHub repository is [farukumarx64/cinder](https://github.com/farukumarx64/cinder).
   The local `main` branch tracks `origin/main` over SSH.
-- GitHub Actions passed all three jobs: macOS, Linux, and Linux with ASan,
-  UBSan, and leak detection enabled.
+- GitHub Actions passed all five jobs for `cd461c6`: Debug/Release on macOS
+  and Linux, plus Linux with ASan, UBSan, and leak detection enabled.
 - The documented macOS setup was verified from a fresh GitHub clone of
   `1190c0e` on October 8, 2026. The ordinary build, sanitizer build, smoke
   tests, native leak check, and build without tests all passed.
@@ -302,8 +306,15 @@ records the exact revision, results, GCC warnings, and remaining limitations.
   and 105.936159 us (MNIST). All raw attempts, hashes, build/environment details,
   and validation evidence are saved. Fresh Release passes 37/37; instrumented
   inference paths still make zero allocation/free attempts. Tiny timing
-  variability and clock resolution limit performance conclusions. Phase 5
-  remains open for evidence-based evaluation and hosted verification.
+  variability and clock resolution limit performance conclusions.
+- The [M5 evaluation](docs/M5_VERIFICATION.md) closes Phase 5 on October 29.
+  An unchanged-executable repeat has median trial means of 0.15861274 us
+  (tiny, four valid attempts) and 104.596974 us (MNIST, five); a second tiny
+  zero-interval failure is retained. These differences show variation without
+  an optimization. Fresh Debug passes 46/46, Release and ASan/UBSan 37/37 each;
+  four native leak checks report zero. All five hosted jobs passed for the
+  unchanged code at `cd461c6`. Numerical agreement and zero inference allocation
+  attempts are preserved. See the report for CI provenance and limitations.
 - The [`run` contract](docs/CLI.md) now defines two positional file paths, a
   zero-based prediction and up to three ranked raw scores, lower-index tie
   breaking, exit statuses `0/1/2`, and contextual errors. It accepts valid models
@@ -700,7 +711,7 @@ records that limitation and local reproduction commands.
 | Path | Purpose |
 | --- | --- |
 | `CMakeLists.txt` | Core library and executable targets, shared compiler/sanitizer settings, and CTest registration. |
-| `src/cli.c` | Version/run dispatch, model execution, ranking, escaped output, diagnostics, and cleanup. |
+| `src/cli.c` | Version/run/bench dispatch, prediction/benchmark reports, escaped output, diagnostics, and cleanup. |
 | `src/cli_session.c`, `src/cli_session.h` | CLI-private reusable model/input/output preparation, ownership, failure context, and cleanup. |
 | `src/timer.c`, `src/timer.h` | CLI-private raw monotonic clock, checked resolution/timestamps/elapsed nanoseconds, and start/stop state. |
 | `src/benchmark.c`, `src/benchmark_stats.c`, `src/benchmark.h` | Borrowed-session warm-up/measured execution, output observation, checked raw accumulation, and final latency/throughput derivation. |
@@ -712,6 +723,7 @@ records that limitation and local reproduction commands.
 | `tests/test_benchmark_stats.c` | Known statistics, rate definition, fractional means, integer limits, and zero/inconsistent measurement rejection. |
 | `tests/test_benchmark.c` | Controlled benchmark call counts, timing boundaries, output observation, failures, precedence, and maximum-iteration checks. |
 | `examples/mnist/DEMO.md` | Offline demonstration, reproduction commands, actual output, measured results, limitations, and M4 verification gate. |
+| `docs/M5_VERIFICATION.md`, `docs/benchmarks/` | Performance evaluation, raw baseline/control evidence, numerical/lifecycle verification, hosted CI, and M5 closure. |
 | `src/tensor.c` | Tensor allocation, cleanup, checked access, matrix-vector multiplication, bias addition, ReLU, Softmax, and error reporting. |
 | `src/dense.c` | Dense creation, parameter copying, cleanup, and forward execution through tensor kernels. |
 | `src/layer.c` | Common constructors, metadata validation, cleanup, and Dense/ReLU/Softmax dispatch. |
@@ -830,8 +842,11 @@ are implemented with the tested `run` behavior preserved. `cinder bench` now
 validates arguments, derives latency/throughput, and prints its nine-line report.
 The local benchmark acceptance audit now passes with controlled timing and no
 speed threshold. The first Release baseline now records all attempts, including
-a tiny-model timing failure. Next: evaluate the evidence and timing limitations
-before deciding whether any runtime improvement is justified.
+a tiny-model timing failure. The [evaluation](docs/M5_VERIFICATION.md) retains
+the implementation: an identical-executable repeat shows variation without a
+code change, numerical/allocation checks pass, and hosted CI verifies the
+unchanged implementation on both platforms. M5 closed October 29. Next: Phase 6
+robustness review, including GCC warning triage and the tiny timing limitation.
 
 The v0.1.0 scope excludes training, GPU execution, convolutional layers,
 quantization, SIMD, multithreading, and arbitrary computation graphs.

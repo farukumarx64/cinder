@@ -11,6 +11,11 @@ and prints the report. The [preparation report](#preparation-implementation-and-
 record the implementation and checks. The synthetic examples below illustrate
 arithmetic. The [first Release baseline](benchmarks/2026-10-28-apple-m4/README.md)
 records actual results, including a tiny-network zero-interval failure.
+The [M5 evaluation](M5_VERIFICATION.md) closes Phase 5 on October 29, 2026:
+no optimization was justified, an unchanged-executable control is preserved,
+and local checks plus all five hosted jobs passed for the unchanged code.
+Implementation-step results below are historical; the M5 report supplies the
+completed cross-platform verification and current limitations.
 
 The [run contract](CLI.md), [input format](MODEL_FORMAT.md#input-file-and-preprocessing-contract),
 and [model API](MODEL.md) remain authoritative for loading, input encoding,
@@ -1005,11 +1010,11 @@ leaks --atExit -- ./build-mnist/test_benchmark_controlled "$PWD"
 leaks --atExit -- ./build-mnist/test_benchmark_unavailable "$PWD"
 ```
 
-Linux execution and hosted macOS/Linux CI have not been verified for this step.
-The existing CI workflow will run the tests when these changes are published;
-no commit or push was made here. Controlled times are evidence of correctness,
-not evidence of a speed improvement. The local acceptance step is complete. The next step was the Release baseline,
-now recorded below. Phase 5 remains open for evaluation and hosted verification.
+At the local acceptance step, Linux execution and hosted CI had not yet been
+verified. Subsequent [M5 verification](M5_VERIFICATION.md#hosted-ci-evidence-and-closure)
+confirms all five jobs passed for `cd461c6`, including these tests. Controlled
+times establish correctness, not a speed improvement. The Release baseline
+and completed evaluation follow.
 
 
 ## First Release baseline
@@ -1027,5 +1032,21 @@ power/background-load observations, commands, and allocation/numerical evidence.
 The same Release build passed 37/37 tests; audited inference paths make zero
 allocation/free attempts. Tiny timing is close to the clock's granularity and
 varies substantially, so it needs further timing investigation before drawing
-optimization conclusions. This baseline does not close Phase 5 or establish a
-Linux performance result.
+optimization conclusions. This baseline alone did not close Phase 5 and does
+not establish a Linux performance result.
+
+## Evaluation and M5 closure
+
+The [October 29 closure report](M5_VERIFICATION.md) retains the existing runtime
+after evaluating the evidence. An identical-executable control on October 28
+produced median valid-trial means of 0.15861274 us (tiny) and 104.596974 us
+(MNIST), versus 0.159771025 us and 105.936159 us originally. These are changes
+without an optimization, not speedup claims. All ten repeat attempts are saved,
+including a tiny zero-interval failure at iteration 9,853.
+
+Numerical/shape/finite checks and allocation/lifecycle audits passed again, as
+did local Debug 46/46, Release and ASan/UBSan 37/37 each, and four native leak
+checks. Existing hosted run 40688919176 passed all five macOS/Linux jobs at
+exact compiled-source revision `cd461c6`; runtime, tests, CMake, and workflow
+are unchanged. The report records raw evidence, reproduction, CI provenance,
+GCC warnings, timing/environment limits, and the Phase 6 handoff. **M5 is closed.**

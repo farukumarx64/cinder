@@ -1,0 +1,163 @@
+Cinder M5 unchanged-executable control
+Checkout commit: 473aab15750ab436de18b9dd9f33a350f71c9e49
+
+Trial 1 / tiny
+Started UTC: 2026-10-28T21:28:15.327223+00:00
+Finished UTC: 2026-10-28T21:28:15.330098+00:00
+Command: ./build-baseline-release-20261028/cinder bench tests/fixtures/tiny/tiny.cnd tests/fixtures/tiny/inputs/worked.f32 --iterations 100000
+Exit status: 1
+Stdout:
+Stderr: 'cinder: benchmark iteration 9853 [IO]: Measured interval is zero; clock resolution is insufficient.\n'
+
+Trial 1 / mnist
+Started UTC: 2026-10-28T21:28:16.341374+00:00
+Finished UTC: 2026-10-28T21:28:26.656687+00:00
+Command: ./build-baseline-release-20261028/cinder bench examples/mnist/mnist.cnd tests/fixtures/mnist/inputs/00000.f32 --iterations 100000
+Exit status: 0
+Stdout:
+Model: mnist.cnd
+Iterations: 100000
+Warm-up iterations: 10
+Clock: monotonic
+Clock resolution (ns): 42
+Mean latency (us): 103.010277
+Minimum latency (us): 97.125
+Maximum latency (us): 293.916
+Throughput (inferences/s): 9707.76924
+Stderr: ''
+
+Trial 2 / tiny
+Started UTC: 2026-10-28T21:28:27.668081+00:00
+Finished UTC: 2026-10-28T21:28:27.699131+00:00
+Command: ./build-baseline-release-20261028/cinder bench tests/fixtures/tiny/tiny.cnd tests/fixtures/tiny/inputs/worked.f32 --iterations 100000
+Exit status: 0
+Stdout:
+Model: tiny.cnd
+Iterations: 100000
+Warm-up iterations: 10
+Clock: monotonic
+Clock resolution (ns): 42
+Mean latency (us): 0.15452888
+Minimum latency (us): 0.083
+Maximum latency (us): 25.833
+Throughput (inferences/s): 6471282.26
+Stderr: ''
+
+Trial 2 / mnist
+Started UTC: 2026-10-28T21:28:28.702652+00:00
+Finished UTC: 2026-10-28T21:28:39.153256+00:00
+Command: ./build-baseline-release-20261028/cinder bench examples/mnist/mnist.cnd tests/fixtures/mnist/inputs/00000.f32 --iterations 100000
+Exit status: 0
+Stdout:
+Model: mnist.cnd
+Iterations: 100000
+Warm-up iterations: 10
+Clock: monotonic
+Clock resolution (ns): 42
+Mean latency (us): 104.342408
+Minimum latency (us): 97.125
+Maximum latency (us): 559.833
+Throughput (inferences/s): 9583.83098
+Stderr: ''
+
+Trial 3 / tiny
+Started UTC: 2026-10-28T21:28:40.165106+00:00
+Finished UTC: 2026-10-28T21:28:40.193036+00:00
+Command: ./build-baseline-release-20261028/cinder bench tests/fixtures/tiny/tiny.cnd tests/fixtures/tiny/inputs/worked.f32 --iterations 100000
+Exit status: 0
+Stdout:
+Model: tiny.cnd
+Iterations: 100000
+Warm-up iterations: 10
+Clock: monotonic
+Clock resolution (ns): 42
+Mean latency (us): 0.15011882
+Minimum latency (us): 0.083
+Maximum latency (us): 25.833
+Throughput (inferences/s): 6661389.96
+Stderr: ''
+
+Trial 3 / mnist
+Started UTC: 2026-10-28T21:28:41.205354+00:00
+Finished UTC: 2026-10-28T21:28:51.680270+00:00
+Command: ./build-baseline-release-20261028/cinder bench examples/mnist/mnist.cnd tests/fixtures/mnist/inputs/00000.f32 --iterations 100000
+Exit status: 0
+Stdout:
+Model: mnist.cnd
+Iterations: 100000
+Warm-up iterations: 10
+Clock: monotonic
+Clock resolution (ns): 42
+Mean latency (us): 104.596974
+Minimum latency (us): 97.125
+Maximum latency (us): 314.166
+Throughput (inferences/s): 9560.50604
+Stderr: ''
+
+Trial 4 / tiny
+Started UTC: 2026-10-28T21:28:52.686891+00:00
+Finished UTC: 2026-10-28T21:28:52.722924+00:00
+Command: ./build-baseline-release-20261028/cinder bench tests/fixtures/tiny/tiny.cnd tests/fixtures/tiny/inputs/worked.f32 --iterations 100000
+Exit status: 0
+Stdout:
+Model: tiny.cnd
+Iterations: 100000
+Warm-up iterations: 10
+Clock: monotonic
+Clock resolution (ns): 42
+Mean latency (us): 0.1626966
+Minimum latency (us): 0.083
+Maximum latency (us): 4.167
+Throughput (inferences/s): 6146409.94
+Stderr: ''
+
+Trial 4 / mnist
+Started UTC: 2026-10-28T21:28:53.735276+00:00
+Finished UTC: 2026-10-28T21:29:04.252429+00:00
+Command: ./build-baseline-release-20261028/cinder bench examples/mnist/mnist.cnd tests/fixtures/mnist/inputs/00000.f32 --iterations 100000
+Exit status: 0
+Stdout:
+Model: mnist.cnd
+Iterations: 100000
+Warm-up iterations: 10
+Clock: monotonic
+Clock resolution (ns): 42
+Mean latency (us): 105.017964
+Minimum latency (us): 97.167
+Maximum latency (us): 313.75
+Throughput (inferences/s): 9522.18044
+Stderr: ''
+
+Trial 5 / tiny
+Started UTC: 2026-10-28T21:29:05.264050+00:00
+Finished UTC: 2026-10-28T21:29:05.293893+00:00
+Command: ./build-baseline-release-20261028/cinder bench tests/fixtures/tiny/tiny.cnd tests/fixtures/tiny/inputs/worked.f32 --iterations 100000
+Exit status: 0
+Stdout:
+Model: tiny.cnd
+Iterations: 100000
+Warm-up iterations: 10
+Clock: monotonic
+Clock resolution (ns): 42
+Mean latency (us): 0.1671059
+Minimum latency (us): 0.083
+Maximum latency (us): 30.084
+Throughput (inferences/s): 5984229.16
+Stderr: ''
+
+Trial 5 / mnist
+Started UTC: 2026-10-28T21:29:06.306275+00:00
+Finished UTC: 2026-10-28T21:29:16.845866+00:00
+Command: ./build-baseline-release-20261028/cinder bench examples/mnist/mnist.cnd tests/fixtures/mnist/inputs/00000.f32 --iterations 100000
+Exit status: 0
+Stdout:
+Model: mnist.cnd
+Iterations: 100000
+Warm-up iterations: 10
+Clock: monotonic
+Clock resolution (ns): 42
+Mean latency (us): 105.258955
+Minimum latency (us): 97.166
+Maximum latency (us): 372.459
+Throughput (inferences/s): 9500.37928
+Stderr: ''

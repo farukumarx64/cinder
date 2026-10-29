@@ -108,14 +108,27 @@ passes 1,088 controlled invocations and two unavailable-clock cases, using real
 tiny/MNIST ownership and saved references. Current local Debug passes 46/46;
 C-only Release and ASan/UBSan pass 37/37 each; native acceptance leak checks
 report zero. The twelve labeled benchmark tests impose no speed threshold.
-Linux execution and hosted CI for these changes remain unverified.
+Hosted run [40688919176](https://github.com/farukumarx64/cinder/actions/runs/40688919176)
+passed all five jobs for the unchanged implementation at `cd461c6`: Linux Debug
+46/46; macOS Debug/Release, Linux Release, and Linux ASan/UBSan/LeakSanitizer
+37/37 each. See [M5 verification](docs/M5_VERIFICATION.md) for exact evidence.
 The [first Release baseline](docs/benchmarks/2026-10-28-apple-m4/README.md) now
 records `cd461c6` on Apple M4: five attempts/model, ten warm-ups, and 100,000
 measured iterations. Four tiny reports and all five MNIST reports succeeded;
 the failed tiny zero-interval attempt is preserved. Median trial means are
 0.159771025 us and 105.936159 us respectively. Fresh Release passes 37/37 and
 allocation audits remain clear. Tiny timing reliability limits interpretation.
-**Next scoped step: evaluate the evidence and timing limitation before choosing any runtime improvement.**
+**M5 is complete as of October 29, 2026.** An identical-executable control
+retains all five attempts/model: four valid tiny trials and five MNIST trials,
+plus another tiny zero-interval failure. Median trial means are 0.15861274 us
+and 104.596974 us; movement without code changes supports no optimization
+claim. Fresh local Debug 46/46, Release/ASan+UBSan 37/37 each, four native leak
+checks, numerical comparisons, and allocation audits pass. The existing hosted
+run verifies the exact unchanged code; this closure adds documentation/evidence
+without a commit, push, or new CI run.
+**Next scoped step: Phase 6 robustness review, beginning with warning triage
+and reconciliation of the remaining verification checklist.** Keep the tiny
+timing limitation explicit; see the [handoff](docs/M5_VERIFICATION.md#limitations-and-phase-6-handoff).
 Implement and verify one scoped step at a time.
 
 ### Phase 0 checklist
@@ -219,7 +232,7 @@ remain documented in the M3 report.
 - [x] Calculate/display statistics and connect `cinder bench` on October 28, 2026. Derive microsecond mean/minimum/maximum and inferences/s from unrounded integer measurements, reject zero divisors/inconsistent metadata, and require finite positive statistics. Validate the complete command before setup, release ownership before reporting, preserve contextual errors, and check every write/flush. Known arithmetic and formatting tests plus 11 new real-process benchmark cases pass; the process suite retains all 122 prediction cases. Debug passes 44/44; C-only Release and ASan/UBSan pass 35/35 each; native CLI/actual-command leak checks report zero. Hosted CI and a reproducible baseline remain pending; see [statistics/report verification](docs/BENCHMARK.md#statistics-and-cli-report-implementation-and-verification).
 - [x] Complete benchmark acceptance tests locally on October 28, 2026. Add the full real CLI/runtime audit with controlled OS timestamps and a compiled unavailable-clock variant: 1,088 controlled and two unavailable invocations cover counts, warm-up/setup/observation exclusion, exact statistics, clock/inference/non-finite/output errors, first-error precedence, all 23 allocation points, file failures, complete cleanup, and recovery on tiny/MNIST. Successful inference retains saved-reference agreement. Label twelve ordinary C tests `benchmark`; the existing macOS/Linux jobs include them without a speed threshold or Python/download requirement. Debug passes 46/46; C-only Release and ASan/UBSan pass 37/37 each; both new native leak checks report zero. Hosted execution remains unverified for this step. See [acceptance evidence and coverage map](docs/BENCHMARK.md#benchmark-acceptance-audit).
 - [x] Record the first Release baseline on October 28, 2026 at clean commit `cd461c696aea932e6ea53e4093008d6463c42fa9`: Apple M4, macOS 27.0.1, Apple Clang 21.0.0, `-O3 -DNDEBUG`, sanitizers/LTO off, ten warm-ups and 100,000 requested measured iterations per attempt. Preserve all five attempts/model: four tiny and five MNIST valid reports, plus tiny trial 1's zero-interval error at iteration 37,270. Median valid-trial means are 0.159771025 us (tiny) and 105.936159 us (MNIST); raw output, timestamps, source/binary/fixture identities, environment/power/load observations, commands, and limits are retained. Fresh Release passes 37/37 with numerical agreement and zero runtime allocation/free attempts in instrumented inference paths. This is a macOS baseline with a documented tiny-clock limitation, not an optimization or Linux result. See [baseline and evidence](docs/benchmarks/2026-10-28-apple-m4/README.md).
-- [ ] Evaluate only evidence-supported improvements, compare like-for-like before/after results, and close Phase 5 after numerical/lifecycle checks, Debug/Release, sanitizers, supported leak checks, and macOS/Linux CI pass. A measured baseline is valid even if no optimization is justified.
+- [x] Evaluate improvements and close M5 on October 29, 2026. Preserve the runtime because no measured candidate justifies a change. The October 28 unchanged-executable control repeats five attempts/model with identical settings and hashes; retain the second tiny zero-interval failure and compare all valid results as variation, not speedup. Fresh local Debug passes 46/46; Release and ASan/UBSan pass 37/37 each; four native leak checks report zero. Numerical/shape/finite checks, 100/100 MNIST prediction agreement, and zero audited inference allocation/free attempts remain unchanged. All five hosted jobs passed for exact code revision `cd461c6` in [run 40688919176](https://github.com/farukumarx64/cinder/actions/runs/40688919176). Record GCC warnings, desktop/timing limitations, and the hosted native macOS leak-check limitation. See [M5 verification and evidence](docs/M5_VERIFICATION.md).
 
 ---
 
@@ -1302,8 +1315,10 @@ benchmark contract, shared CLI preparation, checked monotonic timer, and
 warm-up/measured execution were completed that day. CLI argument dispatch and
 latency/throughput reporting and the local acceptance audit were completed
 October 28. The first Release baseline was recorded that day, including a
-failed tiny-network timing attempt and its limitations. Evidence-based runtime
-evaluation and hosted verification remain pending.
+failed tiny-network timing attempt and its limitations. Evaluation retained the
+implementation after an unchanged-executable control. Numerical/lifecycle,
+local Debug/Release, sanitizer/native leak checks, and all five hosted jobs
+passed. **M5 closed October 29, 2026**; see [the closure report](docs/M5_VERIFICATION.md).
 The [Phase 5 checklist](#phase-5-checklist) records the scoped steps.
 
 The authoritative [command and measurement contract](docs/BENCHMARK.md) specifies:
@@ -1425,6 +1440,12 @@ The final week exists for making the existing runtime reliable.
 # 13. Phase 6 — October 26–28
 
 ## Testing and Robustness
+
+October 26–28 was the original planning target. M5 closed October 29; this
+phase remains open. Start with the [M5 handoff](docs/M5_VERIFICATION.md#limitations-and-phase-6-handoff):
+triage the GCC warnings, reconcile the outstanding robustness checklist against
+existing evidence, and investigate the tiny-model timing limitation. Change
+behavior only for demonstrated defects or an explicitly revised contract.
 
 Extend the tests and sanitizer checks already running since Phase 0; this is the final hardening pass, not their first use.
 
@@ -1567,12 +1588,12 @@ Cinder `v0.1.0` is finished when:
 - [ ] Buffer lengths, output capacity, ownership, and error behavior are documented and checked
 - [ ] `cinder run` works
 - [ ] `cinder info` works
-- [x] `cinder bench` works locally; see the Phase 5 checklist for verification and remaining hosted checks
+- [x] `cinder bench` passes local and macOS/Linux hosted checks; see M5 verification for the tiny-clock limitation
 - [x] Unit tests pass for the implemented M2 scope
 - [x] macOS and Linux CI build and test successfully for M2
 - [x] Sanitizer and supported leak checks report no findings in the exercised M2 suite
 - [ ] Loader rejects malformed structures, excessive sizes, and incomplete data without leaking memory
-- [ ] Benchmarks document their environment and measure inference separately from loading and preprocessing
+- [x] Benchmarks document their environment, preserve failed attempts, and measure inference separately from loading and preprocessing; see M5 verification
 - [ ] Architecture is documented
 - [x] Model format version 1 is documented
 - [ ] README is complete
@@ -1815,7 +1836,22 @@ Documentation + release
 CINDER v0.1.0
 ```
 
-Follow these milestones in order even if individual daily targets shift. M0 through M4 are complete. The full tiny network matches NumPy, and the lifecycle audit passes locally and in hosted macOS/Linux CI. Revision `f5424a4`, including the NumPy/lifecycle tests, passed all three CI jobs, closing M2 on October 23, 2026. See the M2 verification report for actual results and limitations. Phase 3's format contract, exporter validation, binary writing, reproducible tiny-network fixtures, and C loader are implemented. Loader rejection, resource-boundary, forced-failure cleanup, complete stage-by-stage export/load/inference, and loaded-model lifecycle checks pass locally. Hosted revision `5ad7dc4` passed all three jobs, closing M3 on October 25, 2026; see the M3 verification report. Phase 4's reproducible training script and full MNIST training/evaluation are complete: the saved reference achieved 97.48% official test accuracy, with reload and repeat-training checks passing. That checkpoint now exports with inference Softmax to mnist.cnd; byte identity, parameter preservation, and the combined 30-test suite pass. Reference fixtures now preserve the first 100 official test images and every stage; all 108 files regenerate identically and the combined 31-test suite passes. All 27,600 saved MNIST stage values now pass C comparisons, with 100/100 runtime prediction agreement and 99/100 subset accuracy for both runtimes. The subsequent lifecycle audit passes locally with Debug 35/35, C-only Release and ASan/UBSan 26/26 each, and zero native leaks. On October 27, revision `bd6cbd9` passed all five hosted jobs: Linux Debug 35/35, macOS Debug/Release, Linux Release, and Linux sanitizer/leak checks 26/26 each. Native hosted macOS leak checking did not complete and remains a documented limitation; native local checks and hosted Linux LeakSanitizer passed. The cinder run command and private input reader are now implemented, with 122 passing real command cases. Local Debug passes 38/38 tests; C-only Release and ASan/UBSan pass 29/29 each; native CLI/reader leak checks report zero. The demonstration guide records commands, measured results, actual output, and limits. All five hosted jobs passed for `7aa4bda` in run 40487216629: Linux Debug 38/38; macOS Debug/Release, Linux Release, and Linux sanitizer/leak checks 29/29 each. M4 closed October 27, 2026. The Phase 5 benchmark contract is now defined in docs/BENCHMARK.md, with ten warm-ups, explicit iteration limits, inference-only timing boundaries, checked statistics, and exact report/error rules. Shared CLI model/input/output preparation and cleanup are now implemented with unchanged run behavior. Local Debug passes 39/39 tests, C-only Release and ASan/UBSan pass 30/30 each, and native setup/command leak checks report zero. Hosted CI has not run these preparation changes. The checked raw monotonic timer is now implemented; local Debug passes 42/42 tests, C-only Release and ASan/UBSan pass 33/33 each, and controlled/native timer checks report zero leaks. Clock resolution on this Mac is 42 ns; Linux execution and new hosted CI remain unverified for the timer. The warm-up/measured execution helper now passes exact-count, observation, failure-precedence, and real-model reuse/recovery checks: Debug 43/43, C-only Release and ASan/UBSan 34/34 each, and focused Release/ThinLTO audits 2/2. CLI argument dispatch and derived reports are now implemented; the October 28 statistics/report entry records verification. The local acceptance audit now covers the full command with controlled clock values, real ownership, injected failures, and no speed threshold; Debug passes 46/46 and C-only Release/ASan+UBSan pass 37/37 each. Hosted verification remains pending. The first Release baseline now records clean commit `cd461c6` on Apple M4, five attempts per model, all actual reports and a tiny zero-interval failure, numerical checks, and zero instrumented inference allocations. See the baseline report for results and limitations. Next: assess the evidence and timing limitation before choosing any runtime improvement.
+Follow these milestones in order even if individual daily targets shift.
+**M0 through M5 are complete.** The dated checklists above preserve the steps
+and their original verification results. M2 closed October 23 after tiny-network
+NumPy/lifecycle checks and hosted CI; M3 closed October 25 after export/load,
+rejection/cleanup, and round-trip verification. M4 closed October 27 after the
+MNIST demonstration and CLI passed all five hosted jobs. Python full-test
+accuracy is 97.48%; C/Python agreement is 100/100 saved inputs, separate from
+99/100 classification accuracy on that fixed subset.
+
+M5 closed October 29 after the baseline and unchanged-executable comparison,
+fresh local numerical/lifecycle/Debug/Release/sanitizer/leak checks, and
+verification of all five hosted jobs at `cd461c6`. No performance edit was
+justified; tiny clock failures, GCC warnings, and platform-check limitations
+are retained in [the M5 report](docs/M5_VERIFICATION.md). Next is Phase 6's
+final hardening review. Phase 7 documentation/release remains afterward;
+neither phase is marked complete by these checks.
 
 The **October 25 deadline is the internal deadline**.
 

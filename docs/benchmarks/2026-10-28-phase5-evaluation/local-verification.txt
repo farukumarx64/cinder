@@ -1,0 +1,298 @@
+Local M5 verification, October 28, 2026. Closure documented October 29, 2026.
+Checkout: 473aab15750ab436de18b9dd9f33a350f71c9e49
+Runtime/test/build/workflow source identical to cd461c696aea932e6ea53e4093008d6463c42fa9.
+
+build-mnist — ctest --output-on-failure; exit 0
+100% tests passed out of 46
+
+Label Time Summary:
+benchmark    =   4.32 sec*proc (12 tests)
+
+Total Test time (real) =  27.97 sec
+
+cli_setup
+CLI setup 2 -> 2: one load/read, exact input/output allocations, 100 repeated calls plus benchmark warm-up/measurement/recovery after source deletion, 23 allocation points failed with/without details, I/O/format/non-finite failures and successful retries; zero retained blocks/bytes/streams.
+CLI setup 784 -> 10: one load/read, exact input/output allocations, 100 repeated calls plus benchmark warm-up/measurement/recovery after source deletion, 23 allocation points failed with/without details, I/O/format/non-finite failures and successful retries; zero retained blocks/bytes/streams.
+
+cli_process
+CLI processes: 133 passed (11 benchmark cases); MNIST prediction/top-three index agreement 100/100; maximum displayed-score absolute error 3.57627869e-07.
+
+benchmark_controlled
+Benchmark acceptance tiny: real model/CLI, deterministic clock/report, faults and recovery; zero retained blocks/bytes/files.
+Benchmark acceptance MNIST: real model/CLI, deterministic clock/report, faults and recovery; zero retained blocks/bytes/files.
+Benchmark acceptance: 1088 command invocations passed; clock backend controlled; no speed threshold.
+
+benchmark_unavailable
+Benchmark acceptance: 2 command invocations passed; clock backend unavailable; no speed threshold.
+
+tensor_numpy_fixtures
+NumPy references passed: 11 dense fixtures, 12 activation fixtures, 79 vectors, 341 elements.
+Max absolute error: 1.1920929e-07; max fraction of tolerance: 0.00600148273 (must be <= 1).
+
+model_numpy_fixtures
+Tiny-network NumPy references passed: 10 inputs, four stages via layers and models, 80 vectors, 240 elements.
+Max absolute error: 5.96046448e-08; max fraction of tolerance: 0.00303036345 (must be <= 1).
+
+model_round_trip_fixtures
+dense1: 10 vectors / 40 values, max absolute error 0.
+relu: 10 vectors / 40 values, max absolute error 0.
+logits: 10 vectors / 20 values, max absolute error 0.
+softmax: 10 vectors / 20 values, max absolute error 5.96046448e-08.
+Round trip: 40 vectors / 120 values, max absolute error 5.96046448e-08, max fraction of tolerance 0.00303036345 (atol = rtol = 1e-5).
+
+mnist_inference_fixtures
+dense1: 100 vectors / 12800 values, max absolute error 6.19888306e-06, max fraction of tolerance 0.178311515.
+relu: 100 vectors / 12800 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.178311515.
+logits: 100 vectors / 1000 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.176519426.
+probabilities: 100 vectors / 1000 values, max absolute error 3.57627869e-07, max fraction of tolerance 0.0287552465.
+MNIST: 400 vectors / 27600 values passed (atol = rtol = 1e-5).
+Runtime prediction agreement (C vs saved Python): 100/100.
+Classification on fixed test subset: C 99/100; Python 99/100.
+
+mnist_lifecycle_audit
+MNIST audit: 104 successful loads, 62 rejected loads, 300 cycles / 1384 inference calls; poisoned 784-float workspaces, partial-write failures at all four layers, unchanged parameters, zero allocations/frees or loader I/O during cycles, all 21 allocation points failed twice, and zero final live blocks/bytes/streams.
+
+model_lifecycle
+Model lifecycle passed: 4120 success/failure/recovery cycles, independent owners, and caller-serialized threads.
+
+model_loaded_lifecycle
+Loaded lifecycle passed: 502 successful loads, 100 rejected loads, 4720 success/failure/recovery cycles (14160 inference calls), concurrent independent loads, deleted source files, and caller-serialized threads.
+
+build-baseline-release-20261028 — ctest --output-on-failure; exit 0
+100% tests passed out of 37
+
+Label Time Summary:
+benchmark    =   1.69 sec*proc (12 tests)
+
+Total Test time (real) =   3.18 sec
+
+cli_setup
+CLI setup 2 -> 2: one load/read, exact input/output allocations, 100 repeated calls plus benchmark warm-up/measurement/recovery after source deletion, 23 allocation points failed with/without details, I/O/format/non-finite failures and successful retries; zero retained blocks/bytes/streams.
+CLI setup 784 -> 10: one load/read, exact input/output allocations, 100 repeated calls plus benchmark warm-up/measurement/recovery after source deletion, 23 allocation points failed with/without details, I/O/format/non-finite failures and successful retries; zero retained blocks/bytes/streams.
+
+cli_process
+CLI processes: 133 passed (11 benchmark cases); MNIST prediction/top-three index agreement 100/100; maximum displayed-score absolute error 3.57627869e-07.
+
+benchmark_controlled
+Benchmark acceptance tiny: real model/CLI, deterministic clock/report, faults and recovery; zero retained blocks/bytes/files.
+Benchmark acceptance MNIST: real model/CLI, deterministic clock/report, faults and recovery; zero retained blocks/bytes/files.
+Benchmark acceptance: 1088 command invocations passed; clock backend controlled; no speed threshold.
+
+benchmark_unavailable
+Benchmark acceptance: 2 command invocations passed; clock backend unavailable; no speed threshold.
+
+tensor_numpy_fixtures
+NumPy references passed: 11 dense fixtures, 12 activation fixtures, 79 vectors, 341 elements.
+Max absolute error: 1.1920929e-07; max fraction of tolerance: 0.00600148273 (must be <= 1).
+
+model_numpy_fixtures
+Tiny-network NumPy references passed: 10 inputs, four stages via layers and models, 80 vectors, 240 elements.
+Max absolute error: 5.96046448e-08; max fraction of tolerance: 0.00303036345 (must be <= 1).
+
+model_round_trip_fixtures
+dense1: 10 vectors / 40 values, max absolute error 0.
+relu: 10 vectors / 40 values, max absolute error 0.
+logits: 10 vectors / 20 values, max absolute error 0.
+softmax: 10 vectors / 20 values, max absolute error 5.96046448e-08.
+Round trip: 40 vectors / 120 values, max absolute error 5.96046448e-08, max fraction of tolerance 0.00303036345 (atol = rtol = 1e-5).
+
+mnist_inference_fixtures
+dense1: 100 vectors / 12800 values, max absolute error 6.19888306e-06, max fraction of tolerance 0.178311515.
+relu: 100 vectors / 12800 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.178311515.
+logits: 100 vectors / 1000 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.176519426.
+probabilities: 100 vectors / 1000 values, max absolute error 3.57627869e-07, max fraction of tolerance 0.0287552465.
+MNIST: 400 vectors / 27600 values passed (atol = rtol = 1e-5).
+Runtime prediction agreement (C vs saved Python): 100/100.
+Classification on fixed test subset: C 99/100; Python 99/100.
+
+mnist_lifecycle_audit
+MNIST audit: 104 successful loads, 62 rejected loads, 300 cycles / 1384 inference calls; poisoned 784-float workspaces, partial-write failures at all four layers, unchanged parameters, zero allocations/frees or loader I/O during cycles, all 21 allocation points failed twice, and zero final live blocks/bytes/streams.
+
+model_lifecycle
+Model lifecycle passed: 4120 success/failure/recovery cycles, independent owners, and caller-serialized threads.
+
+model_loaded_lifecycle
+Loaded lifecycle passed: 502 successful loads, 100 rejected loads, 4720 success/failure/recovery cycles (14160 inference calls), concurrent independent loads, deleted source files, and caller-serialized threads.
+
+build-mnist-sanitize — ctest --output-on-failure; exit 0
+100% tests passed out of 37
+
+Label Time Summary:
+benchmark    =  12.45 sec*proc (12 tests)
+
+Total Test time (real) =  21.33 sec
+
+cli_setup
+CLI setup 2 -> 2: one load/read, exact input/output allocations, 100 repeated calls plus benchmark warm-up/measurement/recovery after source deletion, 23 allocation points failed with/without details, I/O/format/non-finite failures and successful retries; zero retained blocks/bytes/streams.
+CLI setup 784 -> 10: one load/read, exact input/output allocations, 100 repeated calls plus benchmark warm-up/measurement/recovery after source deletion, 23 allocation points failed with/without details, I/O/format/non-finite failures and successful retries; zero retained blocks/bytes/streams.
+
+cli_process
+CLI processes: 133 passed (11 benchmark cases); MNIST prediction/top-three index agreement 100/100; maximum displayed-score absolute error 3.57627869e-07.
+
+benchmark_controlled
+Benchmark acceptance tiny: real model/CLI, deterministic clock/report, faults and recovery; zero retained blocks/bytes/files.
+Benchmark acceptance MNIST: real model/CLI, deterministic clock/report, faults and recovery; zero retained blocks/bytes/files.
+Benchmark acceptance: 1088 command invocations passed; clock backend controlled; no speed threshold.
+
+benchmark_unavailable
+Benchmark acceptance: 2 command invocations passed; clock backend unavailable; no speed threshold.
+
+tensor_numpy_fixtures
+NumPy references passed: 11 dense fixtures, 12 activation fixtures, 79 vectors, 341 elements.
+Max absolute error: 1.1920929e-07; max fraction of tolerance: 0.00600148273 (must be <= 1).
+
+model_numpy_fixtures
+Tiny-network NumPy references passed: 10 inputs, four stages via layers and models, 80 vectors, 240 elements.
+Max absolute error: 5.96046448e-08; max fraction of tolerance: 0.00303036345 (must be <= 1).
+
+model_round_trip_fixtures
+dense1: 10 vectors / 40 values, max absolute error 0.
+relu: 10 vectors / 40 values, max absolute error 0.
+logits: 10 vectors / 20 values, max absolute error 0.
+softmax: 10 vectors / 20 values, max absolute error 5.96046448e-08.
+Round trip: 40 vectors / 120 values, max absolute error 5.96046448e-08, max fraction of tolerance 0.00303036345 (atol = rtol = 1e-5).
+
+mnist_inference_fixtures
+dense1: 100 vectors / 12800 values, max absolute error 6.19888306e-06, max fraction of tolerance 0.178311515.
+relu: 100 vectors / 12800 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.178311515.
+logits: 100 vectors / 1000 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.176519426.
+probabilities: 100 vectors / 1000 values, max absolute error 3.57627869e-07, max fraction of tolerance 0.0287552465.
+MNIST: 400 vectors / 27600 values passed (atol = rtol = 1e-5).
+Runtime prediction agreement (C vs saved Python): 100/100.
+Classification on fixed test subset: C 99/100; Python 99/100.
+
+mnist_lifecycle_audit
+MNIST audit: 104 successful loads, 62 rejected loads, 300 cycles / 1384 inference calls; poisoned 784-float workspaces, partial-write failures at all four layers, unchanged parameters, zero allocations/frees or loader I/O during cycles, all 21 allocation points failed twice, and zero final live blocks/bytes/streams.
+
+model_lifecycle
+Model lifecycle passed: 4120 success/failure/recovery cycles, independent owners, and caller-serialized threads.
+
+model_loaded_lifecycle
+Loaded lifecycle passed: 502 successful loads, 100 rejected loads, 4720 success/failure/recovery cycles (14160 inference calls), concurrent independent loads, deleted source files, and caller-serialized threads.
+
+Native leaks: controlled — exit 0
+Benchmark acceptance tiny: real model/CLI, deterministic clock/report, faults and recovery; zero retained blocks/bytes/files.
+Benchmark acceptance MNIST: real model/CLI, deterministic clock/report, faults and recovery; zero retained blocks/bytes/files.
+Benchmark acceptance: 1088 command invocations passed; clock backend controlled; no speed threshold.
+Process 52823 is not debuggable. Due to security restrictions, leaks can only show or save contents of readonly memory of restricted processes.
+
+Process:         test_benchmark_controlled [52823]
+Path:            /Users/USER/*/test_benchmark_controlled
+Load Address:    0x100f60000
+Identifier:      test_benchmark_controlled
+Version:         0
+Code Type:       ARM64
+Platform:        macOS
+Parent Process:  leaks [52822]
+Target Type:     live task
+
+Date/Time:       2026-10-28 22:27:29.738 +0100
+Launch Time:     2026-10-28 22:27:26.428 +0100
+OS Version:      macOS 27.0.1 (26A434)
+Report Version:  7
+Analysis Tool:   /usr/bin/leaks
+
+Physical footprint:         4064K
+Physical footprint (peak):  4064K
+Idle exit:                  untracked
+----
+
+leaks Report Version: 4.0, multi-line stacks
+Process 52823: 191 nodes malloced for 16 KB
+Process 52823: 0 leaks for 0 total leaked bytes.
+
+Native leaks: unavailable — exit 0
+Benchmark acceptance: 2 command invocations passed; clock backend unavailable; no speed threshold.
+Process 52825 is not debuggable. Due to security restrictions, leaks can only show or save contents of readonly memory of restricted processes.
+
+Process:         test_benchmark_unavailable [52825]
+Path:            /Users/USER/*/test_benchmark_unavailable
+Load Address:    0x100c98000
+Identifier:      test_benchmark_unavailable
+Version:         0
+Code Type:       ARM64
+Platform:        macOS
+Parent Process:  leaks [52824]
+Target Type:     live task
+
+Date/Time:       2026-10-28 22:27:26.672 +0100
+Launch Time:     2026-10-28 22:27:26.665 +0100
+OS Version:      macOS 27.0.1 (26A434)
+Report Version:  7
+Analysis Tool:   /usr/bin/leaks
+
+Physical footprint:         3616K
+Physical footprint (peak):  3616K
+Idle exit:                  untracked
+----
+
+leaks Report Version: 4.0, multi-line stacks
+Process 52825: 188 nodes malloced for 16 KB
+Process 52825: 0 leaks for 0 total leaked bytes.
+
+Native leaks: setup — exit 0
+CLI setup 2 -> 2: one load/read, exact input/output allocations, 100 repeated calls plus benchmark warm-up/measurement/recovery after source deletion, 23 allocation points failed with/without details, I/O/format/non-finite failures and successful retries; zero retained blocks/bytes/streams.
+CLI setup 784 -> 10: one load/read, exact input/output allocations, 100 repeated calls plus benchmark warm-up/measurement/recovery after source deletion, 23 allocation points failed with/without details, I/O/format/non-finite failures and successful retries; zero retained blocks/bytes/streams.
+Process 52821 is not debuggable. Due to security restrictions, leaks can only show or save contents of readonly memory of restricted processes.
+
+Process:         test_cli_setup [52821]
+Path:            /Users/USER/*/test_cli_setup
+Load Address:    0x104638000
+Identifier:      test_cli_setup
+Version:         0
+Code Type:       ARM64
+Platform:        macOS
+Parent Process:  leaks [52820]
+Target Type:     live task
+
+Date/Time:       2026-10-28 22:27:26.461 +0100
+Launch Time:     2026-10-28 22:27:26.291 +0100
+OS Version:      macOS 27.0.1 (26A434)
+Report Version:  7
+Analysis Tool:   /usr/bin/leaks
+
+Physical footprint:         3616K
+Physical footprint (peak):  3616K
+Idle exit:                  untracked
+----
+
+leaks Report Version: 4.0, multi-line stacks
+Process 52821: 188 nodes malloced for 16 KB
+Process 52821: 0 leaks for 0 total leaked bytes.
+
+Native leaks: production — exit 0
+Model: mnist.cnd
+Iterations: 1000
+Warm-up iterations: 10
+Clock: monotonic
+Clock resolution (ns): 42
+Mean latency (us): 103.486746
+Minimum latency (us): 97.25
+Maximum latency (us): 128.375
+Throughput (inferences/s): 9663.07318
+Process 52811 is not debuggable. Due to security restrictions, leaks can only show or save contents of readonly memory of restricted processes.
+
+Process:         cinder [52811]
+Path:            /Users/USER/*/cinder
+Load Address:    0x102488000
+Identifier:      cinder
+Version:         0
+Code Type:       ARM64
+Platform:        macOS
+Parent Process:  leaks [52810]
+Target Type:     live task
+
+Date/Time:       2026-10-28 22:27:25.805 +0100
+Launch Time:     2026-10-28 22:27:25.686 +0100
+OS Version:      macOS 27.0.1 (26A434)
+Report Version:  7
+Analysis Tool:   /usr/bin/leaks
+
+Physical footprint:         3440K
+Physical footprint (peak):  3440K
+Idle exit:                  untracked
+----
+
+leaks Report Version: 4.0, multi-line stacks
+Process 52811: 191 nodes malloced for 16 KB
+Process 52811: 0 leaks for 0 total leaked bytes.
