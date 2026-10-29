@@ -1,0 +1,106 @@
+Timing investigation verification — October 29, 2026
+Base commit: fb9a655a7241ec075372d4fba89f8f8ff7585f55
+Production src/include/CMake/workflow unchanged. test_benchmark_acceptance.c gains deterministic cases; test_cli_process.c accepts only exact documented native zero-interval rejection or valid reports.
+macOS 27.0.1 (26A434), Apple M4 / Mac16,12, arm64, 10 cores, 17179869184 bytes RAM.
+Apple Clang 21.0.0; CMake 4.4.4. Release -O3 -DNDEBUG, all builds -Wall -Wextra -Wpedantic -Werror, C11.
+Linux: existing Ubuntu 24.04.5 / GCC 13.3 / CMake 3.28.3 container, linux/amd64 emulated on this Mac.
+No native Linux timing claims; its clock observations below are portability diagnostics only.
+
+Content SHA-256:
+e9c0575a1e2056ce667d5f0e046002ebc3219108a327eee737a4fc39875c9753  docs/benchmarks/2026-10-29-timing/zero_clock.c
+48920cf22bf3f2a67984e698f866f8734748da8e5b7fa2b665cbb8b584ef9aa1  tests/test_cli_process.c
+2909fbd267c589e12d5fe79e980a6939cdc21b5573c3e56ce98ac23f25a59df0  tests/test_benchmark_acceptance.c
+aabdf2fb0c6bdde98d21cc64281e5597ec4560b706962d9713f994ad2cd51d2a  docs/benchmarks/2026-10-29-timing/probe.c
+947b7d5737a512257ff725f8a4abeaf60f4d3ecba842454f0083f29f496dc770  docs/benchmarks/2026-10-29-timing/collect.py
+36a7efdcfed1401d992addc5b6635c440f6d8ac70abe5b0da048d50192be3081  docs/benchmarks/2026-10-29-timing/observations.json
+
+NATIVE COLLECTION VALIDATION
+All 72 planned attempts retained, no replacements.
+All 39 rejected ordinary CLI trials have exit 1, empty stdout, and the zero-interval diagnostic.
+All 19 rejected instrumented trials captured identical raw timestamp pairs, exactly 2*iteration clock reads, and no published count/total.
+All successful ordinary CLI trials have nine output lines, positive finite statistics, ordered min/mean/max, and no stderr.
+All three clock histograms account for exactly 1000000 pairs apiece.
+All 70 probe output values (40 tiny, 30 MNIST) pass saved-reference shape/finite/atol=rtol=1e-5 checks; max absolute printed-value error 5.969467165023445e-8.
+All three executable and fixture hashes remain unchanged after collection and test rebuilds.
+
+release: build and CTest exit 0; selection entire ordinary C suite; build warning lines: 0
+10: CLI processes: 133 passed (11 benchmark cases); MNIST prediction/top-three index agreement 100/100; maximum displayed-score absolute error 3.57627869e-07.
+10: Native benchmark smoke: 7 valid reports; 0 exact zero-interval rejections; no retries.
+11: Benchmark timing: 41/42 ns samples retained; zero at 9853, 37270, and 100000 stops immediately with no partial result/report, complete cleanup, and successful recovery.
+11: Benchmark acceptance: 1095 command invocations passed; clock backend controlled; no speed threshold.
+12: Benchmark acceptance: 2 command invocations passed; clock backend unavailable; no speed threshold.
+28: Round trip: 40 vectors / 120 values, max absolute error 5.96046448e-08, max fraction of tolerance 0.00303036345 (atol = rtol = 1e-5).
+29: MNIST: 400 vectors / 27600 values passed (atol = rtol = 1e-5).
+29: Runtime prediction agreement (C vs saved Python): 100/100.
+37: Model storage tests passed: allocation rollback, ownership, buffer reuse, and allocation-free inference.
+100% tests passed out of 37
+Total Test time (real) =   4.36 sec
+
+debug: build and CTest exit 0; selection -L benchmark; build warning lines: 0
+10: CLI processes: 133 passed (11 benchmark cases); MNIST prediction/top-three index agreement 100/100; maximum displayed-score absolute error 3.57627869e-07.
+10: Native benchmark smoke: 7 valid reports; 0 exact zero-interval rejections; no retries.
+11: Benchmark timing: 41/42 ns samples retained; zero at 9853, 37270, and 100000 stops immediately with no partial result/report, complete cleanup, and successful recovery.
+11: Benchmark acceptance: 1095 command invocations passed; clock backend controlled; no speed threshold.
+12: Benchmark acceptance: 2 command invocations passed; clock backend unavailable; no speed threshold.
+100% tests passed out of 12
+Total Test time (real) =   5.82 sec
+
+sanitize: build and CTest exit 0; selection -L benchmark; build warning lines: 0
+ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1; ASan+UBSan enabled.
+10: CLI processes: 133 passed (11 benchmark cases); MNIST prediction/top-three index agreement 100/100; maximum displayed-score absolute error 3.57627869e-07.
+10: Native benchmark smoke: 7 valid reports; 0 exact zero-interval rejections; no retries.
+11: Benchmark timing: 41/42 ns samples retained; zero at 9853, 37270, and 100000 stops immediately with no partial result/report, complete cleanup, and successful recovery.
+11: Benchmark acceptance: 1095 command invocations passed; clock backend controlled; no speed threshold.
+12: Benchmark acceptance: 2 command invocations passed; clock backend unavailable; no speed threshold.
+100% tests passed out of 12
+Total Test time (real) =  13.91 sec
+
+linux: build and CTest exit 0; selection -L benchmark; build warning lines: 0
+10: CLI processes: 133 passed (11 benchmark cases); MNIST prediction/top-three index agreement 100/100; maximum displayed-score absolute error 3.57627869e-07.
+10: Native benchmark smoke: 7 valid reports; 0 exact zero-interval rejections; no retries.
+11: Benchmark timing: 41/42 ns samples retained; zero at 9853, 37270, and 100000 stops immediately with no partial result/report, complete cleanup, and successful recovery.
+11: Benchmark acceptance: 1095 command invocations passed; clock backend controlled; no speed threshold.
+12: Benchmark acceptance: 2 command invocations passed; clock backend unavailable; no speed threshold.
+100% tests passed, 0 tests failed out of 12
+Total Test time (real) =   3.31 sec
+
+Native leak check exit 0:
+Benchmark timing: 41/42 ns samples retained; zero at 9853, 37270, and 100000 stops immediately with no partial result/report, complete cleanup, and successful recovery.
+Benchmark acceptance tiny: real model/CLI, deterministic clock/report, faults and recovery; zero retained blocks/bytes/files.
+Benchmark acceptance MNIST: real model/CLI, deterministic clock/report, faults and recovery; zero retained blocks/bytes/files.
+Benchmark acceptance: 1095 command invocations passed; clock backend controlled; no speed threshold.
+Process 37349 is not debuggable. Due to security restrictions, leaks can only show or save contents of readonly memory of restricted processes.
+
+Process:         test_benchmark_controlled [37349]
+Path:            /Users/USER/*/test_benchmark_controlled
+Load Address:    0x104e2c000
+Identifier:      test_benchmark_controlled
+Version:         0
+Code Type:       ARM64
+Platform:        macOS
+Parent Process:  leaks [37348]
+Target Type:     live task
+
+Date/Time:       2026-10-29 21:35:01.691 +0100
+Launch Time:     2026-10-29 21:34:58.446 +0100
+OS Version:      macOS 27.0.1 (26A434)
+Report Version:  7
+Analysis Tool:   /usr/bin/leaks
+
+Physical footprint:         3600K
+Physical footprint (peak):  3600K
+Idle exit:                  untracked
+----
+
+leaks Report Version: 4.0, multi-line stacks
+Process 37349: 191 nodes malloced for 16 KB
+Process 37349: 0 leaks for 0 total leaked bytes.
+
+
+Linux emulated diagnostic probe compile -O3/-Werror and both commands exit 0:
+{"kind":"adjacent_clock_reads","pairs":1000000,"resolution":[0,1],"backwards":0,"above_512_ns":28,"first_equal_timestamp":[273989,510427940],"histogram_ns":{"0":518507,"41":160360,"42":320664,"83":138,"84":62,"125":49,"166":21,"167":47,"208":39,"209":19,"250":30,"291":8,"292":20,"333":5,"334":1,"375":2}}
+{"kind":"instrumented_benchmark","requested":1000,"status":0,"phase":0,"iteration":0,"clock_reads":2000,"resolution_query_status":0,"resolution":[0,1],"last_start":[273989,567211481],"last_end":[273989,567211606],"published_iterations":1000,"published_total_ns":158961,"message":"","output":[0.904650509,0.0953494608]}
+
+Constant-clock manual control: native Release compilation with -Werror; process audit exit 0.
+CLI processes: 133 passed (11 benchmark cases); MNIST prediction/top-three index agreement 100/100; maximum displayed-score absolute error 3.57627869e-07.
+Native benchmark smoke: 0 valid reports; 7 exact zero-interval rejections; no retries.

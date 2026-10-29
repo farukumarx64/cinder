@@ -288,5 +288,11 @@ scoped step at a time. It is not yet marked complete.
 Subsequent Phase 6 work: the [October 29 GCC investigation](GCC_WARNINGS.md)
 reproduces and resolves the warning groups locally, with checked byte extents,
 explicit initialization, boundary coverage, and warning-free GCC/Clang builds.
-Its evidence is separate from the historical M5 results above; new hosted CI
-and the tiny-model timing investigation remain pending.
+Its evidence is separate from the historical M5 results above; at that point,
+new hosted CI and the tiny-model timing investigation remained pending.
+
+Subsequent timing follow-up: the [October 29 investigation](TIMING_INVESTIGATION.md)
+captures equal native timestamp pairs around completed tiny inferences, retains
+explicit rejection without a runtime change, and adds deterministic late-failure
+coverage. This establishes the immediate cause of newly observed failures;
+the historical trials above did not record their raw pairs and remain unchanged.

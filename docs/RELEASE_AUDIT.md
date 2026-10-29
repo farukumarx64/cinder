@@ -16,7 +16,10 @@ hosted jobs. This documentation audit does not claim a new full-suite or CI run.
 now resolves the four warning groups with fresh local Linux/macOS checks.
 That report identifies the changed code and its separate evidence. The audit
 snapshot below retains the work and evidence as they stood before that step;
-tiny timing reliability is now next, and final hosted verification remains open.
+tiny timing reliability was the next scoped step. The subsequent
+[timing investigation](TIMING_INVESTIGATION.md) also completes locally, retaining
+explicit failure for equal native timestamps. Remaining robustness review is
+now next, and final verification of the resulting revision remains open.
 
 The [roadmap checklist](../ROADMAP.md#16-definition-of-done) now distinguishes
 completed capabilities from remaining release gates and deferred scope. A

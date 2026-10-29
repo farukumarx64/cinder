@@ -149,6 +149,12 @@ including positive differences smaller than its reported resolution. Resolution
 is metadata, not a threshold used to round, discard, or retry a positive sample.
 It and the printed decimal digits do not establish measurement accuracy.
 
+The [October 29 timing investigation](TIMING_INVESTIGATION.md) captured equal
+native timestamp pairs around completed tiny inferences and retains this policy.
+Reported resolution is 42 ns on that Mac; positive 41/42 ns differences and
+unresolved zero intervals were observed. The command can therefore fail for
+very short work even when inference produces the correct result.
+
 ## Observe results outside the timer
 
 After each successful warm-up or measured call, scan all `M` output values in

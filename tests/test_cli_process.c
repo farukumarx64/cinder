@@ -14,7 +14,8 @@
     fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, #x); exit(1); \
 } } while (0)
 static char output[4096], error[4096];
-static size_t commands, benchmark_commands;
+static size_t commands, benchmark_commands, native_benchmarks, unresolved_benchmarks;
+enum { NATIVE_BENCHMARK_RESULT = -1 };
 
 static void read_text(const char *path, char *text, size_t capacity)
 {
@@ -25,7 +26,7 @@ static void read_text(const char *path, char *text, size_t capacity)
     text[count] = '\0';
     CHECK(fclose(file) == 0 && remove(path) == 0);
 }
-static void execute_command(const char *executable, const char *model, const char *input,
+static int execute_command(const char *executable, const char *model, const char *input,
                             const char *iterations, int expected)
 {
     pid_t child = fork();
@@ -48,11 +49,14 @@ static void execute_command(const char *executable, const char *model, const cha
     CHECK(waited == child && WIFEXITED(status));
     read_text("stdout.txt", output, sizeof(output));
     read_text("stderr.txt", error, sizeof(error));
-    if (WEXITSTATUS(status) != expected) fprintf(stderr, "Unexpected child output: %s%s", output, error);
-    CHECK(WEXITSTATUS(status) == expected);
-    if (expected == 0) CHECK(error[0] == '\0'); else CHECK(output[0] == '\0');
+    int actual = WEXITSTATUS(status);
+    if (expected != NATIVE_BENCHMARK_RESULT && actual != expected)
+        fprintf(stderr, "Unexpected child output: %s%s", output, error);
+    CHECK(expected == NATIVE_BENCHMARK_RESULT ? iterations != NULL && (actual == 0 || actual == 1) : actual == expected);
+    if (actual == 0) CHECK(error[0] == '\0'); else CHECK(output[0] == '\0');
     ++commands;
     if (iterations != NULL) ++benchmark_commands;
+    return actual;
 }
 static void execute(const char *executable, const char *model, const char *input, int expected)
 {
@@ -82,6 +86,45 @@ static void compare_benchmark(const char *name, unsigned expected_count)
         "Minimum latency (us): %.9g\nMaximum latency (us): %.9g\nThroughput (inferences/s): %.9g\n",
         resolution, mean, minimum, maximum, throughput);
     CHECK(strcmp(cursor, formatted) == 0);
+}
+static int zero_interval_report(const char *text, unsigned count)
+{
+    /* Native smoke cases request at most 17 calls. Compare the exact allowed
+     * messages; never accept a generic IO failure or an out-of-range index. */
+    CHECK(count >= 1 && count <= 17);
+    for (unsigned i = 1; i <= count; ++i) {
+        char expected[256];
+        snprintf(expected, sizeof(expected), "cinder: benchmark iteration %u [IO]: "
+            "Measured interval is zero; clock resolution is insufficient.\n", i);
+        if (strcmp(text, expected) == 0) return 1;
+    }
+    return 0;
+}
+static void benchmark_command(const char *executable, const char *model, const char *input,
+                              const char *iterations, const char *name, unsigned count)
+{
+    ++native_benchmarks;
+    int status = execute_command(executable, model, input, iterations, NATIVE_BENCHMARK_RESULT);
+    if (status == 0) compare_benchmark(name, count);
+    else {
+        if (!zero_interval_report(error, count)) fprintf(stderr, "Unexpected benchmark failure: %s", error);
+        CHECK(zero_interval_report(error, count));
+        ++unresolved_benchmarks; /* Retain the outcome; do not retry until success. */
+    }
+}
+static void check_zero_interval_reports(void)
+{
+    /* Exercise the native-failure oracle even when this host resolves every
+     * smoke interval. Malformed/other failures must not be mistaken for it. */
+    const char *suffix = " [IO]: Measured interval is zero; clock resolution is insufficient.\n";
+    const char *indices[] = {"0", "1", "3", "4", "01", "+1"};
+    for (size_t i = 0; i < sizeof(indices) / sizeof(indices[0]); ++i) {
+        char text[256]; snprintf(text, sizeof(text), "cinder: benchmark iteration %s%s", indices[i], suffix);
+        CHECK(zero_interval_report(text, 3) == (i == 1 || i == 2));
+    }
+    CHECK(!zero_interval_report("cinder: benchmark iteration 1 [IO]: Monotonic clock moved backwards.\n", 3));
+    CHECK(!zero_interval_report("cinder: benchmark [UNSUPPORTED]: No monotonic clock is available.\n", 3));
+    CHECK(!zero_interval_report("cinder: benchmark iteration 1 [IO]: Measured interval is zero; clock resolution is insufficient.\nextra", 3));
 }
 static void word(FILE *file, uint32_t value)
 {
@@ -159,6 +202,7 @@ static double compare_output(const char *name, const float *reference, size_t co
 int main(int argc, char **argv)
 {
     CHECK(argc == 4); /* executable, source directory, private scratch directory */
+    check_zero_interval_reports();
     CHECK(chdir(argv[3]) == 0);
     const char *executable = argv[1], *source = argv[2];
     /* An inherited environment must not make score formatting locale-dependent. */
@@ -172,8 +216,7 @@ int main(int argc, char **argv)
     write_model(odd, bias, 4);
     execute(executable, odd, "-", 0);
     compare_output("a \\\"\\\\\\x0A\\x09\\xC3\\xA9", bias, 4);
-    execute_command(executable, odd, "-", "0003", 0);
-    compare_benchmark("a \\\"\\\\\\x0A\\x09\\xC3\\xA9", 3);
+    benchmark_command(executable, odd, "-", "0003", "a \\\"\\\\\\x0A\\x09\\xC3\\xA9", 3);
     CHECK(symlink(odd, "alias.cnd") == 0);
     execute(executable, "alias.cnd", "-", 0);
     compare_output("alias.cnd", bias, 4);
@@ -222,16 +265,15 @@ int main(int argc, char **argv)
     CHECK(strstr(error, "cinder: benchmark warm-up 1 [NONFINITE]: ") == error);
     write_input("bad-input", 0.0f); execute(executable, "scores", "bad-input", 0);
     compare_output("scores", bias, 1);
-    execute_command(executable, "scores", "bad-input", "1", 0);
-    compare_benchmark("scores", 1);
+    benchmark_command(executable, "scores", "bad-input", "1", "scores", 1);
 
     char model[4096], input[4096], references[4096];
     CHECK(snprintf(model, sizeof(model), "%s/tests/fixtures/tiny/tiny.cnd", source) < (int)sizeof(model));
     CHECK(snprintf(input, sizeof(input), "%s/tests/fixtures/tiny/inputs/worked.f32", source) < (int)sizeof(input));
     execute(executable, model, input, 0);
     const float tiny[] = {0.904650509f, 0.0953494608f}; compare_output("tiny.cnd", tiny, 2);
-    execute_command(executable, model, input, "1", 0); compare_benchmark("tiny.cnd", 1);
-    execute_command(executable, model, input, "17", 0); compare_benchmark("tiny.cnd", 17);
+    benchmark_command(executable, model, input, "1", "tiny.cnd", 1);
+    benchmark_command(executable, model, input, "17", "tiny.cnd", 17);
     CHECK(snprintf(model, sizeof(model), "%s/examples/mnist/mnist.cnd", source) < (int)sizeof(model));
     CHECK(snprintf(references, sizeof(references), "%s/tests/fixtures/mnist/probabilities.f32", source) < (int)sizeof(references));
     FILE *file = fopen(references, "rb"); CHECK(file != NULL);
@@ -244,12 +286,13 @@ int main(int argc, char **argv)
         double difference = compare_output("mnist.cnd", reference, 10);
         if (difference > maximum) maximum = difference;
         if (sample == 0 || sample == 8 || sample == 99) {
-            execute_command(executable, model, input, sample == 0 ? "1" : "17", 0);
-            compare_benchmark("mnist.cnd", sample == 0 ? 1 : 17);
+            benchmark_command(executable, model, input, sample == 0 ? "1" : "17", "mnist.cnd", sample == 0 ? 1 : 17);
         }
     }
     CHECK(fgetc(file) == EOF && feof(file) && !ferror(file) && fclose(file) == 0);
     CHECK(remove("-") == 0 && remove("-model with spaces") == 0 && remove("scores") == 0 && remove("bad-input") == 0);
     printf("CLI processes: %zu passed (%zu benchmark cases); MNIST prediction/top-three index agreement 100/100; maximum displayed-score absolute error %.9g.\n", commands, benchmark_commands, maximum);
+    printf("Native benchmark smoke: %zu valid reports; %zu exact zero-interval rejections; no retries.\n",
+           native_benchmarks - unresolved_benchmarks, unresolved_benchmarks);
     return 0;
 }

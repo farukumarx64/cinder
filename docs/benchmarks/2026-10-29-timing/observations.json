@@ -1,0 +1,1268 @@
+{
+  "checkout": {
+    "command": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "started_utc": "2026-10-29T20:31:19.759393+00:00",
+    "exit_status": 0,
+    "stdout": "fb9a655a7241ec075372d4fba89f8f8ff7585f55\n",
+    "stderr": ""
+  },
+  "source_status": {
+    "command": [
+      "git",
+      "status",
+      "--short"
+    ],
+    "started_utc": "2026-10-29T20:31:19.770627+00:00",
+    "exit_status": 0,
+    "stdout": "?? docs/benchmarks/2026-10-29-timing/\n",
+    "stderr": ""
+  },
+  "source_diff": {
+    "command": [
+      "git",
+      "diff",
+      "--",
+      "src",
+      "include"
+    ],
+    "started_utc": "2026-10-29T20:31:19.780340+00:00",
+    "exit_status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "os": {
+    "command": [
+      "uname",
+      "-a"
+    ],
+    "started_utc": "2026-10-29T20:31:19.785629+00:00",
+    "exit_status": 0,
+    "stdout": "Darwin Faruks-MacBook-Air.local 27.0.0 Darwin Kernel Version 27.0.0: Tue Aug 11 21:02:57 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T8132 arm64\n",
+    "stderr": ""
+  },
+  "compiler": {
+    "command": [
+      "cc",
+      "--version"
+    ],
+    "started_utc": "2026-10-29T20:31:19.787795+00:00",
+    "exit_status": 0,
+    "stdout": "Apple clang version 21.0.0 (clang-2100.3.34.2)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Library/Developer/CommandLineTools/usr/bin\n",
+    "stderr": ""
+  },
+  "load_before": [
+    1.73974609375,
+    1.97509765625,
+    1.6796875
+  ],
+  "artifacts": [
+    {
+      "path": "build-baseline-release-20261028/cinder",
+      "sha256": "766f38969630db0335468d89658559660337ec24167ae23e8c2ecea03aed4e05"
+    },
+    {
+      "path": "build-gcc-audit-20261029/mac-Release/cinder",
+      "sha256": "4ab7b3c8159130ce5600e22d668d04a9549783dc53c31e22b5a9d45d47852999"
+    },
+    {
+      "path": "build-timing-audit-20261029/probe",
+      "sha256": "3b68e60b1665ec102c9787cec775672cff1b1aac1071e18c025f4eed6a7ddf1b"
+    }
+  ],
+  "fixtures": [
+    {
+      "path": "tests/fixtures/tiny/tiny.cnd",
+      "sha256": "3f6f2942084b334e2c9e8b59a1b0e702057554f4253473ae86ffd7cde7d86fa5"
+    },
+    {
+      "path": "tests/fixtures/tiny/inputs/worked.f32",
+      "sha256": "29f16f743de29d3d29fb51bb15c62b3592bdfcf27c18836a90e16e2b1063b01b"
+    },
+    {
+      "path": "examples/mnist/mnist.cnd",
+      "sha256": "b0376dd2562f0a89d95cc4f9f1172005e293d0ab9c4a0c9c345fff2dd98fb8bd"
+    },
+    {
+      "path": "tests/fixtures/mnist/inputs/00000.f32",
+      "sha256": "25c7cba0509b7d1e068a5793c8bbd5cd421f4b92792aae3484e3a8dbb218e73f"
+    }
+  ],
+  "protocol": "20 attempts/tool for tiny at 100000 iterations; 3/tool for MNIST at 1000; three collections of 1000000 adjacent raw-clock pairs; no retries or filtering; active desktop, unpinned cores, no concurrent agent builds/tests",
+  "trials": [
+    {
+      "tool": "original",
+      "case": "tiny",
+      "trial": 1,
+      "command": [
+        "build-baseline-release-20261028/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:19.802625+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 158 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "current",
+      "case": "tiny",
+      "trial": 1,
+      "command": [
+        "build-gcc-audit-20261029/mac-Release/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:19.814635+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 4843 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "probe",
+      "case": "tiny",
+      "trial": 1,
+      "command": [
+        "build-timing-audit-20261029/probe",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:19.817793+00:00",
+      "exit_status": 0,
+      "stdout": "{\"kind\":\"instrumented_benchmark\",\"requested\":100000,\"status\":0,\"phase\":0,\"iteration\":0,\"clock_reads\":200000,\"resolution_query_status\":0,\"resolution\":[0,42],\"last_start\":[1240256,228490458],\"last_end\":[1240256,228490666],\"published_iterations\":100000,\"published_total_ns\":14302601,\"message\":\"\",\"output\":[0.904650509,0.0953494608]}\n",
+      "stderr": ""
+    },
+    {
+      "tool": "original",
+      "case": "tiny",
+      "trial": 2,
+      "command": [
+        "build-baseline-release-20261028/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.804403+00:00",
+      "exit_status": 0,
+      "stdout": "Model: tiny.cnd\nIterations: 100000\nWarm-up iterations: 10\nClock: monotonic\nClock resolution (ns): 42\nMean latency (us): 0.12893249\nMinimum latency (us): 0.041\nMaximum latency (us): 5.916\nThroughput (inferences/s): 7755996.96\n",
+      "stderr": ""
+    },
+    {
+      "tool": "current",
+      "case": "tiny",
+      "trial": 2,
+      "command": [
+        "build-gcc-audit-20261029/mac-Release/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.823995+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 1712 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "probe",
+      "case": "tiny",
+      "trial": 2,
+      "command": [
+        "build-timing-audit-20261029/probe",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.827352+00:00",
+      "exit_status": 1,
+      "stdout": "{\"kind\":\"instrumented_benchmark\",\"requested\":100000,\"status\":8,\"phase\":2,\"iteration\":60256,\"clock_reads\":120512,\"resolution_query_status\":0,\"resolution\":[0,42],\"last_start\":[1240256,261973000],\"last_end\":[1240256,261973000],\"published_iterations\":0,\"published_total_ns\":0,\"message\":\"Measured interval is zero; clock resolution is insufficient.\",\"output\":[0.904650509,0.0953494608]}\n",
+      "stderr": ""
+    },
+    {
+      "tool": "original",
+      "case": "tiny",
+      "trial": 3,
+      "command": [
+        "build-baseline-release-20261028/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.836808+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 2259 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "current",
+      "case": "tiny",
+      "trial": 3,
+      "command": [
+        "build-gcc-audit-20261029/mac-Release/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.839698+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 14922 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "probe",
+      "case": "tiny",
+      "trial": 3,
+      "command": [
+        "build-timing-audit-20261029/probe",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.843881+00:00",
+      "exit_status": 1,
+      "stdout": "{\"kind\":\"instrumented_benchmark\",\"requested\":100000,\"status\":8,\"phase\":2,\"iteration\":36615,\"clock_reads\":73230,\"resolution_query_status\":0,\"resolution\":[0,42],\"last_start\":[1240256,275370208],\"last_end\":[1240256,275370208],\"published_iterations\":0,\"published_total_ns\":0,\"message\":\"Measured interval is zero; clock resolution is insufficient.\",\"output\":[0.904650509,0.0953494608]}\n",
+      "stderr": ""
+    },
+    {
+      "tool": "original",
+      "case": "tiny",
+      "trial": 4,
+      "command": [
+        "build-baseline-release-20261028/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.850260+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 5918 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "current",
+      "case": "tiny",
+      "trial": 4,
+      "command": [
+        "build-gcc-audit-20261029/mac-Release/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.854336+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 966 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "probe",
+      "case": "tiny",
+      "trial": 4,
+      "command": [
+        "build-timing-audit-20261029/probe",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.857042+00:00",
+      "exit_status": 1,
+      "stdout": "{\"kind\":\"instrumented_benchmark\",\"requested\":100000,\"status\":8,\"phase\":2,\"iteration\":66964,\"clock_reads\":133928,\"resolution_query_status\":0,\"resolution\":[0,42],\"last_start\":[1240256,291575041],\"last_end\":[1240256,291575041],\"published_iterations\":0,\"published_total_ns\":0,\"message\":\"Measured interval is zero; clock resolution is insufficient.\",\"output\":[0.904650509,0.0953494608]}\n",
+      "stderr": ""
+    },
+    {
+      "tool": "original",
+      "case": "tiny",
+      "trial": 5,
+      "command": [
+        "build-baseline-release-20261028/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.866384+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 459 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "current",
+      "case": "tiny",
+      "trial": 5,
+      "command": [
+        "build-gcc-audit-20261029/mac-Release/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.868748+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 13076 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "probe",
+      "case": "tiny",
+      "trial": 5,
+      "command": [
+        "build-timing-audit-20261029/probe",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.872496+00:00",
+      "exit_status": 1,
+      "stdout": "{\"kind\":\"instrumented_benchmark\",\"requested\":100000,\"status\":8,\"phase\":2,\"iteration\":41942,\"clock_reads\":83884,\"resolution_query_status\":0,\"resolution\":[0,42],\"last_start\":[1240256,304209333],\"last_end\":[1240256,304209333],\"published_iterations\":0,\"published_total_ns\":0,\"message\":\"Measured interval is zero; clock resolution is insufficient.\",\"output\":[0.904650509,0.0953494608]}\n",
+      "stderr": ""
+    },
+    {
+      "tool": "original",
+      "case": "tiny",
+      "trial": 6,
+      "command": [
+        "build-baseline-release-20261028/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.879010+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 57743 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "current",
+      "case": "tiny",
+      "trial": 6,
+      "command": [
+        "build-gcc-audit-20261029/mac-Release/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.886066+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 6600 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "probe",
+      "case": "tiny",
+      "trial": 6,
+      "command": [
+        "build-timing-audit-20261029/probe",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.888735+00:00",
+      "exit_status": 1,
+      "stdout": "{\"kind\":\"instrumented_benchmark\",\"requested\":100000,\"status\":8,\"phase\":2,\"iteration\":2577,\"clock_reads\":5154,\"resolution_query_status\":0,\"resolution\":[0,42],\"last_start\":[1240256,316355333],\"last_end\":[1240256,316355333],\"published_iterations\":0,\"published_total_ns\":0,\"message\":\"Measured interval is zero; clock resolution is insufficient.\",\"output\":[0.904650509,0.0953494608]}\n",
+      "stderr": ""
+    },
+    {
+      "tool": "original",
+      "case": "tiny",
+      "trial": 7,
+      "command": [
+        "build-baseline-release-20261028/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.891037+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 5773 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "current",
+      "case": "tiny",
+      "trial": 7,
+      "command": [
+        "build-gcc-audit-20261029/mac-Release/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.893557+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 1327 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "probe",
+      "case": "tiny",
+      "trial": 7,
+      "command": [
+        "build-timing-audit-20261029/probe",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.896027+00:00",
+      "exit_status": 1,
+      "stdout": "{\"kind\":\"instrumented_benchmark\",\"requested\":100000,\"status\":8,\"phase\":2,\"iteration\":8413,\"clock_reads\":16826,\"resolution_query_status\":0,\"resolution\":[0,42],\"last_start\":[1240256,324167833],\"last_end\":[1240256,324167833],\"published_iterations\":0,\"published_total_ns\":0,\"message\":\"Measured interval is zero; clock resolution is insufficient.\",\"output\":[0.904650509,0.0953494608]}\n",
+      "stderr": ""
+    },
+    {
+      "tool": "original",
+      "case": "tiny",
+      "trial": 8,
+      "command": [
+        "build-baseline-release-20261028/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.898876+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 4413 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "current",
+      "case": "tiny",
+      "trial": 8,
+      "command": [
+        "build-gcc-audit-20261029/mac-Release/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.901252+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 4430 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "probe",
+      "case": "tiny",
+      "trial": 8,
+      "command": [
+        "build-timing-audit-20261029/probe",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.904266+00:00",
+      "exit_status": 1,
+      "stdout": "{\"kind\":\"instrumented_benchmark\",\"requested\":100000,\"status\":8,\"phase\":2,\"iteration\":1436,\"clock_reads\":2872,\"resolution_query_status\":0,\"resolution\":[0,42],\"last_start\":[1240256,332010833],\"last_end\":[1240256,332010833],\"published_iterations\":0,\"published_total_ns\":0,\"message\":\"Measured interval is zero; clock resolution is insufficient.\",\"output\":[0.904650509,0.0953494608]}\n",
+      "stderr": ""
+    },
+    {
+      "tool": "original",
+      "case": "tiny",
+      "trial": 9,
+      "command": [
+        "build-baseline-release-20261028/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.906810+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 5581 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "current",
+      "case": "tiny",
+      "trial": 9,
+      "command": [
+        "build-gcc-audit-20261029/mac-Release/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.909369+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 2580 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "probe",
+      "case": "tiny",
+      "trial": 9,
+      "command": [
+        "build-timing-audit-20261029/probe",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.912178+00:00",
+      "exit_status": 1,
+      "stdout": "{\"kind\":\"instrumented_benchmark\",\"requested\":100000,\"status\":8,\"phase\":2,\"iteration\":65369,\"clock_reads\":130738,\"resolution_query_status\":0,\"resolution\":[0,42],\"last_start\":[1240256,345682708],\"last_end\":[1240256,345682708],\"published_iterations\":0,\"published_total_ns\":0,\"message\":\"Measured interval is zero; clock resolution is insufficient.\",\"output\":[0.904650509,0.0953494608]}\n",
+      "stderr": ""
+    },
+    {
+      "tool": "original",
+      "case": "tiny",
+      "trial": 10,
+      "command": [
+        "build-baseline-release-20261028/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.920444+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 1643 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "current",
+      "case": "tiny",
+      "trial": 10,
+      "command": [
+        "build-gcc-audit-20261029/mac-Release/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.922808+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 292 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "probe",
+      "case": "tiny",
+      "trial": 10,
+      "command": [
+        "build-timing-audit-20261029/probe",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.924876+00:00",
+      "exit_status": 1,
+      "stdout": "{\"kind\":\"instrumented_benchmark\",\"requested\":100000,\"status\":8,\"phase\":2,\"iteration\":4191,\"clock_reads\":8382,\"resolution_query_status\":0,\"resolution\":[0,42],\"last_start\":[1240256,352549166],\"last_end\":[1240256,352549166],\"published_iterations\":0,\"published_total_ns\":0,\"message\":\"Measured interval is zero; clock resolution is insufficient.\",\"output\":[0.904650509,0.0953494608]}\n",
+      "stderr": ""
+    },
+    {
+      "tool": "original",
+      "case": "tiny",
+      "trial": 11,
+      "command": [
+        "build-baseline-release-20261028/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.927314+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 3448 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "current",
+      "case": "tiny",
+      "trial": 11,
+      "command": [
+        "build-gcc-audit-20261029/mac-Release/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.929473+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 2742 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "probe",
+      "case": "tiny",
+      "trial": 11,
+      "command": [
+        "build-timing-audit-20261029/probe",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.931977+00:00",
+      "exit_status": 1,
+      "stdout": "{\"kind\":\"instrumented_benchmark\",\"requested\":100000,\"status\":8,\"phase\":2,\"iteration\":43069,\"clock_reads\":86138,\"resolution_query_status\":0,\"resolution\":[0,42],\"last_start\":[1240256,362894625],\"last_end\":[1240256,362894625],\"published_iterations\":0,\"published_total_ns\":0,\"message\":\"Measured interval is zero; clock resolution is insufficient.\",\"output\":[0.904650509,0.0953494608]}\n",
+      "stderr": ""
+    },
+    {
+      "tool": "original",
+      "case": "tiny",
+      "trial": 12,
+      "command": [
+        "build-baseline-release-20261028/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.937663+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 3721 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "current",
+      "case": "tiny",
+      "trial": 12,
+      "command": [
+        "build-gcc-audit-20261029/mac-Release/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.941141+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 2121 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "probe",
+      "case": "tiny",
+      "trial": 12,
+      "command": [
+        "build-timing-audit-20261029/probe",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.944033+00:00",
+      "exit_status": 1,
+      "stdout": "{\"kind\":\"instrumented_benchmark\",\"requested\":100000,\"status\":8,\"phase\":2,\"iteration\":6144,\"clock_reads\":12288,\"resolution_query_status\":0,\"resolution\":[0,42],\"last_start\":[1240256,372355083],\"last_end\":[1240256,372355083],\"published_iterations\":0,\"published_total_ns\":0,\"message\":\"Measured interval is zero; clock resolution is insufficient.\",\"output\":[0.904650509,0.0953494608]}\n",
+      "stderr": ""
+    },
+    {
+      "tool": "original",
+      "case": "tiny",
+      "trial": 13,
+      "command": [
+        "build-baseline-release-20261028/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.947251+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 17266 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "current",
+      "case": "tiny",
+      "trial": 13,
+      "command": [
+        "build-gcc-audit-20261029/mac-Release/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.951020+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 15432 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "probe",
+      "case": "tiny",
+      "trial": 13,
+      "command": [
+        "build-timing-audit-20261029/probe",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.955733+00:00",
+      "exit_status": 1,
+      "stdout": "{\"kind\":\"instrumented_benchmark\",\"requested\":100000,\"status\":8,\"phase\":2,\"iteration\":3653,\"clock_reads\":7306,\"resolution_query_status\":0,\"resolution\":[0,42],\"last_start\":[1240256,383646583],\"last_end\":[1240256,383646583],\"published_iterations\":0,\"published_total_ns\":0,\"message\":\"Measured interval is zero; clock resolution is insufficient.\",\"output\":[0.904650509,0.0953494608]}\n",
+      "stderr": ""
+    },
+    {
+      "tool": "original",
+      "case": "tiny",
+      "trial": 14,
+      "command": [
+        "build-baseline-release-20261028/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.958434+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 272 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "current",
+      "case": "tiny",
+      "trial": 14,
+      "command": [
+        "build-gcc-audit-20261029/mac-Release/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.960469+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 7118 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "probe",
+      "case": "tiny",
+      "trial": 14,
+      "command": [
+        "build-timing-audit-20261029/probe",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.963197+00:00",
+      "exit_status": 1,
+      "stdout": "{\"kind\":\"instrumented_benchmark\",\"requested\":100000,\"status\":8,\"phase\":2,\"iteration\":6442,\"clock_reads\":12884,\"resolution_query_status\":0,\"resolution\":[0,42],\"last_start\":[1240256,391153916],\"last_end\":[1240256,391153916],\"published_iterations\":0,\"published_total_ns\":0,\"message\":\"Measured interval is zero; clock resolution is insufficient.\",\"output\":[0.904650509,0.0953494608]}\n",
+      "stderr": ""
+    },
+    {
+      "tool": "original",
+      "case": "tiny",
+      "trial": 15,
+      "command": [
+        "build-baseline-release-20261028/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.965934+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 2520 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "current",
+      "case": "tiny",
+      "trial": 15,
+      "command": [
+        "build-gcc-audit-20261029/mac-Release/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.968704+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 8406 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "probe",
+      "case": "tiny",
+      "trial": 15,
+      "command": [
+        "build-timing-audit-20261029/probe",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.971417+00:00",
+      "exit_status": 1,
+      "stdout": "{\"kind\":\"instrumented_benchmark\",\"requested\":100000,\"status\":8,\"phase\":2,\"iteration\":1035,\"clock_reads\":2070,\"resolution_query_status\":0,\"resolution\":[0,42],\"last_start\":[1240256,398783291],\"last_end\":[1240256,398783291],\"published_iterations\":0,\"published_total_ns\":0,\"message\":\"Measured interval is zero; clock resolution is insufficient.\",\"output\":[0.904650509,0.0953494608]}\n",
+      "stderr": ""
+    },
+    {
+      "tool": "original",
+      "case": "tiny",
+      "trial": 16,
+      "command": [
+        "build-baseline-release-20261028/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.973576+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 3188 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "current",
+      "case": "tiny",
+      "trial": 16,
+      "command": [
+        "build-gcc-audit-20261029/mac-Release/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.976130+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 593 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "probe",
+      "case": "tiny",
+      "trial": 16,
+      "command": [
+        "build-timing-audit-20261029/probe",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.978350+00:00",
+      "exit_status": 1,
+      "stdout": "{\"kind\":\"instrumented_benchmark\",\"requested\":100000,\"status\":8,\"phase\":2,\"iteration\":1868,\"clock_reads\":3736,\"resolution_query_status\":0,\"resolution\":[0,42],\"last_start\":[1240256,405924416],\"last_end\":[1240256,405924416],\"published_iterations\":0,\"published_total_ns\":0,\"message\":\"Measured interval is zero; clock resolution is insufficient.\",\"output\":[0.904650509,0.0953494608]}\n",
+      "stderr": ""
+    },
+    {
+      "tool": "original",
+      "case": "tiny",
+      "trial": 17,
+      "command": [
+        "build-baseline-release-20261028/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.980787+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 615 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "current",
+      "case": "tiny",
+      "trial": 17,
+      "command": [
+        "build-gcc-audit-20261029/mac-Release/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.983134+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 58328 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "probe",
+      "case": "tiny",
+      "trial": 17,
+      "command": [
+        "build-timing-audit-20261029/probe",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.990316+00:00",
+      "exit_status": 1,
+      "stdout": "{\"kind\":\"instrumented_benchmark\",\"requested\":100000,\"status\":8,\"phase\":2,\"iteration\":22275,\"clock_reads\":44550,\"resolution_query_status\":0,\"resolution\":[0,42],\"last_start\":[1240256,419748875],\"last_end\":[1240256,419748875],\"published_iterations\":0,\"published_total_ns\":0,\"message\":\"Measured interval is zero; clock resolution is insufficient.\",\"output\":[0.904650509,0.0953494608]}\n",
+      "stderr": ""
+    },
+    {
+      "tool": "original",
+      "case": "tiny",
+      "trial": 18,
+      "command": [
+        "build-baseline-release-20261028/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.994642+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 2534 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "current",
+      "case": "tiny",
+      "trial": 18,
+      "command": [
+        "build-gcc-audit-20261029/mac-Release/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.997237+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 4353 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "probe",
+      "case": "tiny",
+      "trial": 18,
+      "command": [
+        "build-timing-audit-20261029/probe",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:20.999933+00:00",
+      "exit_status": 1,
+      "stdout": "{\"kind\":\"instrumented_benchmark\",\"requested\":100000,\"status\":8,\"phase\":2,\"iteration\":7909,\"clock_reads\":15818,\"resolution_query_status\":0,\"resolution\":[0,42],\"last_start\":[1240256,428049666],\"last_end\":[1240256,428049666],\"published_iterations\":0,\"published_total_ns\":0,\"message\":\"Measured interval is zero; clock resolution is insufficient.\",\"output\":[0.904650509,0.0953494608]}\n",
+      "stderr": ""
+    },
+    {
+      "tool": "original",
+      "case": "tiny",
+      "trial": 19,
+      "command": [
+        "build-baseline-release-20261028/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:21.002937+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 19388 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "current",
+      "case": "tiny",
+      "trial": 19,
+      "command": [
+        "build-gcc-audit-20261029/mac-Release/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:21.006713+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 4721 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "probe",
+      "case": "tiny",
+      "trial": 19,
+      "command": [
+        "build-timing-audit-20261029/probe",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:21.009382+00:00",
+      "exit_status": 1,
+      "stdout": "{\"kind\":\"instrumented_benchmark\",\"requested\":100000,\"status\":8,\"phase\":2,\"iteration\":473,\"clock_reads\":946,\"resolution_query_status\":0,\"resolution\":[0,42],\"last_start\":[1240256,436899750],\"last_end\":[1240256,436899750],\"published_iterations\":0,\"published_total_ns\":0,\"message\":\"Measured interval is zero; clock resolution is insufficient.\",\"output\":[0.904650509,0.0953494608]}\n",
+      "stderr": ""
+    },
+    {
+      "tool": "original",
+      "case": "tiny",
+      "trial": 20,
+      "command": [
+        "build-baseline-release-20261028/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:21.011769+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 3466 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "current",
+      "case": "tiny",
+      "trial": 20,
+      "command": [
+        "build-gcc-audit-20261029/mac-Release/cinder",
+        "bench",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "--iterations",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:21.014483+00:00",
+      "exit_status": 1,
+      "stdout": "",
+      "stderr": "cinder: benchmark iteration 253 [IO]: Measured interval is zero; clock resolution is insufficient.\n"
+    },
+    {
+      "tool": "probe",
+      "case": "tiny",
+      "trial": 20,
+      "command": [
+        "build-timing-audit-20261029/probe",
+        "tests/fixtures/tiny/tiny.cnd",
+        "tests/fixtures/tiny/inputs/worked.f32",
+        "100000"
+      ],
+      "started_utc": "2026-10-29T20:31:21.016956+00:00",
+      "exit_status": 1,
+      "stdout": "{\"kind\":\"instrumented_benchmark\",\"requested\":100000,\"status\":8,\"phase\":2,\"iteration\":10923,\"clock_reads\":21846,\"resolution_query_status\":0,\"resolution\":[0,42],\"last_start\":[1240256,445261583],\"last_end\":[1240256,445261583],\"published_iterations\":0,\"published_total_ns\":0,\"message\":\"Measured interval is zero; clock resolution is insufficient.\",\"output\":[0.904650509,0.0953494608]}\n",
+      "stderr": ""
+    },
+    {
+      "tool": "original",
+      "case": "mnist",
+      "trial": 1,
+      "command": [
+        "build-baseline-release-20261028/cinder",
+        "bench",
+        "examples/mnist/mnist.cnd",
+        "tests/fixtures/mnist/inputs/00000.f32",
+        "--iterations",
+        "1000"
+      ],
+      "started_utc": "2026-10-29T20:31:21.020144+00:00",
+      "exit_status": 0,
+      "stdout": "Model: mnist.cnd\nIterations: 1000\nWarm-up iterations: 10\nClock: monotonic\nClock resolution (ns): 42\nMean latency (us): 98.717526\nMinimum latency (us): 97.25\nMaximum latency (us): 128\nThroughput (inferences/s): 10129.9135\n",
+      "stderr": ""
+    },
+    {
+      "tool": "current",
+      "case": "mnist",
+      "trial": 1,
+      "command": [
+        "build-gcc-audit-20261029/mac-Release/cinder",
+        "bench",
+        "examples/mnist/mnist.cnd",
+        "tests/fixtures/mnist/inputs/00000.f32",
+        "--iterations",
+        "1000"
+      ],
+      "started_utc": "2026-10-29T20:31:21.122532+00:00",
+      "exit_status": 0,
+      "stdout": "Model: mnist.cnd\nIterations: 1000\nWarm-up iterations: 10\nClock: monotonic\nClock resolution (ns): 42\nMean latency (us): 100.125554\nMinimum latency (us): 97.25\nMaximum latency (us): 125.791\nThroughput (inferences/s): 9987.46034\n",
+      "stderr": ""
+    },
+    {
+      "tool": "probe",
+      "case": "mnist",
+      "trial": 1,
+      "command": [
+        "build-timing-audit-20261029/probe",
+        "examples/mnist/mnist.cnd",
+        "tests/fixtures/mnist/inputs/00000.f32",
+        "1000"
+      ],
+      "started_utc": "2026-10-29T20:31:21.226593+00:00",
+      "exit_status": 0,
+      "stdout": "{\"kind\":\"instrumented_benchmark\",\"requested\":1000,\"status\":0,\"phase\":0,\"iteration\":0,\"clock_reads\":2000,\"resolution_query_status\":0,\"resolution\":[0,42],\"last_start\":[1240256,754163125],\"last_end\":[1240256,754271125],\"published_iterations\":1000,\"published_total_ns\":98948206,\"message\":\"\",\"output\":[5.23233712e-06,1.45595858e-09,0.000236767111,0.0018843736,5.5256813e-11,5.69077656e-07,7.88411112e-13,0.9978019,4.08501182e-05,3.03122943e-05]}\n",
+      "stderr": ""
+    },
+    {
+      "tool": "probe",
+      "case": "clock",
+      "trial": 1,
+      "command": [
+        "build-timing-audit-20261029/probe",
+        "clock"
+      ],
+      "started_utc": "2026-10-29T20:31:21.329275+00:00",
+      "exit_status": 0,
+      "stdout": "{\"kind\":\"adjacent_clock_reads\",\"pairs\":1000000,\"resolution\":[0,42],\"backwards\":0,\"above_512_ns\":2,\"first_equal_timestamp\":[1240256,756958833],\"mach_timebase_numer\":125,\"mach_timebase_denom\":3,\"histogram_ns\":{\"0\":760376,\"41\":79724,\"42\":159302,\"83\":266,\"84\":124,\"125\":164,\"166\":12,\"167\":30}}\n",
+      "stderr": ""
+    },
+    {
+      "tool": "original",
+      "case": "mnist",
+      "trial": 2,
+      "command": [
+        "build-baseline-release-20261028/cinder",
+        "bench",
+        "examples/mnist/mnist.cnd",
+        "tests/fixtures/mnist/inputs/00000.f32",
+        "--iterations",
+        "1000"
+      ],
+      "started_utc": "2026-10-29T20:31:21.358967+00:00",
+      "exit_status": 0,
+      "stdout": "Model: mnist.cnd\nIterations: 1000\nWarm-up iterations: 10\nClock: monotonic\nClock resolution (ns): 42\nMean latency (us): 100.318511\nMinimum latency (us): 97.291\nMaximum latency (us): 121.042\nThroughput (inferences/s): 9968.25003\n",
+      "stderr": ""
+    },
+    {
+      "tool": "current",
+      "case": "mnist",
+      "trial": 2,
+      "command": [
+        "build-gcc-audit-20261029/mac-Release/cinder",
+        "bench",
+        "examples/mnist/mnist.cnd",
+        "tests/fixtures/mnist/inputs/00000.f32",
+        "--iterations",
+        "1000"
+      ],
+      "started_utc": "2026-10-29T20:31:21.462924+00:00",
+      "exit_status": 0,
+      "stdout": "Model: mnist.cnd\nIterations: 1000\nWarm-up iterations: 10\nClock: monotonic\nClock resolution (ns): 42\nMean latency (us): 98.968057\nMinimum latency (us): 97.25\nMaximum latency (us): 124.834\nThroughput (inferences/s): 10104.2703\n",
+      "stderr": ""
+    },
+    {
+      "tool": "probe",
+      "case": "mnist",
+      "trial": 2,
+      "command": [
+        "build-timing-audit-20261029/probe",
+        "examples/mnist/mnist.cnd",
+        "tests/fixtures/mnist/inputs/00000.f32",
+        "1000"
+      ],
+      "started_utc": "2026-10-29T20:31:21.565779+00:00",
+      "exit_status": 0,
+      "stdout": "{\"kind\":\"instrumented_benchmark\",\"requested\":1000,\"status\":0,\"phase\":0,\"iteration\":0,\"clock_reads\":2000,\"resolution_query_status\":0,\"resolution\":[0,42],\"last_start\":[1240257,94521416],\"last_end\":[1240257,94620041],\"published_iterations\":1000,\"published_total_ns\":100046700,\"message\":\"\",\"output\":[5.23233712e-06,1.45595858e-09,0.000236767111,0.0018843736,5.5256813e-11,5.69077656e-07,7.88411112e-13,0.9978019,4.08501182e-05,3.03122943e-05]}\n",
+      "stderr": ""
+    },
+    {
+      "tool": "probe",
+      "case": "clock",
+      "trial": 2,
+      "command": [
+        "build-timing-audit-20261029/probe",
+        "clock"
+      ],
+      "started_utc": "2026-10-29T20:31:21.669539+00:00",
+      "exit_status": 0,
+      "stdout": "{\"kind\":\"adjacent_clock_reads\",\"pairs\":1000000,\"resolution\":[0,42],\"backwards\":0,\"above_512_ns\":2,\"first_equal_timestamp\":[1240257,97230625],\"mach_timebase_numer\":125,\"mach_timebase_denom\":3,\"histogram_ns\":{\"0\":736187,\"41\":87721,\"42\":175638,\"83\":160,\"84\":75,\"125\":190,\"166\":11,\"167\":15,\"208\":1}}\n",
+      "stderr": ""
+    },
+    {
+      "tool": "original",
+      "case": "mnist",
+      "trial": 3,
+      "command": [
+        "build-baseline-release-20261028/cinder",
+        "bench",
+        "examples/mnist/mnist.cnd",
+        "tests/fixtures/mnist/inputs/00000.f32",
+        "--iterations",
+        "1000"
+      ],
+      "started_utc": "2026-10-29T20:31:21.698959+00:00",
+      "exit_status": 0,
+      "stdout": "Model: mnist.cnd\nIterations: 1000\nWarm-up iterations: 10\nClock: monotonic\nClock resolution (ns): 42\nMean latency (us): 102.558664\nMinimum latency (us): 97.375\nMaximum latency (us): 137.333\nThroughput (inferences/s): 9750.51703\n",
+      "stderr": ""
+    },
+    {
+      "tool": "current",
+      "case": "mnist",
+      "trial": 3,
+      "command": [
+        "build-gcc-audit-20261029/mac-Release/cinder",
+        "bench",
+        "examples/mnist/mnist.cnd",
+        "tests/fixtures/mnist/inputs/00000.f32",
+        "--iterations",
+        "1000"
+      ],
+      "started_utc": "2026-10-29T20:31:21.805268+00:00",
+      "exit_status": 0,
+      "stdout": "Model: mnist.cnd\nIterations: 1000\nWarm-up iterations: 10\nClock: monotonic\nClock resolution (ns): 42\nMean latency (us): 102.047043\nMinimum latency (us): 97.291\nMaximum latency (us): 192.417\nThroughput (inferences/s): 9799.40203\n",
+      "stderr": ""
+    },
+    {
+      "tool": "probe",
+      "case": "mnist",
+      "trial": 3,
+      "command": [
+        "build-timing-audit-20261029/probe",
+        "examples/mnist/mnist.cnd",
+        "tests/fixtures/mnist/inputs/00000.f32",
+        "1000"
+      ],
+      "started_utc": "2026-10-29T20:31:21.911437+00:00",
+      "exit_status": 0,
+      "stdout": "{\"kind\":\"instrumented_benchmark\",\"requested\":1000,\"status\":0,\"phase\":0,\"iteration\":0,\"clock_reads\":2000,\"resolution_query_status\":0,\"resolution\":[0,42],\"last_start\":[1240257,442135125],\"last_end\":[1240257,442247375],\"published_iterations\":1000,\"published_total_ns\":101655746,\"message\":\"\",\"output\":[5.23233712e-06,1.45595858e-09,0.000236767111,0.0018843736,5.5256813e-11,5.69077656e-07,7.88411112e-13,0.9978019,4.08501182e-05,3.03122943e-05]}\n",
+      "stderr": ""
+    },
+    {
+      "tool": "probe",
+      "case": "clock",
+      "trial": 3,
+      "command": [
+        "build-timing-audit-20261029/probe",
+        "clock"
+      ],
+      "started_utc": "2026-10-29T20:31:22.017154+00:00",
+      "exit_status": 0,
+      "stdout": "{\"kind\":\"adjacent_clock_reads\",\"pairs\":1000000,\"resolution\":[0,42],\"backwards\":0,\"above_512_ns\":3,\"first_equal_timestamp\":[1240257,444985208],\"mach_timebase_numer\":125,\"mach_timebase_denom\":3,\"histogram_ns\":{\"0\":739697,\"41\":86557,\"42\":173381,\"83\":95,\"84\":49,\"125\":175,\"166\":15,\"167\":26,\"208\":1,\"209\":1}}\n",
+      "stderr": ""
+    }
+  ],
+  "load_after": [
+    1.73974609375,
+    1.97509765625,
+    1.6796875
+  ]
+}

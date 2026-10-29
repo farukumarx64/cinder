@@ -69,8 +69,11 @@ checklist: seven stale entries are satisfied; `cinder info` is explicitly
 **deferred beyond v0.1.0**. The release CLI scope is `--version`, `run`, and
 `bench`. [GCC warning triage](docs/GCC_WARNINGS.md) is complete locally:
 GCC 13.3 Debug/Release builds pass with zero warnings under `-Werror`.
-Next is the tiny-model timing investigation; final hardening, README review,
-release version/notes, fresh-checkout verification, and publication remain pending.
+The [tiny-model timing investigation](docs/TIMING_INVESTIGATION.md) now captures
+equal native clock readings and preserves explicit failure for unresolved
+per-call timings. Next is the remaining robustness-coverage review; final
+verification, README review, release version/notes, fresh-checkout verification,
+and publication remain pending.
 
 - C11 compilation with `-Wall`, `-Wextra`, and `-Wpedantic` is configured.
 - A local Git repository on `main` tracks source and documentation. Generated
@@ -328,7 +331,18 @@ release version/notes, fresh-checkout verification, and publication remain pendi
   coverage. Linux GCC Debug/Release pass 37/37 each; macOS Debug passes 46/46,
   Release and ASan/UBSan 37/37 each, all with `-Werror` and zero build warnings.
   Three focused native leak checks report zero. Numerical and allocation checks
-  pass; new hosted CI remains pending, and M6 stays open.
+  pass. All five hosted jobs subsequently passed for `fb9a655` after a macOS
+  runner-capacity retry; M6 stays open.
+- The [October 29 timing investigation](docs/TIMING_INVESTIGATION.md) reproduces
+  zero intervals in the original and current executables and captures equal
+  raw timestamps around completed inferences. Preserve the per-call contract
+  and explicit failure; add deterministic 41/42 ns and late-zero regressions.
+  Native CLI smoke tests now accept the exact documented zero-interval rejection
+  alongside a valid report, retaining other failures and performing no retries.
+  The controlled audit now passes 1,095 commands. Release passes 37/37; macOS
+  Debug/ASan+UBSan and Linux Release each pass the 12 benchmark tests, and the
+  native controlled audit reports zero leaks. The runtime is unchanged; new
+  test additions await hosted CI. Tiny timing remains a documented limitation.
 - The [`run` contract](docs/CLI.md) now defines two positional file paths, a
   zero-based prediction and up to three ranked raw scores, lower-index tie
   breaking, exit statuses `0/1/2`, and contextual errors. It accepts valid models
@@ -763,6 +777,7 @@ records that limitation and local reproduction commands.
 | `docs/M2_VERIFICATION.md` | Lifecycle/allocation audit, local and hosted evidence, M2 closure, and limitations. |
 | `docs/M3_VERIFICATION.md` | Loaded-model lifecycle, allocation/recovery audit, local/hosted evidence, M3 closure, and limitations. |
 | `docs/GCC_WARNINGS.md` | Reproduced GCC diagnostics, cause/disposition, checked-size and initialization changes, local verification, and limitations. |
+| `docs/TIMING_INVESTIGATION.md` | Equal native timestamp observations, per-call timing limitation, diagnostic reproduction, and late-failure regression evidence. |
 | `tests/check_version.cmake` | Checks the version command's exit status and output. |
 | `tests/test_tensor.c` | Tests the core library's allocation and cleanup API. |
 | `tests/test_dense.c` | Tests Dense shapes, validation, copied parameters, and independent ownership/lifetimes. |
@@ -862,8 +877,8 @@ a tiny-model timing failure. The [evaluation](docs/M5_VERIFICATION.md) retains
 the implementation: an identical-executable repeat shows variation without a
 code change, numerical/allocation checks pass, and hosted CI verifies the
 unchanged implementation on both platforms. M5 closed October 29. The Phase 6
-release-checklist audit and local GCC warning investigation are complete; next
-are the tiny timing investigation and remaining robustness review. See the
+release-checklist audit, GCC warning investigation, and tiny timing investigation
+are complete. Next is the remaining robustness review. See the
 [release gates](ROADMAP.md#remaining-release-gates); M6 and M7 remain open.
 
 The v0.1.0 scope excludes training, GPU execution, convolutional layers,

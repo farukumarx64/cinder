@@ -223,9 +223,14 @@ static int observe_finite(float value)
 static cinder_status_t tracked_execute(const cinder_cli_session_t *session, uint32_t iterations,
     cinder_benchmark_result_t *result, cinder_benchmark_failure_t *failure)
 {
+    cinder_benchmark_result_t saved;
+    memcpy(&saved, result, sizeof(saved));
     executing = true;
     cinder_status_t status = cinder_benchmark_execute(session, iterations, result, failure);
-    executing = false; return status;
+    executing = false;
+    /* Even a late clock failure must not expose partially accumulated results. */
+    if (status != CINDER_OK) CHECK(memcmp(result, &saved, sizeof(saved)) == 0);
+    return status;
 }
 #undef fopen
 #undef fclose
@@ -431,6 +436,35 @@ static void timing_failures(void)
         CHECK(strstr(out_text, "Mean latency (us): 2\nMinimum latency (us): 1\nMaximum latency (us): 3\n") != NULL);
     }
 }
+static void quantized_and_late_zero_intervals(void)
+{
+    /* 125/3 ns clock ticks can produce 41 and 42 ns integer differences.
+     * Resolution is metadata: retain both, without rounding 41 up to 42. */
+    reset(); durations[0] = 41; durations[1] = 42; durations[2] = 42; invoke("3", 0);
+    CHECK(strstr(out_text, "Clock resolution (ns): 42\nMean latency (us): 0.0416666667\n"
+        "Minimum latency (us): 0.041\nMaximum latency (us): 0.042\n"
+        "Throughput (inferences/s): 24000000\n") != NULL);
+    CHECK(calls == 13 && clock_reads == 6 && elements == 13 * reference.count);
+
+    /* Recreate both saved failure positions and a failure on the final call.
+     * Fixed timestamps, no dependency on runner speed or a native zero event. */
+    const size_t positions[] = {9853, 37270, 100000};
+    for (size_t i = 0; i < COUNT(positions); ++i) {
+        const size_t call = positions[i];
+        reset(); durations[0] = 41; durations[1] = 42; durations[2] = 42;
+        clock_fault = CLOCK_ZERO; fault_read = 2 * call;
+        invoke("100000", 1);
+        char stage[64]; snprintf(stage, sizeof(stage), "benchmark iteration %zu", call);
+        diagnostic_is(stage, "IO", "Measured interval is zero; clock resolution is insufficient.");
+        CHECK(queries == 1 && clock_reads == 2 * call && calls == 10 + call);
+        CHECK(forwards == calls * 4 && elements == (10 + call - 1) * reference.count);
+        CHECK(last_start.tv_sec == last_end.tv_sec && last_start.tv_nsec == last_end.tv_nsec);
+        success(); /* A fresh command still succeeds after rejection and cleanup. */
+    }
+    puts("Benchmark timing: 41/42 ns samples retained; zero at 9853, 37270, and 100000 "
+         "stops immediately with no partial result/report, complete cleanup, and successful recovery.");
+}
+
 static void inference_failures(void)
 {
     for (size_t call = 1; call <= 13; ++call) {
@@ -513,6 +547,7 @@ int main(int argc, char **argv)
             continue;
         }
         success(); arguments(); setup_failures(); timing_failures();
+        if (!mnist) quantized_and_late_zero_intervals();
         inference_failures(); output_failures();
         /* Neither extreme is the last sample; the minimum is not the first.
          * Catch accidental first/last assignment instead of true min/max. */

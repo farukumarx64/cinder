@@ -7,9 +7,13 @@ Release builds now produce zero warnings with `-Werror`, and each passes all
 was found in the reported paths. The changes clarify initialization and checked
 size conversion while retaining validation, failure behavior, and optimization.
 
-This completes the warning-investigation step, not M6. New hosted CI execution
-is still pending. The earlier [M5 CI results](M5_VERIFICATION.md#hosted-ci-evidence-and-closure)
-describe the earlier code; they do not verify these edits.
+This completes the warning-investigation step, not M6. Subsequent hosted
+verification of `fb9a655` passed all five jobs in
+[run 40915045986](https://github.com/farukumarx64/cinder/actions/runs/40915045986),
+attempt 2. The first attempt's macOS jobs were cancelled before checkout because
+GitHub could not allocate runners; all Linux jobs passed. The earlier
+[M5 CI results](M5_VERIFICATION.md#hosted-ci-evidence-and-closure) describe the
+earlier code and remain separate evidence.
 
 ## Reproduction and provenance
 
@@ -203,8 +207,11 @@ leaks --atExit -- ./build-gcc-audit-20261029/mac-Debug/test_benchmark_unavailabl
 This verifies GCC 13.3 x86-64 and Apple Clang 21 arm64; it does not promise that
 every compiler/version emits no warnings. No native 32-bit build was run;
 lowered test ceilings exercise guards but do not emulate a complete 32-bit ABI.
-No new hosted CI or Linux sanitizer/leak run is claimed for these edits.
-M6's final verification gate still requires the resulting revision on CI.
+At initial local verification, hosted CI and Linux sanitizer/leak execution
+were pending. The subsequent run above passed Linux Debug 46/46, Linux Release
+and ASan/UBSan/leaks 37/37 each, and macOS Debug/Release 37/37 each. M6's final
+gate still requires verification of any later edits.
 
-The next scoped step is the saved tiny-model zero-interval timing failures.
-That investigation and the remaining robustness review are still open.
+The next scoped step at this point was the saved tiny-model zero-interval timing
+failures. The subsequent [timing report](TIMING_INVESTIGATION.md) now records
+that investigation; remaining robustness review and final M6 verification stay open.
