@@ -5,7 +5,10 @@ declarations are in `include/cinder/tensor.h` and `include/cinder/error.h`.
 Creation, cleanup, fill/get/set, matrix-vector multiplication, bias addition,
 ReLU, and Softmax are implemented in `src/tensor.c`, built as the `cinder_core`
 static library shared by the CLI and ordinary tensor tests.
-The CLI still exposes only `--version`; the tensor API is exercised by C tests.
+The tensor API is exercised by C tests and used by the model runtime behind
+the implemented [`run`](CLI.md) and [`bench`](BENCHMARK.md) commands. The CLI
+also supports `--version`; [release scope](RELEASE_AUDIT.md#scope-decision-defer-cinder-info-beyond-v010)
+explicitly defers `info` beyond v0.1.0.
 
 ## Representation and layout
 

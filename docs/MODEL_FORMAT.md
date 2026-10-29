@@ -180,14 +180,15 @@ EOF must occur immediately after the final declared record's payload. Reject
 a smaller declared layer count cannot make leftover records acceptable.
 
 No model name, class labels, training metadata, preprocessing instructions,
-paths, or reference outputs are embedded. Future `cinder info` displays the
-basename of the supplied path, including its extension: `/models/tiny.cnd`
-is displayed as `Model: tiny.cnd`. Renaming a file changes that display label,
-not its model semantics. Example documentation supplies human descriptions and
-class meanings separately. Writers must not append such metadata to the file.
-The [defined `run` contract](CLI.md) uses the same basename display convention,
-with escaping for unusual filename bytes, and prints zero-based indices and
-raw scores. It does not infer labels or insert Softmax from a filename.
+paths, or reference outputs are embedded. The implemented [`run`](CLI.md) and
+[`bench`](BENCHMARK.md) commands display the basename of the supplied path,
+including its extension: `/models/tiny.cnd` is displayed as `Model: tiny.cnd`,
+with escaping for unusual filename bytes. Renaming a file changes that display
+label, not its model semantics. Example documentation supplies human descriptions
+and class meanings separately. Writers must not append such metadata to the file.
+`run` prints zero-based indices and raw scores; it does not infer labels or insert
+Softmax from a filename. `cinder info` is [deferred beyond v0.1.0](RELEASE_AUDIT.md#scope-decision-defer-cinder-info-beyond-v010);
+no inspection command is required by the file format.
 
 The loader must reject malformed or unsupported files, dimension
 mismatches, resource-limit violations, non-finite parameters, allocation
@@ -212,7 +213,7 @@ they do not provide general file-integrity detection.
 
 ## Input-file and preprocessing contract
 
-The implemented `cinder run` and planned [`cinder bench`](BENCHMARK.md) commands
+The implemented `cinder run` and [`cinder bench`](BENCHMARK.md) commands
 take a separate input file:
 
 - Exactly `model_input_size` consecutive `f32le` values, totaling
@@ -223,9 +224,10 @@ take a separate input file:
 - The caller supplies already-preprocessed values. The runtime does not infer
   normalization from the model filename or perform image decoding.
 
-The [`run` command contract](CLI.md) specifies planned argument handling,
+The [`run` command contract](CLI.md) specifies implemented argument handling,
 prediction formatting, input diagnostics, process exit statuses, and cleanup.
-The exact input bytes below are unchanged; CLI implementation remains pending.
+The exact input bytes below are unchanged; both commands use the same
+implemented input reader.
 
 For MNIST, flatten a `28 x 28` image in row-major order: feature
 `row * 28 + column` corresponds to that pixel. Convert the original `0..255`

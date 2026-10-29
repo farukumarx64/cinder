@@ -126,9 +126,14 @@ claim. Fresh local Debug 46/46, Release/ASan+UBSan 37/37 each, four native leak
 checks, numerical comparisons, and allocation audits pass. The existing hosted
 run verifies the exact unchanged code; this closure adds documentation/evidence
 without a commit, push, or new CI run.
-**Next scoped step: Phase 6 robustness review, beginning with warning triage
-and reconciliation of the remaining verification checklist.** Keep the tiny
-timing limitation explicit; see the [handoff](docs/M5_VERIFICATION.md#limitations-and-phase-6-handoff).
+**Phase 6 release-checklist audit completed October 29, 2026.** The
+[audit](docs/RELEASE_AUDIT.md) reconciles all ten previously unchecked release
+requirements: seven satisfied, `cinder info` deferred beyond v0.1.0, and the
+final README review and GitHub release still open. Earlier M2-only test/CI
+entries now reference M5 evidence; final candidate verification remains a
+separate gate. Version finalization and release notes are still pending.
+**Next scoped step: investigate the GCC warnings.** Phase 6 stays open; keep
+the tiny timing limitation explicit and follow the [remaining work](docs/RELEASE_AUDIT.md#actual-work-remaining-before-release).
 Implement and verify one scoped step at a time.
 
 ### Phase 0 checklist
@@ -234,30 +239,31 @@ remain documented in the M3 report.
 - [x] Record the first Release baseline on October 28, 2026 at clean commit `cd461c696aea932e6ea53e4093008d6463c42fa9`: Apple M4, macOS 27.0.1, Apple Clang 21.0.0, `-O3 -DNDEBUG`, sanitizers/LTO off, ten warm-ups and 100,000 requested measured iterations per attempt. Preserve all five attempts/model: four tiny and five MNIST valid reports, plus tiny trial 1's zero-interval error at iteration 37,270. Median valid-trial means are 0.159771025 us (tiny) and 105.936159 us (MNIST); raw output, timestamps, source/binary/fixture identities, environment/power/load observations, commands, and limits are retained. Fresh Release passes 37/37 with numerical agreement and zero runtime allocation/free attempts in instrumented inference paths. This is a macOS baseline with a documented tiny-clock limitation, not an optimization or Linux result. See [baseline and evidence](docs/benchmarks/2026-10-28-apple-m4/README.md).
 - [x] Evaluate improvements and close M5 on October 29, 2026. Preserve the runtime because no measured candidate justifies a change. The October 28 unchanged-executable control repeats five attempts/model with identical settings and hashes; retain the second tiny zero-interval failure and compare all valid results as variation, not speedup. Fresh local Debug passes 46/46; Release and ASan/UBSan pass 37/37 each; four native leak checks report zero. Numerical/shape/finite checks, 100/100 MNIST prediction agreement, and zero audited inference allocation/free attempts remain unchanged. All five hosted jobs passed for exact code revision `cd461c6` in [run 40688919176](https://github.com/farukumarx64/cinder/actions/runs/40688919176). Record GCC warnings, desktop/timing limitations, and the hosted native macOS leak-check limitation. See [M5 verification and evidence](docs/M5_VERIFICATION.md).
 
+### Phase 6 checklist
+
+- [x] Audit the remaining release checklist on October 29, 2026. Compare all ten unchecked requirements with source, registered tests, and saved M3–M5 evidence; correct seven stale entries, explicitly defer `cinder info`, and preserve open documentation/publication gates. Confirm the existing binary accepts `run`, rejects `info`, and reports `0.1.0-dev`; read-only GitHub checks report no releases or tags. See [the audit and scope decision](docs/RELEASE_AUDIT.md). This documentation step does not close M6.
+- [ ] Investigate the Linux GCC warnings. Reproduce each diagnostic, determine its cause, fix demonstrated defects or clarify valid code as appropriate, and verify the resulting changes without blanket suppression.
+- [ ] Investigate tiny-model timing reliability. Diagnose the saved zero-interval failures and record a correction or an explicit supported limitation; preserve the measurement contract unless a change is separately justified and defined.
+- [ ] Review the remaining robustness coverage. Map invalid models, dimensions, capacities, corrupted/truncated files, versions, allocation/I/O failures, cleanup, and recovery to existing tests; add focused tests/fixes for demonstrated gaps.
+- [ ] Verify the resulting revision and close M6. Run Debug/Release, numerical/lifecycle tests, ASan/UBSan, supported leak checks, and macOS/Linux CI; record actual results, warning dispositions, and remaining limitations.
+
 ---
 
 # 1. v0.1.0 Goal
 
-By the end of October, Cinder should support a workflow like:
-
-```bash
-$ cinder info mnist.cnd
-```
-
-Output:
+The v0.1.0 CLI scope, reconciled October 29, 2026, is:
 
 ```text
-Model: mnist.cnd
-Input: 784
-
-Layers:
-  Dense 784 -> 128
-  ReLU
-  Dense 128 -> 10
-  Softmax
-
-Parameters: 101,770
+cinder --version
+cinder run <model.cnd> <input.bin>
+cinder bench <model.cnd> <input.bin> --iterations N
 ```
+
+`cinder info` was part of the original plan but is explicitly deferred beyond
+v0.1.0. It is not implemented and is not a release gate; see the
+[scope decision](docs/RELEASE_AUDIT.md#scope-decision-defer-cinder-info-beyond-v010)
+and the [post-MVP backlog](#17-post-mvp-roadmap). The export → load → inference
+workflow and its Python validation remain the release goal.
 
 Inference:
 
@@ -1442,9 +1448,10 @@ The final week exists for making the existing runtime reliable.
 ## Testing and Robustness
 
 October 26–28 was the original planning target. M5 closed October 29; this
-phase remains open. Start with the [M5 handoff](docs/M5_VERIFICATION.md#limitations-and-phase-6-handoff):
-triage the GCC warnings, reconcile the outstanding robustness checklist against
-existing evidence, and investigate the tiny-model timing limitation. Change
+phase remains open. The [release-checklist audit](docs/RELEASE_AUDIT.md) is
+complete and `cinder info` is deferred. Next, triage the GCC warnings, investigate
+the tiny-model timing limitation, and review remaining robustness coverage.
+The [Phase 6 checklist](#phase-6-checklist) records these scoped steps. Change
 behavior only for demonstrated defects or an explicitly revised contract.
 
 Extend the tests and sanitizer checks already running since Phase 0; this is the final hardening pass, not their first use.
@@ -1561,7 +1568,6 @@ Cinder .cnd model format
 Python exporter
 MNIST example
 CLI inference
-Model inspection
 Benchmarking
 ```
 
@@ -1569,7 +1575,12 @@ Benchmarking
 
 # 16. Definition of Done
 
-Cinder `v0.1.0` is finished when:
+Audited October 29, 2026; [the evidence table](docs/RELEASE_AUDIT.md#every-previously-unchecked-requirement)
+accounts for each formerly unchecked entry. Checked capabilities have source,
+test, or documentation evidence through M5. They do not replace the final
+release-candidate gates below.
+
+## Implemented and verified capabilities
 
 - [x] Pure C in-memory inference runtime works
 - [x] Builds on macOS
@@ -1579,28 +1590,35 @@ Cinder `v0.1.0` is finished when:
 - [x] Dense, ReLU, and Softmax work through common dispatch and sequential models
 - [x] ReLU works
 - [x] Softmax works
-- [ ] `.cnd` models load from disk
+- [x] `.cnd` models load from disk through `cinder_model_load`; see [loader implementation and tests](docs/LOADER.md)
 - [x] Python exporter works for the supported subset; tiny model and fixtures verified locally
 - [x] MNIST model executes through the public C API and CLI on 100 saved real inputs
-- [ ] Tiny exported-network fixture matches each reference layer before MNIST integration
+- [x] Tiny exported-network fixtures match every reference stage; [M3 round-trip verification](docs/ROUND_TRIP.md) preceded MNIST integration
 - [x] Saved tiny-network and 100-image MNIST stages satisfy documented tolerances with matching shapes and finite values
-- [ ] Input layout and preprocessing are documented and identical in Python and C inputs
-- [ ] Buffer lengths, output capacity, ownership, and error behavior are documented and checked
-- [ ] `cinder run` works
-- [ ] `cinder info` works
+- [x] [Input layout and preprocessing](docs/MODEL_FORMAT.md#input-file-and-preprocessing-contract) are documented; Python/C fixture checks confirm row-major float32 `/255` inputs
+- [x] Buffer lengths, output capacity, ownership, and error behavior are [documented and tested](docs/MODEL.md#inference-validation-and-failure-behavior), subject to valid-pointer/storage/lifetime preconditions
+- [x] `cinder run` works; [actual demonstration and CLI verification](examples/mnist/DEMO.md) pass
 - [x] `cinder bench` passes local and macOS/Linux hosted checks; see M5 verification for the tiny-clock limitation
-- [x] Unit tests pass for the implemented M2 scope
-- [x] macOS and Linux CI build and test successfully for M2
-- [x] Sanitizer and supported leak checks report no findings in the exercised M2 suite
-- [ ] Loader rejects malformed structures, excessive sizes, and incomplete data without leaking memory
+- [x] Tests pass through M5: local Debug 46/46; ordinary C Release and ASan/UBSan 37/37 each; see [M5 verification](docs/M5_VERIFICATION.md)
+- [x] All five macOS/Linux jobs pass for M5 source revision `cd461c6`; [exact CI evidence](docs/M5_VERIFICATION.md#hosted-ci-evidence-and-closure)
+- [x] M5 ASan/UBSan, supported native macOS leak checks, and Linux LeakSanitizer report no findings in exercised paths; platform limits are documented
+- [x] Loader rejection and cleanup pass malformed-file, resource-boundary, allocation/I/O-failure, and lifecycle tests; see [the audit](docs/LOADER.md#rejection-and-cleanup-audit--october-24-2026)
 - [x] Benchmarks document their environment, preserve failed attempts, and measure inference separately from loading and preprocessing; see M5 verification
-- [ ] Architecture is documented
+- [x] Architecture is documented across the [model](docs/MODEL.md), [layer](docs/LAYER.md), [Dense](docs/DENSE.md), [tensor](docs/TENSOR.md), and [loader](docs/LOADER.md) guides
 - [x] Model format version 1 is documented
-- [ ] README is complete
-- [ ] GitHub `v0.1.0` release exists
 
-M2 checks reflect the current implementation and must remain green as the
-loader, exporter, CLI, and other release features are added.
+## Remaining release gates
+
+- [ ] Close M6 after GCC warning triage, tiny-clock investigation, coverage review, and verification of the resulting revision; see the [Phase 6 checklist](#phase-6-checklist).
+- [ ] Finish the release README: concise supported workflow, architecture overview, reproduction, measured results, limitations, and consistent scope/version text.
+- [ ] Finalize release version reporting and accurate release notes. The current executable still reports `0.1.0-dev`; the release build and its tests/docs must agree on `0.1.0`.
+- [ ] Verify final documented commands from a fresh release-candidate checkout, and run final Debug/Release, numerical/lifecycle, sanitizer/leak, and macOS/Linux CI checks after the last code/build changes.
+- [ ] Publish a `v0.1.0` tag and GitHub release identifying the verified revision after the user authorizes publication. Neither existed in the October 29 read-only audit.
+
+`cinder info` is **deferred beyond v0.1.0**, not checked off as implemented.
+See [the decision](docs/RELEASE_AUDIT.md#scope-decision-defer-cinder-info-beyond-v010)
+and [backlog](#17-post-mvp-roadmap). Existing passing checks must remain green;
+M6 and M7 are still open.
 
 Once these boxes are checked:
 
@@ -1611,6 +1629,33 @@ Do not delay the release because of features that belong in future versions.
 ---
 
 # 17. Post-MVP Roadmap
+
+**Deferred October 29, 2026: `cinder info <model.cnd>`.** Model inspection is
+not part of v0.1.0 and has no committed delivery date. Define read-only metadata
+access and the output/error contract before implementation; reuse the validated
+loader and test reporting, counts, failures, and cleanup. See [the scope decision](docs/RELEASE_AUDIT.md#scope-decision-defer-cinder-info-beyond-v010).
+
+The original proposed example is retained below as an **unimplemented future
+illustration**, not current command output:
+
+```bash
+$ cinder info mnist.cnd
+```
+
+Output:
+
+```text
+Model: mnist.cnd
+Input: 784
+
+Layers:
+  Dense 784 -> 128
+  ReLU
+  Dense 128 -> 10
+  Softmax
+
+Parameters: 101,770
+```
 
 A possible progression:
 
@@ -1850,8 +1895,10 @@ fresh local numerical/lifecycle/Debug/Release/sanitizer/leak checks, and
 verification of all five hosted jobs at `cd461c6`. No performance edit was
 justified; tiny clock failures, GCC warnings, and platform-check limitations
 are retained in [the M5 report](docs/M5_VERIFICATION.md). Next is Phase 6's
-final hardening review. Phase 7 documentation/release remains afterward;
-neither phase is marked complete by these checks.
+final hardening review. Its release-checklist audit is complete: seven stale
+requirements are checked, inspection is explicitly deferred, and remaining
+release gates are recorded. Next: GCC warning triage. Phase 7 documentation/
+release remains afterward; neither phase is marked complete by this audit.
 
 The **October 25 deadline is the internal deadline**.
 

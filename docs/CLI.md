@@ -19,6 +19,11 @@ October 28, 2026. Its integration adds a third line to the common usage block
 and changes the global unknown-command reason as shown below. Successful
 `run`/`--version` output and `run` operational errors retain this contract.
 
+The [October 29 release scope decision](RELEASE_AUDIT.md#scope-decision-defer-cinder-info-beyond-v010)
+explicitly defers `cinder info` beyond v0.1.0. It is not implemented; invoking
+`info` follows the existing unknown-command usage error (exit 2). The v0.1.0
+command surface is `--version`, `run`, and `bench`.
+
 ## Invocation and argument rules
 
 ```text

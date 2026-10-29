@@ -63,7 +63,12 @@ records the exact revision, results, GCC warnings, and remaining limitations.
 The [M5 evaluation and closure report](docs/M5_VERIFICATION.md) records the
 Release baseline, unchanged-executable repeat, current numerical/lifecycle
 checks, and five passing hosted jobs for `cd461c6`. No measured evidence
-justifies a runtime optimization. Phase 6, the final hardening pass, is next.
+justifies a runtime optimization. Phase 6, the final hardening pass, is open.
+The [October 29 release audit](docs/RELEASE_AUDIT.md) reconciles the remaining
+checklist: seven stale entries are satisfied; `cinder info` is explicitly
+**deferred beyond v0.1.0**. The release CLI scope is `--version`, `run`, and
+`bench`. GCC warning triage is next; final hardening, README review, release
+version/notes, fresh-checkout verification, and publication remain pending.
 
 - C11 compilation with `-Wall`, `-Wextra`, and `-Wpedantic` is configured.
 - A local Git repository on `main` tracks source and documentation. Generated
@@ -724,6 +729,7 @@ records that limitation and local reproduction commands.
 | `tests/test_benchmark.c` | Controlled benchmark call counts, timing boundaries, output observation, failures, precedence, and maximum-iteration checks. |
 | `examples/mnist/DEMO.md` | Offline demonstration, reproduction commands, actual output, measured results, limitations, and M4 verification gate. |
 | `docs/M5_VERIFICATION.md`, `docs/benchmarks/` | Performance evaluation, raw baseline/control evidence, numerical/lifecycle verification, hosted CI, and M5 closure. |
+| `docs/RELEASE_AUDIT.md` | Requirement-by-requirement release evidence, inspection-command deferral, remaining gates, and verification scope. |
 | `src/tensor.c` | Tensor allocation, cleanup, checked access, matrix-vector multiplication, bias addition, ReLU, Softmax, and error reporting. |
 | `src/dense.c` | Dense creation, parameter copying, cleanup, and forward execution through tensor kernels. |
 | `src/layer.c` | Common constructors, metadata validation, cleanup, and Dense/ReLU/Softmax dispatch. |
@@ -845,8 +851,10 @@ speed threshold. The first Release baseline now records all attempts, including
 a tiny-model timing failure. The [evaluation](docs/M5_VERIFICATION.md) retains
 the implementation: an identical-executable repeat shows variation without a
 code change, numerical/allocation checks pass, and hosted CI verifies the
-unchanged implementation on both platforms. M5 closed October 29. Next: Phase 6
-robustness review, including GCC warning triage and the tiny timing limitation.
+unchanged implementation on both platforms. M5 closed October 29. The Phase 6
+release-checklist audit is complete; next is GCC warning triage, followed by
+the tiny timing investigation and remaining robustness review. See the
+[release gates](ROADMAP.md#remaining-release-gates); M6 and M7 remain open.
 
 The v0.1.0 scope excludes training, GPU execution, convolutional layers,
 quantization, SIMD, multithreading, and arbitrary computation graphs.

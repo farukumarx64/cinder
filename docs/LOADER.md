@@ -3,10 +3,11 @@
 **Contract and initial implementation completed October 24, 2026.**
 The declaration is in [`include/cinder/model.h`](../include/cinder/model.h), and
 the shared status codes are in [`include/cinder/error.h`](../include/cinder/error.h).
-[`src/loader.c`](../src/loader.c) implements the linkable C API. The CLI still
-supports only `--version`; loading through CLI commands is later work. The
-planned [`run` contract](CLI.md) specifies how the CLI will call this API and
-present errors without changing the loader's status or ownership rules.
+[`src/loader.c`](../src/loader.c) implements the linkable C API. The implemented
+[`run`](CLI.md) and [`bench`](BENCHMARK.md) commands both load through this API
+using shared CLI preparation. Their diagnostics preserve the loader's status
+and ownership rules. The CLI also supports `--version`; `info` is
+[deferred beyond v0.1.0](RELEASE_AUDIT.md#scope-decision-defer-cinder-info-beyond-v010).
 The [format specification](MODEL_FORMAT.md) remains authoritative for file bytes
 and resource bounds; this document defines the C API, file handling, ownership,
 failure behavior, and use of the existing constructors.
