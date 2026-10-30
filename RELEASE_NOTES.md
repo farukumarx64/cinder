@@ -1,8 +1,7 @@
 # Cinder v0.1.0
 
-**Prepared for release; candidate verification passes and publication is
-pending.** The executable now reports `Cinder 0.1.0`. This document does not
-announce a published tag or release.
+**Released October 30, 2026:** [Cinder v0.1.0 — Initial Release](https://github.com/farukumarx64/cinder/releases/tag/v0.1.0).
+The published tag points to `d4e96db`; the executable reports `Cinder 0.1.0`.
 
 Cinder is a small C11 CPU inference runtime for sequential float32 networks.
 It makes model loading, array-based layer execution, and memory ownership
@@ -117,8 +116,11 @@ passes all local Debug/Release, numerical/lifecycle, sanitizer, native leak,
 and documented setup checks, including a fresh Python environment. All five
 macOS/Linux CI jobs pass on the first attempt in
 [run 41029277234](https://github.com/farukumarx64/cinder/actions/runs/41029277234),
-including Linux ASan/UBSan/LeakSanitizer. The verification gate is complete;
-tagging and publication remain pending.
+including Linux ASan/UBSan/LeakSanitizer. The subsequent released commit
+`d4e96db` also passes all five jobs on its first attempt in
+[run 41066635400](https://github.com/farukumarx64/cinder/actions/runs/41066635400).
+The [publication record](docs/RELEASE_VERIFICATION.md#publication-record) preserves
+the tag, date, full commit SHA, and CI result for the released revision.
 
 ## Constraints and known limitations
 
@@ -152,7 +154,8 @@ public C API, model math, `.cnd` format version **1**, or committed fixtures.
 Existing `.cnd` v1 examples remain compatible. Historical reports retain the
 version strings that their original executables printed.
 
-Final fresh-checkout tests and macOS/Linux CI pass for candidate `1e5a5f6`.
-The owner must still authorize its tag and publication. The
-[release gates](ROADMAP.md#remaining-release-gates) track those remaining steps.
+The owner published `v0.1.0` at commit
+[`d4e96dba8decb81df3c5cf32d17d0877fae6170e`](https://github.com/farukumarx64/cinder/commit/d4e96dba8decb81df3c5cf32d17d0877fae6170e)
+on October 30, 2026, at 14:54:41 Africa/Lagos (UTC+01:00). All
+[release gates](ROADMAP.md#remaining-release-gates) are complete, and M7 is closed.
 Cinder is distributed under the [MIT License](LICENSE).

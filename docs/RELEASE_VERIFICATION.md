@@ -210,6 +210,15 @@ revision and conclusion, job results, and GitHub API source URLs. These were
 read-only checks of the published release; no tag, release, or CI run was
 created or modified while recording this evidence.
 
+## M7 closure
+
+**M7 closed October 30, 2026.** Documentation, version finalization, candidate
+verification, and owner publication are complete. The
+[release checklist](../ROADMAP.md#remaining-release-gates) is fully checked,
+and the README and release notes identify `v0.1.0` as released at `d4e96db`.
+The original v0.1.0 roadmap is complete; deferred features remain separate
+post-MVP work. The recorded revisions, test results, and limitations are unchanged.
+
 ## Scope and limitations
 
 This step records evidence; it changes no runtime source, public API, tests,

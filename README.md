@@ -9,12 +9,12 @@ float32 parameters and vectors. A Python exporter converts supported PyTorch
 models to `.cnd` files. Training happens outside the C runtime; the C build
 needs no Python or third-party numerical library.
 
-**Release status:** The executable reports `Cinder 0.1.0`, and the
-[v0.1.0 release notes](RELEASE_NOTES.md) are prepared. The
-[candidate verification](docs/RELEASE_VERIFICATION.md) passes local checks and
-all five macOS/Linux CI jobs at `1e5a5f6`. Tagging and publication remain pending.
-See the [roadmap](ROADMAP.md#current-progress) and
-[Phase 6 verification report](docs/M6_VERIFICATION.md).
+**Released:** [v0.1.0](https://github.com/farukumarx64/cinder/releases/tag/v0.1.0)
+on **October 30, 2026**. The executable reports `Cinder 0.1.0`.
+The [release notes](RELEASE_NOTES.md) describe its supported features and
+constraints. The [publication record](docs/RELEASE_VERIFICATION.md#publication-record)
+identifies tagged commit `d4e96db` and its five passing macOS/Linux CI jobs.
+The [v0.1.0 roadmap](ROADMAP.md#current-progress) is complete through M7.
 
 ## Installation
 
@@ -346,8 +346,7 @@ leak checking remains unavailable. See the [CI workflow](.github/workflows/ci.ym
   sanitizers are not an exhaustive correctness or memory-safety proof.
 - Tiny-model benchmark intervals may be unresolved by the clock. Measurements
   are not portable performance guarantees. `cinder info` is deferred beyond
-  v0.1.0; verification is complete and publication remains in the
-  [release gates](ROADMAP.md#remaining-release-gates).
+  v0.1.0; see the [post-MVP backlog](ROADMAP.md#17-post-mvp-roadmap).
 
 ## Repository layout
 
@@ -373,9 +372,9 @@ Development history and evidence remain in the [roadmap](ROADMAP.md),
 [timing investigation](docs/TIMING_INVESTIGATION.md),
 [robustness review](docs/ROBUSTNESS_REVIEW.md), and
 [M6 verification](docs/M6_VERIFICATION.md). The [release notes](RELEASE_NOTES.md)
-describe v0.1.0's scope and constraints; final candidate checks and publication
-are tracked in the [candidate report](docs/RELEASE_VERIFICATION.md). Verification
-is complete for `1e5a5f6`; publication remains pending.
+describe v0.1.0's scope and constraints. The
+[release report](docs/RELEASE_VERIFICATION.md) preserves verification of candidate
+`1e5a5f6` and publication of `v0.1.0` at `d4e96db`, with CI evidence for each.
 
 ## License
 

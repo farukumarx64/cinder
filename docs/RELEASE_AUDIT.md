@@ -29,17 +29,19 @@ then passed fresh local checks and all five hosted jobs at `cace0df`, closing
 M6 on October 30. The subsequent [release README](../README.md) rewrite now
 passes its [isolated-snapshot recipe checks](verification/2026-10-30-readme.txt).
 Version reporting is now finalized at `0.1.0`, and the [release notes](../RELEASE_NOTES.md)
-are prepared; [local checks](verification/2026-10-30-version.txt) pass.
+are complete; [local checks](verification/2026-10-30-version.txt) pass.
 [Final candidate verification](RELEASE_VERIFICATION.md) now passes fresh local
-checks and all five hosted jobs at `1e5a5f6`. Authorized publication remains
-open. The original audit
-table below remains a dated snapshot; these follow-ups record completion of
-its scoped work.
+checks and all five hosted jobs at `1e5a5f6`. The owner subsequently published
+`v0.1.0` at `d4e96db`, whose own CI run passes all five jobs. The
+[publication record](RELEASE_VERIFICATION.md#publication-record) identifies the
+release, timestamp, tagged commit, and CI result. **M7 closed October 30, 2026**;
+all v0.1.0 release gates are complete. The original audit table below remains
+a dated snapshot; these follow-ups record completion of its scoped work.
 
 The [roadmap checklist](../ROADMAP.md#16-definition-of-done) now distinguishes
-completed capabilities from remaining release gates and deferred scope. A
-checked capability is evidence of existing behavior, not a claim that the
-final release candidate has been published or that all hardening is complete.
+completed capabilities and release gates from deferred scope. Capability
+evidence, the verification reports, and the publication record support M7
+closure while retaining the documented limitations.
 
 ## Every previously unchecked requirement
 
@@ -88,8 +90,9 @@ merely to report metadata already derivable from valid layers.
 
 This table preserves the October 29 audit plan. Its four Phase 6 rows are now
 complete; [M6 verification](M6_VERIFICATION.md) records their results. The Phase 7
-README rewrite, version/release notes, and final release-candidate checkout/CI
-verification are also complete. Authorized publication remains open.
+README rewrite, version/release notes, final release-candidate checkout/CI
+verification, and owner publication are also complete. M7 is closed; this table
+retains the original pre-release plan.
 
 | Work | Completion evidence needed | Phase |
 | --- | --- | --- |

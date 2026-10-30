@@ -12,9 +12,9 @@ Cinder is **not** intended to replace PyTorch, TensorFlow, ONNX Runtime, or othe
 
 The purpose of the project is to understand what happens underneath those abstractions.
 
-This plan was revised on October 7, 2026 to clarify implementation contracts and introduce verification earlier. The project began in an empty folder; the checklist below records actual progress, while the later milestones remain targets.
+This plan was revised on October 7, 2026 to clarify implementation contracts and introduce verification earlier. The project began in an empty folder; the checklist below records actual progress, while later sections retain the original planning targets.
 
-The daily dates are planning targets. Preserve the milestone order, the October 25 feature freeze, and the October 31 release target; adjust individual workdays to actual progress. M0 was completed on October 8, 2026; Current Progress tracks the remaining work.
+The daily dates were planning targets, including the October 25 feature freeze and October 31 release target. M0 was completed on October 8, 2026; Current Progress records actual completion through M7 on October 30, 2026.
 
 All predictions, accuracy percentages, and benchmark timings shown in this document are illustrative until measured.
 
@@ -201,9 +201,10 @@ at **14:54:41 Africa/Lagos (UTC+01:00)**. The `v0.1.0` tag points to
 passed all five macOS/Linux jobs on the first attempt. The
 [publication record](docs/RELEASE_VERIFICATION.md#publication-record) preserves
 these details and distinguishes the released commit from candidate `1e5a5f6`.
-**Next scoped step: mark the publication checklist complete and close M7.**
-Follow the [remaining release gates](#remaining-release-gates).
-Implement and verify one scoped step at a time.
+**M7 closed October 30, 2026.** The publication checklist and all v0.1.0 release
+gates are complete. The [release checklist](#remaining-release-gates) preserves
+the evidence; any further development belongs to the separate
+[post-MVP roadmap](#17-post-mvp-roadmap).
 
 ### Phase 0 checklist
 
@@ -380,9 +381,13 @@ That is enough for a strong `v0.1.0`.
 
 ## Required for v0.1.0
 
-- [ ] Pure C runtime
-- [ ] CPU inference
-- [ ] `float32` tensors
+Reconciled at M7 closure on October 30, 2026; the
+[definition of done](#16-definition-of-done) and
+[release report](docs/RELEASE_VERIFICATION.md) retain the supporting evidence.
+
+- [x] Pure C runtime
+- [x] CPU inference
+- [x] `float32` tensors
 - [x] Dense / fully connected layers (single-vector create/free/forward API)
 - [x] ReLU activation
 - [x] Softmax activation
@@ -391,17 +396,21 @@ That is enough for a strong `v0.1.0`.
 - [x] Custom Cinder model-format contract (version 1; exporter and C loader implemented)
 - [x] Python model exporter (validation and binary writing; tiny fixtures verified locally)
 - [x] CLI inference
-- [ ] CLI model inspection
-- [ ] Benchmark command
-- [ ] Unit tests
-- [ ] Python/reference comparison tests
-- [ ] Memory-error testing from the first allocation code onward
-- [ ] Automated macOS and Linux build/test checks
-- [ ] Tiny exported-network reference test before MNIST
-- [ ] MNIST demonstration
-- [ ] macOS compilation
-- [ ] Linux compilation
-- [ ] GitHub release
+- [x] Benchmark command
+- [x] Unit tests
+- [x] Python/reference comparison tests
+- [x] Memory-error testing from the first allocation code onward
+- [x] Automated macOS and Linux build/test checks
+- [x] Tiny exported-network reference test before MNIST
+- [x] MNIST demonstration
+- [x] macOS compilation
+- [x] Linux compilation
+- [x] GitHub release: [v0.1.0](https://github.com/farukumarx64/cinder/releases/tag/v0.1.0)
+
+**Deferred beyond v0.1.0:**
+
+- [ ] CLI model inspection (`cinder info`), as decided in the
+  [October 29 scope review](docs/RELEASE_AUDIT.md#scope-decision-defer-cinder-info-beyond-v010).
 
 ---
 
@@ -1580,7 +1589,10 @@ commands, architecture/ownership, measured results, and limitations are verified
 as recorded in [the recipe evidence](docs/verification/2026-10-30-readme.txt).
 Version finalization and [release notes](RELEASE_NOTES.md) are also complete.
 [Final candidate verification](docs/RELEASE_VERIFICATION.md) is complete for
-`1e5a5f6`. Authorized publication remains; M7 stays open.
+`1e5a5f6`. The owner published `v0.1.0` at `d4e96db` on October 30; all five CI
+jobs pass for that tagged commit. See the
+[publication record](docs/RELEASE_VERIFICATION.md#publication-record).
+**M7 is closed as of October 30, 2026.**
 
 The README covers the planned topics below:
 
@@ -1626,20 +1638,22 @@ Roadmap
 
 # 15. Release v0.1.0
 
-When everything is ready:
+[Cinder v0.1.0 — Initial Release](https://github.com/farukumarx64/cinder/releases/tag/v0.1.0)
+was published by the owner on October 30, 2026, at `d4e96db`. The original
+planned publication commands are retained below for reference:
 
 ```bash
 git tag v0.1.0
 git push origin v0.1.0
 ```
 
-Create the GitHub release:
+Published GitHub release title:
 
 ```text
-Cinder v0.1.0
+Cinder v0.1.0 — Initial Release
 ```
 
-The release should include:
+The release includes:
 
 ```text
 Basic FP32 neural-network inference
@@ -1691,22 +1705,24 @@ release-candidate gates below.
 
 ## Remaining release gates
 
+**All release gates are complete; M7 closed October 30, 2026.**
+
 - [x] Close M6 on October 30 after GCC warning triage, tiny-clock investigation, robustness review, and verification of `cace0df`; see [the final report](docs/M6_VERIFICATION.md).
 - [x] Finish the release README on October 30: source installation, build/test commands, `run`/`bench`, architecture and memory ownership, measured results, and limitations, with history in linked reports. Isolated-snapshot recipes pass Debug/Release/ASan+UBSan 38/38 each, optional Python 47/47, model/benchmark/export examples, and a native leak check. That review recorded `0.1.0-dev`; version finalization below updates the current output. The final candidate checkout/CI gate was still open at that step. See [evidence](docs/verification/2026-10-30-readme.txt).
 - [x] Finalize release version reporting and notes on October 30. CMake uses project version `0.1.0` for the executable, version smoke expectation, CLI audit, and both benchmark audit builds. Fresh local Debug/Release pass 38/38 each; builds with and without tests print exactly `Cinder 0.1.0` with empty stderr. A negative control rejects the obsolete `0.1.0-dev` expectation. Current examples and the [release notes](RELEASE_NOTES.md) describe the release features/constraints; `.cnd` stays at format version 1 and historical reports remain intact. See [evidence](docs/verification/2026-10-30-version.txt). Final candidate verification and publication were separate subsequent gates.
 - [x] Verify final documented commands and required checks on October 30 for `1e5a5f6`. Fresh checkout Debug/Release and ASan+UBSan pass 38/38 each; a fresh Python environment passes 47/47; all eight native leak checks report zero leaks. After the authorized push, the direct GitHub clone matches the tested tree and all five macOS/Linux CI jobs pass on the first attempt, including Linux ASan/UBSan/LeakSanitizer. Version, numerical, lifecycle, and failure tests pass with no compiler warnings. See [the candidate report](docs/RELEASE_VERIFICATION.md) and [CI run 41029277234](https://github.com/farukumarx64/cinder/actions/runs/41029277234).
-- [ ] Publish a `v0.1.0` tag and GitHub release identifying the verified revision after the user authorizes publication. Neither existed in the October 29 read-only audit.
+- [x] Publish `v0.1.0`: the owner published [Cinder v0.1.0 — Initial Release](https://github.com/farukumarx64/cinder/releases/tag/v0.1.0) on October 30, 2026, at 14:54:41 Africa/Lagos (UTC+01:00), tagged at `d4e96dba8decb81df3c5cf32d17d0877fae6170e`. All five jobs in [CI run 41066635400](https://github.com/farukumarx64/cinder/actions/runs/41066635400) pass on the first attempt for that exact commit. The [publication record](docs/RELEASE_VERIFICATION.md#publication-record) preserves the release metadata and evidence. **M7 closed October 30, 2026.**
 
 `cinder info` is **deferred beyond v0.1.0**, not checked off as implemented.
 See [the decision](docs/RELEASE_AUDIT.md#scope-decision-defer-cinder-info-beyond-v010)
 and [backlog](#17-post-mvp-roadmap). Existing passing checks must remain green;
-M6 is complete; M7 remains open.
+M6 and M7 are complete.
 
-Once these boxes are checked:
+All required v0.1.0 boxes are checked:
 
-**Ship it.**
+**v0.1.0 is released.**
 
-Do not delay the release because of features that belong in future versions.
+Deferred features belong to future versions and do not reopen this release's scope.
 
 ---
 
@@ -1987,14 +2003,16 @@ locally and in hosted CI, adding chunk-boundary faults and protected-buffer test
 five hosted jobs passed at `cace0df`. Phase 7's release README is now complete,
 with a verified supported workflow and architecture/ownership overview. Version
 finalization, release notes, and [final candidate verification](docs/RELEASE_VERIFICATION.md)
-are complete. All five hosted jobs pass for `1e5a5f6`; authorized publication is
-next. M7 remains open until publication.
+are complete. All five hosted jobs pass for candidate `1e5a5f6` and released
+commit `d4e96db`. The owner published `v0.1.0` on October 30, and **M7 is closed**.
+The original v0.1.0 roadmap is complete; future development is separate scope.
 
-The **October 25 deadline is the internal deadline**.
+The **October 25 deadline was the internal planning target**.
 
-October 31 is the actual release deadline.
+October 31 was the release target; actual publication occurred on October 30.
 
-That gives Cinder almost a full week of buffer for bugs, life interruptions, documentation, and unexpected problems.
+The original schedule allowed almost a week between those targets for fixes,
+documentation, and unexpected problems.
 
 ---
 
