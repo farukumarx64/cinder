@@ -166,7 +166,15 @@ Linux Debug 47/47; macOS Debug/Release, Linux Release, and Linux sanitizer/leak
 checks 38/38 each. Numerical agreement, lifecycle recovery, and allocation-free
 inference remain verified. Record tiny-clock, caller-precondition, platform,
 format, and fixture-coverage limits.
-**Next scoped step: finish the Phase 7 release README and supported workflow.**
+**Release README completed October 30, 2026.** The [README](README.md) now
+leads with source installation, build/test commands, `run`/`bench`, architecture,
+ownership, measured results, and limitations; detailed history stays in linked
+reports. Its recipes pass in an isolated source snapshot: Debug/Release and
+ASan+UBSan 38/38 each, optional Python checks 47/47, both model examples,
+benchmark command, deterministic export check, and zero native leaks. See
+[recipe evidence](docs/verification/2026-10-30-readme.txt). This does not replace
+the final release-candidate checkout/CI gate. Keep `0.1.0-dev` until the next step.
+**Next scoped step: finalize release version reporting and release notes.**
 Follow the [remaining release gates](#remaining-release-gates).
 Implement and verify one scoped step at a time.
 
@@ -1540,7 +1548,13 @@ model expects 784 input values but received 256
 
 ## Documentation and Release
 
-The README should explain:
+The release README rewrite is complete October 30; its source-build workflow,
+commands, architecture/ownership, measured results, and limitations are verified
+as recorded in [the recipe evidence](docs/verification/2026-10-30-readme.txt).
+Version finalization and release notes are next, followed by final candidate
+verification and authorized publication. M7 remains open.
+
+The README covers the planned topics below:
 
 ### What is Cinder?
 
@@ -1617,7 +1631,7 @@ Benchmarking
 
 Audited October 29, 2026; [the evidence table](docs/RELEASE_AUDIT.md#every-previously-unchecked-requirement)
 accounts for each formerly unchecked entry. Checked capabilities have source,
-test, or documentation evidence through M5. They do not replace the final
+test, or documentation evidence through M6. They do not replace the final
 release-candidate gates below.
 
 ## Implemented and verified capabilities
@@ -1650,7 +1664,7 @@ release-candidate gates below.
 ## Remaining release gates
 
 - [x] Close M6 on October 30 after GCC warning triage, tiny-clock investigation, robustness review, and verification of `cace0df`; see [the final report](docs/M6_VERIFICATION.md).
-- [ ] Finish the release README: concise supported workflow, architecture overview, reproduction, measured results, limitations, and consistent scope/version text.
+- [x] Finish the release README on October 30: source installation, build/test commands, `run`/`bench`, architecture and memory ownership, measured results, and limitations, with history in linked reports. Isolated-snapshot recipes pass Debug/Release/ASan+UBSan 38/38 each, optional Python 47/47, model/benchmark/export examples, and a native leak check. Retain truthful `0.1.0-dev` status until version finalization; the final candidate checkout/CI gate below remains open. See [evidence](docs/verification/2026-10-30-readme.txt).
 - [ ] Finalize release version reporting and accurate release notes. The current executable still reports `0.1.0-dev`; the release build and its tests/docs must agree on `0.1.0`.
 - [ ] Verify final documented commands from a fresh release-candidate checkout, and run final Debug/Release, numerical/lifecycle, sanitizer/leak, and macOS/Linux CI checks after the last code/build changes.
 - [ ] Publish a `v0.1.0` tag and GitHub release identifying the verified revision after the user authorizes publication. Neither existed in the October 29 read-only audit.
@@ -1936,15 +1950,16 @@ verification of all five hosted jobs at `cd461c6`. No performance edit was
 justified; tiny clock failures, GCC warnings, and platform-check limitations
 are retained in [the M5 report](docs/M5_VERIFICATION.md). Phase 6's final
 hardening review is now complete. Its release-checklist audit reconciles seven stale
-requirements are checked, inspection is explicitly deferred, and remaining
+requirements, inspection is explicitly deferred, and remaining
 release gates are recorded. GCC warning triage and the tiny timing investigation
 are complete; the latter preserves the explicit failure policy and records its
 native-clock evidence and local regressions. The robustness review also passes
 locally and in hosted CI, adding chunk-boundary faults and protected-buffer tests.
 [M6 closed October 30](docs/M6_VERIFICATION.md) after fresh local checks and all
-five hosted jobs passed at `cace0df`. Next is Phase 7 documentation/release,
-starting with the README and supported workflow/architecture overview. M7
-remains open.
+five hosted jobs passed at `cace0df`. Phase 7's release README is now complete,
+with a verified supported workflow and architecture/ownership overview. Next
+are version finalization and release notes, then final candidate verification
+and authorized publication. M7 remains open.
 
 The **October 25 deadline is the internal deadline**.
 

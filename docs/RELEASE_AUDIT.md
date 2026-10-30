@@ -26,9 +26,11 @@ fills decoding-chunk failure and protected-buffer coverage gaps. Local macOS
 Debug/Release/sanitizer, Linux GCC Debug/Release, and native leak checks pass;
 no production defect was exposed. [Final M6 verification](M6_VERIFICATION.md)
 then passed fresh local checks and all five hosted jobs at `cace0df`, closing
-M6 on October 30. Phase 7 release documentation is next. The original audit
-table below remains a dated snapshot; these follow-ups record completion of
-its scoped work.
+M6 on October 30. The subsequent [release README](../README.md) rewrite now
+passes its [isolated-snapshot recipe checks](verification/2026-10-30-readme.txt).
+Version finalization, release notes, final candidate verification, and publication
+remain open. The original audit table below remains a dated snapshot; these
+follow-ups record completion of its scoped work.
 
 The [roadmap checklist](../ROADMAP.md#16-definition-of-done) now distinguishes
 completed capabilities from remaining release gates and deferred scope. A
@@ -81,8 +83,9 @@ merely to report metadata already derivable from valid layers.
 ## Actual work remaining before release
 
 This table preserves the October 29 audit plan. Its four Phase 6 rows are now
-complete; [M6 verification](M6_VERIFICATION.md) records their results. The three
-Phase 7 rows remain open, with final candidate checks after later changes.
+complete; [M6 verification](M6_VERIFICATION.md) records their results. The Phase 7
+README rewrite is also complete. Its final release-candidate checkout check,
+version/release notes, and publication remain open after later changes.
 
 | Work | Completion evidence needed | Phase |
 | --- | --- | --- |

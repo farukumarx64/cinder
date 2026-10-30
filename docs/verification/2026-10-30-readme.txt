@@ -1,0 +1,107 @@
+Cinder release README verification — October 30, 2026
+
+Runtime/source snapshot: git archive of 9279011004e8b20a6264a1aab832889372b996e7.
+Working-tree README copied into the isolated snapshot before running recipes.
+README SHA-256: e226710e46ce68d5cfee714690dfbf52fa073353553e885757f3785c0d2bedc5
+No C source, public headers, tests, fixtures, version, or build configuration changed.
+No commit, push, release, or new hosted CI run in this documentation step.
+This is an isolated source snapshot, not the final release-candidate clone check.
+Source/build logs: ignored build-readme-verification-20261030/.
+
+Environment: macOS 27.0.1 arm64, Apple Clang 21.0.0, CMake 4.4.4.
+Source snapshot uses the existing .venv via symlink (Python 3.12.14, NumPy 2.3.5, PyTorch 2.14.1).
+No tools/dependencies installed and no dataset downloaded for this verification.
+Build parallelism limited to 4; otherwise the README configuration/test recipes were used.
+CTest runs from each build directory, preserving compatibility with the declared CMake 3.16 minimum.
+Sanitizer env: ASAN_OPTIONS=detect_leaks=0:halt_on_error=1
+               UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
+
+release: configure/build/CTest exit 0; zero compiler warnings.
+100% tests passed out of 38
+Total Test time (real) =  23.37 sec
+
+debug: configure/build/CTest exit 0; zero compiler warnings.
+100% tests passed out of 38
+Total Test time (real) =  29.22 sec
+
+python: configure/build/CTest exit 0; zero compiler warnings.
+100% tests passed out of 47
+Total Test time (real) =  49.69 sec
+
+sanitize: configure/build/CTest exit 0; zero compiler warnings.
+100% tests passed out of 38
+Total Test time (real) =  41.70 sec
+
+version: exit 0
+Cinder 0.1.0-dev
+
+mnist-run: exit 0
+Model: mnist.cnd
+Prediction: 7
+Scores:
+7	0.9978019
+3	0.0018843736
+2	0.000236767111
+
+tiny-run: exit 0
+Model: tiny.cnd
+Prediction: 0
+Scores:
+0	0.904650509
+1	0.0953494608
+
+export-check: exit 0
+Verified identical export: <repo>/build-readme-verification-20261030/source/examples/mnist/mnist.cnd
+
+MNIST bench recipe: exit 0; nine-line report, 1000 measured calls, ten warm-ups.
+Command smoke only: collected during verification, not a new performance baseline.
+Model: mnist.cnd
+Iterations: 1000
+Warm-up iterations: 10
+Clock: monotonic
+Clock resolution (ns): 42
+Mean latency (us): 112.031717
+Minimum latency (us): 108.958
+Maximum latency (us): 202.333
+Throughput (inferences/s): 8926.04368
+
+README native leaks recipe: exit 0
+Model: mnist.cnd
+Prediction: 7
+Scores:
+7	0.9978019
+3	0.0018843736
+2	0.000236767111
+Process 38197 is not debuggable. Due to security restrictions, leaks can only show or save contents of readonly memory of restricted processes.
+
+Process:         cinder [38197]
+Path:            /Users/USER/*/cinder
+Load Address:    0x100e6c000
+Identifier:      cinder
+Version:         0
+Code Type:       ARM64
+Platform:        macOS
+Parent Process:  leaks [38187]
+Target Type:     live task
+
+Date/Time:       2026-10-30 07:57:30.098 +0100
+Launch Time:     2026-10-30 07:57:30.088 +0100
+OS Version:      macOS 27.0.1 (26A434)
+Report Version:  7
+Analysis Tool:   /usr/bin/leaks
+
+Physical footprint:         3424K
+Physical footprint (peak):  3424K
+Idle exit:                  untracked
+----
+
+leaks Report Version: 4.0, multi-line stacks
+Process 38197: 191 nodes malloced for 16 KB
+Process 38197: 0 leaks for 0 total leaked bytes.
+
+Checks: all README shell blocks pass sh -n; linked repository files exist.
+Incoming repository links to README sanitizer-builds and repository-layout anchors remain valid.
+Compiler-independent README facts checked against CMake, model/CLI/benchmark/exporter contracts.
+The clone/package-install instructions and Linux sanitizer command were not re-executed in this macOS snapshot.
+Linux platform results remain the dated M6 CI evidence linked from the README.
+After version finalization, the final release candidate still needs fresh-checkout and CI verification.
