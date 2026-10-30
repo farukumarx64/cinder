@@ -149,7 +149,15 @@ expectations to allow the exact documented zero rejection without retries.
 Release passes 37/37, macOS
 Debug/ASan+UBSan and Linux Release pass 12/12 benchmark tests each, and the
 expanded controlled audit reports zero native leaks. New tests await hosted CI.
-**Next scoped step: review the remaining robustness coverage.** Phase 6 stays
+**Robustness coverage review completed locally October 30, 2026.** The
+[report](docs/ROBUSTNESS_REVIEW.md) maps existing malformed-file, allocation,
+capacity, cleanup, and recovery tests. Add 162 multi-chunk loader failures with
+successful recovery, 2,567 parameter bit comparisons, and protected caller
+buffers at both page edges. No production defect was exposed. Fresh macOS
+Debug passes 47/47; Release and ASan/UBSan pass 38/38 each; Linux GCC Debug/Release
+pass 38/38 each, all warning-free under `-Werror`. Three native leak checks
+report zero. New tests await hosted CI.
+**Next scoped step: verify the resulting revision and close M6.** Phase 6 stays
 open; follow the [remaining work](docs/RELEASE_AUDIT.md#actual-work-remaining-before-release).
 Implement and verify one scoped step at a time.
 
@@ -261,7 +269,7 @@ remain documented in the M3 report.
 - [x] Audit the remaining release checklist on October 29, 2026. Compare all ten unchecked requirements with source, registered tests, and saved M3–M5 evidence; correct seven stale entries, explicitly defer `cinder info`, and preserve open documentation/publication gates. Confirm the existing binary accepts `run`, rejects `info`, and reports `0.1.0-dev`; read-only GitHub checks report no releases or tags. See [the audit and scope decision](docs/RELEASE_AUDIT.md). This documentation step does not close M6.
 - [x] Investigate the Linux GCC warnings locally on October 29, 2026. Reproduce all four groups with Ubuntu 24.04/GCC 13.3: size guards are always false for encoded counts on this host; metadata/output/result warnings reflect initialization facts not established by optimized analysis. Add shared checked byte extents with boundary tests, defined snapshots, NaN-poisoned test output, and an invalid initial benchmark result. No reachable uninitialized read or allocation overflow was found in these paths. Linux Debug/Release pass 37/37 each; macOS Debug 46/46, Release and ASan/UBSan 37/37 each, all warning-free under `-Werror`; three native leak checks report zero. Numerical/lifecycle/allocation checks pass. See [the investigation and limitations](docs/GCC_WARNINGS.md); all five subsequent hosted jobs passed at `fb9a655`, while final M6 verification of later edits remains open.
 - [x] Investigate tiny-model timing reliability on October 29, 2026. Preserve all 72 diagnostic attempts: original/current/probe tiny runs reject 19/20, 20/20, and 19/20 times; all nine MNIST attempts pass. All 19 instrumented tiny rejections capture exactly equal native start/end timestamps with correct outputs and no published result. The native timebase is 125/3 ns, with reported resolution 42 ns and observed 41/42 ns increments. No timer arithmetic/loop defect was found; retain explicit zero rejection and the unchanged measurement contract. Add controlled 41/42 ns and failures at calls 9853, 37270, and 100000; verify immediate stopping, result/report preservation, cleanup, and recovery. Correct native CLI smoke expectations to accept only a valid report or the exact in-range zero-interval rejection, with no retries; a constant-clock control passes all 133 process cases including seven zero rejections. Release passes 37/37; macOS Debug/ASan+UBSan and Linux Release each pass 12/12 benchmark tests, with zero native leaks in the controlled audit. See [evidence, limits, and future batching requirements](docs/TIMING_INVESTIGATION.md). New test additions await hosted CI; M6 stays open.
-- [ ] Review the remaining robustness coverage. Map invalid models, dimensions, capacities, corrupted/truncated files, versions, allocation/I/O failures, cleanup, and recovery to existing tests; add focused tests/fixes for demonstrated gaps.
+- [x] Review the remaining robustness coverage locally on October 30, 2026. Map invalid models, dimensions, capacities, malformed files, allocation/I/O failures, cleanup, and recovery to existing tests. Add 162 failures/retries across 4 KiB decoder chunks, 2,567 parameter bit comparisons, and protected-page caller-buffer checks on macOS/Linux. No production defect was exposed. Fresh macOS Debug passes 47/47, Release/ASan+UBSan 38/38 each, Linux GCC Debug/Release 38/38 each, with zero build warnings under `-Werror`; three native leak checks report zero. Preserve caller-pointer/lifetime/concurrency preconditions and platform limits. See [coverage and evidence](docs/ROBUSTNESS_REVIEW.md). Hosted verification of these changes remains pending.
 - [ ] Verify the resulting revision and close M6. Run Debug/Release, numerical/lifecycle tests, ASan/UBSan, supported leak checks, and macOS/Linux CI; record actual results, warning dispositions, and remaining limitations.
 
 ---
@@ -1469,8 +1477,9 @@ phase remains open. The [release-checklist audit](docs/RELEASE_AUDIT.md) is
 complete and `cinder info` is deferred. The [GCC warning investigation](docs/GCC_WARNINGS.md)
 also passes locally and in hosted CI. The [tiny timing investigation](docs/TIMING_INVESTIGATION.md)
 retains explicit rejection for unresolved native clock intervals and adds local
-regression coverage. Next, review remaining robustness coverage; hosted
-verification of the resulting revision remains required.
+regression coverage. The [robustness review](docs/ROBUSTNESS_REVIEW.md) now adds
+multi-chunk loader faults and protected caller-buffer tests, all passing locally.
+Next is final M6 verification; hosted checks of the resulting revision remain required.
 The [Phase 6 checklist](#phase-6-checklist) records these scoped steps. Change
 behavior only for demonstrated defects or an explicitly revised contract.
 
@@ -1919,8 +1928,10 @@ final hardening review. Its release-checklist audit is complete: seven stale
 requirements are checked, inspection is explicitly deferred, and remaining
 release gates are recorded. GCC warning triage and the tiny timing investigation
 are complete; the latter preserves the explicit failure policy and records its
-native-clock evidence and local regressions. Next is robustness review and final
-M6 verification. Phase 7 documentation/release remains afterward; both phases
+native-clock evidence and local regressions. The robustness review also passes
+locally, adding chunk-boundary faults and protected-buffer tests. Next is final
+M6 verification, including hosted CI for the resulting revision. Phase 7
+documentation/release remains afterward; both phases
 remain open.
 
 The **October 25 deadline is the internal deadline**.

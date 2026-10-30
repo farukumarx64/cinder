@@ -259,7 +259,7 @@ static void audit_reset(void)
     audit_size_max = audit_native_size_max;
 }
 
-static void audit_retry(const char *path)
+static void audit_retry_known(const char *path, const float expected[2])
 {
     audit_reset();
     cinder_model_t *model = load_ok(path, true);
@@ -268,11 +268,17 @@ static void audit_retry(const char *path)
     const float input[] = {2.0f, -1.0f};
     float output[2];
     AUDIT_CHECK(cinder_model_run(model, input, 2, output, 2, NULL) == CINDER_OK);
-    AUDIT_CHECK(fabsf(output[0] - 0.904650509f) < 1e-6f);
-    AUDIT_CHECK(fabsf(output[1] - 0.0953494608f) < 1e-6f);
+    AUDIT_CHECK(fabsf(output[0] - expected[0]) < 1e-6f);
+    AUDIT_CHECK(fabsf(output[1] - expected[1]) < 1e-6f);
     AUDIT_CHECK(audit_allocations == allocations && audit_frees == frees);
     cinder_model_free(model);
     AUDIT_CHECK(audit_live == 0 && audit_bytes == 0 && audit_frees == audit_allocations);
+}
+
+static void audit_retry(const char *path)
+{
+    const float expected[] = {0.904650509f, 0.0953494608f};
+    audit_retry_known(path, expected);
 }
 
 static cinder_error_t audit_expect_failure(const char *path, cinder_status_t expected, bool details)
@@ -576,6 +582,148 @@ static void audit_loaded_lifecycle(const char *path)
          "unchanged parameters, and 42 allocation failures with a surviving model and successful retry.");
 }
 
+/* Both Dense payloads cross the loader's 4096-byte decoding boundary. Unlike
+ * the tiny fixture, later reads can fail after a chunk has already been decoded
+ * and, for the second Dense, after earlier layers have been constructed. */
+static void audit_chunk_boundaries(const char *scratch)
+{
+    enum { WIDTH = 513, FIRST_COUNT = 1539, SECOND_COUNT = 1028,
+           FIRST_START = 32, SECOND_START = 6220, FILE_BYTES = 10348 };
+    unsigned char bytes[FILE_BYTES] = {0};
+    const float expected[] = {3.75f, 0.0f};
+    make_header(bytes, 2, 4);
+    make_record(bytes, 16, 1, 2, WIDTH, FIRST_COUNT * 4);
+    make_record(bytes, 6188, 2, WIDTH, WIDTH, 0);
+    make_record(bytes, 6204, 1, WIDTH, 2, SECOND_COUNT * 4);
+    make_record(bytes, 10332, 2, 2, 2, 0);
+    for (size_t row = 0; row < WIDTH; ++row) {
+        put_u32(bytes, FIRST_START + row * 8, UINT32_C(0x3f800000)); /* [1, 0] */
+        float bias = (float)row / 1024.0f;
+        uint32_t bits;
+        memcpy(&bits, &bias, sizeof(bits));
+        put_u32(bytes, FIRST_START + (WIDTH * 2 + row) * 4, bits);
+    }
+    put_u32(bytes, SECOND_START, UINT32_C(0x3f000000)); /* row 0, col 0: .5 */
+    put_u32(bytes, SECOND_START + 512 * 4, UINT32_C(0x3f800000));
+    put_u32(bytes, SECOND_START + (WIDTH + 1) * 4, UINT32_C(0xbf800000));
+    put_u32(bytes, SECOND_START + (WIDTH + 512) * 4, UINT32_C(0x3e800000));
+    put_u32(bytes, SECOND_START + WIDTH * 2 * 4, UINT32_C(0x3e800000));
+    put_u32(bytes, SECOND_START + (WIDTH * 2 + 1) * 4, UINT32_C(0xbf000000));
+    write_file(scratch, bytes, sizeof(bytes));
+    audit_retry_known(scratch, expected);
+    AUDIT_CHECK(audit_reads == 9 && audit_allocations == 21);
+
+    /* Check every decoded bit, including values unused by the known-output
+     * calculation. A skipped, shifted, or duplicated chunk must not pass. */
+    audit_reset();
+    cinder_model_t *model = load_ok(scratch, true);
+    const size_t starts[] = {FIRST_START, SECOND_START};
+    const size_t counts[] = {FIRST_COUNT, SECOND_COUNT};
+    for (size_t layer = 0; layer < 2; ++layer) {
+        const cinder_dense_t *dense = model->layers[layer * 2]->dense;
+        size_t weights = dense->input_size * dense->output_size;
+        for (size_t i = 0; i < counts[layer]; ++i) {
+            const float *value = i < weights ? dense->weights->data + i
+                                            : dense->bias->data + i - weights;
+            uint32_t bits;
+            memcpy(&bits, value, sizeof(bits));
+            const unsigned char *encoded = bytes + starts[layer] + i * 4;
+            for (size_t byte = 0; byte < 4; ++byte) {
+                AUDIT_CHECK(encoded[byte] == (unsigned char)(bits >> (8 * byte)));
+            }
+        }
+    }
+    cinder_model_free(model);
+    AUDIT_CHECK(audit_allocations == audit_frees);
+
+    size_t rejections_before = audit_rejections;
+    const uint32_t nonfinite[] = {UINT32_C(0x7f800000), UINT32_C(0xff800000),
+                                 UINT32_C(0x7fc00001), UINT32_C(0x7f800001)};
+    for (size_t layer = 0; layer < 2; ++layer) {
+        const size_t positions[] = {1023, 1024, 1025, 1026, counts[layer] - 1};
+        for (size_t p = 0; p < AUDIT_COUNT(positions); ++p) {
+            size_t offset = starts[layer] + positions[p] * 4;
+            unsigned char saved[4];
+            memcpy(saved, bytes + offset, sizeof(saved));
+            for (size_t value = 0; value < AUDIT_COUNT(nonfinite); ++value) {
+                put_u32(bytes, offset, nonfinite[value]);
+                for (int details = 0; details < 2; ++details) {
+                    write_file(scratch, bytes, sizeof(bytes));
+                    audit_reset();
+                    cinder_error_t error = audit_expect_failure(scratch, CINDER_ERROR_NONFINITE, details != 0);
+                    AUDIT_CHECK(audit_closes == 1 && audit_model_creates == 0);
+                    if (details) {
+                        char location[80];
+                        int n = snprintf(location, sizeof(location), "Layer %zu at byte %zu:", layer * 2, offset);
+                        AUDIT_CHECK(n > 0 && (size_t)n < sizeof(location));
+                        AUDIT_CHECK(strncmp(error.message, location, (size_t)n) == 0);
+                    }
+                    memcpy(bytes + offset, saved, sizeof(saved));
+                    write_file(scratch, bytes, sizeof(bytes));
+                    audit_retry_known(scratch, expected);
+                    put_u32(bytes, offset, nonfinite[value]);
+                }
+            }
+            memcpy(bytes + offset, saved, sizeof(saved));
+        }
+    }
+
+    /* A physically short file is rejected by the payload-availability guard.
+     * Injected short reads below exercise failure *inside* the chunk loop. */
+    for (size_t layer = 0; layer < 2; ++layer) {
+        const size_t lengths[] = {starts[layer] + 4095, starts[layer] + 4096,
+                                  starts[layer] + 4097, starts[layer] + counts[layer] * 4 - 1};
+        for (size_t i = 0; i < AUDIT_COUNT(lengths); ++i) {
+            for (int details = 0; details < 2; ++details) {
+                write_file(scratch, bytes, lengths[i]);
+                audit_reset();
+                (void)audit_expect_failure(scratch, CINDER_ERROR_FORMAT, details != 0);
+                AUDIT_CHECK(audit_closes == 1 && audit_model_creates == 0);
+                write_file(scratch, bytes, sizeof(bytes));
+                audit_retry_known(scratch, expected);
+            }
+        }
+    }
+    const size_t reads[] = {3, 4, 7, 8};
+    const size_t ends[] = {FIRST_START + 4096, FIRST_START + FIRST_COUNT * 4,
+                          SECOND_START + 4096, SECOND_START + SECOND_COUNT * 4};
+    for (size_t i = 0; i < AUDIT_COUNT(reads); ++i) {
+        for (enum audit_read_fault mode = AUDIT_READ_ERROR; mode <= AUDIT_READ_NEITHER; ++mode) {
+            for (int details = 0; details < 2; ++details) {
+                audit_reset();
+                audit_fail_read = reads[i];
+                audit_read_fault = mode;
+                cinder_error_t error = audit_expect_failure(scratch,
+                    mode == AUDIT_READ_EOF ? CINDER_ERROR_FORMAT : CINDER_ERROR_IO, details != 0);
+                AUDIT_CHECK(audit_reads == reads[i] && audit_read_injected);
+                AUDIT_CHECK(audit_closes == 1 && audit_model_creates == 0);
+                if (details) {
+                    char location[80];
+                    int n = snprintf(location, sizeof(location), "Layer %zu at byte %zu:",
+                                     i < 2 ? (size_t)0 : (size_t)2, ends[i] - 1);
+                    AUDIT_CHECK(n > 0 && (size_t)n < sizeof(location));
+                    AUDIT_CHECK(strncmp(error.message, location, (size_t)n) == 0);
+                }
+                audit_retry_known(scratch, expected);
+            }
+        }
+    }
+    for (size_t fail = 1; fail <= 21; ++fail) {
+        for (int details = 0; details < 2; ++details) {
+            audit_reset();
+            audit_fail_allocation = fail;
+            (void)audit_expect_failure(scratch, CINDER_ERROR_ALLOCATION, details != 0);
+            AUDIT_CHECK(audit_allocations == fail && audit_closes == 1);
+            audit_retry_known(scratch, expected);
+        }
+    }
+    AUDIT_CHECK(remove(scratch) == 0);
+    printf("Audit: chunk boundaries: 2567 parameter bit comparisons; %zu failures "
+           "(80 non-finite, 16 truncation, 24 short-read, 42 allocation), each followed by successful load/inference/free.\n",
+           audit_rejections - rejections_before);
+    AUDIT_CHECK(audit_rejections - rejections_before == 162);
+}
+
 int main(int argc, char **argv)
 {
     AUDIT_CHECK(argc == 3);
@@ -589,6 +737,7 @@ int main(int argc, char **argv)
     audit_native_overflow(argv[1]);
     audit_parameter_bits(argv[2]);
     audit_loaded_lifecycle(argv[1]);
+    audit_chunk_boundaries(argv[2]);
     audit_reset();
     printf("Audit: %zu rejected calls checked for NULL output, unchanged prior owners, zero new live blocks, and no retained stream.\n",
            audit_rejections);

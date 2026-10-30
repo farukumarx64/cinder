@@ -1,0 +1,204 @@
+Cinder robustness coverage — October 30, 2026
+
+Base commit: ec2b69cfe612ac0101a19935cfcb5f26adce320b
+Verified: working-tree tests/CMake changes identified by SHA-256 below.
+Production source and public contracts are unchanged. No hosted CI/publication in this step.
+
+71752f859ba835887138f75902ec78c0e85dd795ebf74b1c093b09827e88f5df  CMakeLists.txt
+d1ca2de61e964d422d59aa48e04d29d680606c452955bedcc1072284be6a9144  tests/test_loader_failures.c
+7e7ac7cb1a9df7dc34477de22bf260b2098319d5fe4d161cd3c3853bb8177006  tests/test_buffer_boundaries.c
+
+MACOS ENVIRONMENT
+ProductName:		macOS
+ProductVersion:		27.0.1
+BuildVersion:		26A434
+arm64
+Apple clang version 21.0.0 (clang-2100.3.34.2)
+Target: arm64-apple-darwin27.0.0
+Thread model: posix
+InstalledDir: /Library/Developer/CommandLineTools/usr/bin
+cmake version 4.4.4
+
+CMake suite maintained and supported by Kitware (kitware.com/cmake).
+
+LINUX ENVIRONMENT (offline Docker linux/amd64; emulated on Apple M4)
+Linux f645cd1431d1 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux
+PRETTY_NAME="Ubuntu 24.04.5 LTS"
+NAME="Ubuntu"
+VERSION_ID="24.04"
+VERSION="24.04.5 LTS (Noble Numbat)"
+VERSION_CODENAME=noble
+ID=ubuntu
+ID_LIKE=debian
+HOME_URL="https://www.ubuntu.com/"
+SUPPORT_URL="https://help.ubuntu.com/"
+BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"
+PRIVACY_POLICY_URL="https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"
+UBUNTU_CODENAME=noble
+LOGO=ubuntu-logo
+gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+Copyright (C) 2023 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+cmake version 3.28.3
+
+CMake suite maintained and supported by Kitware (kitware.com/cmake).
+
+CONFIGURATION
+All five builds: C11, -Wall -Wextra -Wpedantic -Werror, BUILD_TESTING=ON.
+Debug: -g. Release: -O3 -DNDEBUG. Sanitizers: Debug, ASan + UBSan.
+mac-Debug additionally enables NumPy/exporter/offline MNIST Python tests using .venv/bin/python.
+Other builds use C tests and committed fixtures only; Docker runs with --network none.
+ASAN_OPTIONS=detect_leaks=0:halt_on_error=1
+UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
+
+mac-Debug: configure/build/CTest exit 0; 0 build warnings, 0 build errors.
+11: Benchmark acceptance MNIST: real model/CLI, deterministic clock/report, faults and recovery; zero retained blocks/bytes/files.
+19: Protected buffers: both page edges passed; read-only inputs/parameters, exact capacities, constructor copies, kernels/layers/models, rejection and recovery; all mappings released.
+21: Audit: all 21 allocation points failed individually, with/without details and successful retry.
+21: Audit: 29 file-failure scenarios, each with/without details and successful retry.
+21: Audit: native byte extents passed zero/one/exact-limit/overflow checks, preserved output on failure, and performed no allocations.
+21: Audit: loaded lifecycle passed: 284 poisoned-buffer success/failure/recovery cycles (852 inference calls), zero inference allocations/frees or loader I/O, unchanged parameters, and 42 allocation failures with a surviving model and successful retry.
+21: Audit: chunk boundaries: 2567 parameter bit comparisons; 162 failures (80 non-finite, 16 truncation, 24 short-read, 42 allocation), each followed by successful load/inference/free.
+21: Audit: 1766 rejected calls checked for NULL output, unchanged prior owners, zero new live blocks, and no retained stream.
+29: dense1: 10 vectors / 40 values, max absolute error 0.
+29: relu: 10 vectors / 40 values, max absolute error 0.
+29: logits: 10 vectors / 20 values, max absolute error 0.
+30: dense1: 100 vectors / 12800 values, max absolute error 6.19888306e-06, max fraction of tolerance 0.178311515.
+30: relu: 100 vectors / 12800 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.178311515.
+30: logits: 100 vectors / 1000 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.176519426.
+30: probabilities: 100 vectors / 1000 values, max absolute error 3.57627869e-07, max fraction of tolerance 0.0287552465.
+30: MNIST: 400 vectors / 27600 values passed (atol = rtol = 1e-5).
+30: Runtime prediction agreement (C vs saved Python): 100/100.
+31: MNIST audit: 104 successful loads, 62 rejected loads, 300 cycles / 1384 inference calls; poisoned 784-float workspaces, partial-write failures at all four layers, unchanged parameters, zero allocations/frees or loader I/O during cycles, all 21 allocation points failed twice, and zero final live blocks/bytes/streams.
+39: dense1: 10 vectors / 40 values, max absolute error 0.
+39: relu: 10 vectors / 40 values, max absolute error 0.
+39: logits: 10 vectors / 20 values, max absolute error 0.
+43: dense1: 100 vectors / 12800 values, max absolute error 6.19888306e-06, max fraction of tolerance 0.178311515.
+43: relu: 100 vectors / 12800 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.178311515.
+43: logits: 100 vectors / 1000 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.176519426.
+43: probabilities: 100 vectors / 1000 values, max absolute error 3.57627869e-07, max fraction of tolerance 0.0287552465.
+43: MNIST: 400 vectors / 27600 values passed (atol = rtol = 1e-5).
+43: Runtime prediction agreement (C vs saved Python): 100/100.
+45: Dense allocation tests passed: all five failures and allocation-free forward calls.
+46: Layer allocation tests passed: six Dense failures, one per activation, no working allocations.
+47: Model storage tests passed: allocation rollback, ownership, buffer reuse, and allocation-free inference.
+100% tests passed out of 47
+Total Test time (real) =  48.57 sec
+
+mac-Release: configure/build/CTest exit 0; 0 build warnings, 0 build errors.
+11: Benchmark acceptance MNIST: real model/CLI, deterministic clock/report, faults and recovery; zero retained blocks/bytes/files.
+19: Protected buffers: both page edges passed; read-only inputs/parameters, exact capacities, constructor copies, kernels/layers/models, rejection and recovery; all mappings released.
+21: Audit: all 21 allocation points failed individually, with/without details and successful retry.
+21: Audit: 29 file-failure scenarios, each with/without details and successful retry.
+21: Audit: native byte extents passed zero/one/exact-limit/overflow checks, preserved output on failure, and performed no allocations.
+21: Audit: loaded lifecycle passed: 284 poisoned-buffer success/failure/recovery cycles (852 inference calls), zero inference allocations/frees or loader I/O, unchanged parameters, and 42 allocation failures with a surviving model and successful retry.
+21: Audit: chunk boundaries: 2567 parameter bit comparisons; 162 failures (80 non-finite, 16 truncation, 24 short-read, 42 allocation), each followed by successful load/inference/free.
+21: Audit: 1766 rejected calls checked for NULL output, unchanged prior owners, zero new live blocks, and no retained stream.
+29: dense1: 10 vectors / 40 values, max absolute error 0.
+29: relu: 10 vectors / 40 values, max absolute error 0.
+29: logits: 10 vectors / 20 values, max absolute error 0.
+30: dense1: 100 vectors / 12800 values, max absolute error 6.19888306e-06, max fraction of tolerance 0.178311515.
+30: relu: 100 vectors / 12800 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.178311515.
+30: logits: 100 vectors / 1000 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.176519426.
+30: probabilities: 100 vectors / 1000 values, max absolute error 3.57627869e-07, max fraction of tolerance 0.0287552465.
+30: MNIST: 400 vectors / 27600 values passed (atol = rtol = 1e-5).
+30: Runtime prediction agreement (C vs saved Python): 100/100.
+31: MNIST audit: 104 successful loads, 62 rejected loads, 300 cycles / 1384 inference calls; poisoned 784-float workspaces, partial-write failures at all four layers, unchanged parameters, zero allocations/frees or loader I/O during cycles, all 21 allocation points failed twice, and zero final live blocks/bytes/streams.
+36: Dense allocation tests passed: all five failures and allocation-free forward calls.
+37: Layer allocation tests passed: six Dense failures, one per activation, no working allocations.
+38: Model storage tests passed: allocation rollback, ownership, buffer reuse, and allocation-free inference.
+100% tests passed out of 38
+Total Test time (real) =  23.22 sec
+
+mac-Sanitize: configure/build/CTest exit 0; 0 build warnings, 0 build errors.
+11: Benchmark acceptance MNIST: real model/CLI, deterministic clock/report, faults and recovery; zero retained blocks/bytes/files.
+19: Protected buffers: both page edges passed; read-only inputs/parameters, exact capacities, constructor copies, kernels/layers/models, rejection and recovery; all mappings released.
+21: Audit: all 21 allocation points failed individually, with/without details and successful retry.
+21: Audit: 29 file-failure scenarios, each with/without details and successful retry.
+21: Audit: native byte extents passed zero/one/exact-limit/overflow checks, preserved output on failure, and performed no allocations.
+21: Audit: loaded lifecycle passed: 284 poisoned-buffer success/failure/recovery cycles (852 inference calls), zero inference allocations/frees or loader I/O, unchanged parameters, and 42 allocation failures with a surviving model and successful retry.
+21: Audit: chunk boundaries: 2567 parameter bit comparisons; 162 failures (80 non-finite, 16 truncation, 24 short-read, 42 allocation), each followed by successful load/inference/free.
+21: Audit: 1766 rejected calls checked for NULL output, unchanged prior owners, zero new live blocks, and no retained stream.
+29: dense1: 10 vectors / 40 values, max absolute error 0.
+29: relu: 10 vectors / 40 values, max absolute error 0.
+29: logits: 10 vectors / 20 values, max absolute error 0.
+30: dense1: 100 vectors / 12800 values, max absolute error 6.19888306e-06, max fraction of tolerance 0.178311515.
+30: relu: 100 vectors / 12800 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.178311515.
+30: logits: 100 vectors / 1000 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.176519426.
+30: probabilities: 100 vectors / 1000 values, max absolute error 3.57627869e-07, max fraction of tolerance 0.0287552465.
+30: MNIST: 400 vectors / 27600 values passed (atol = rtol = 1e-5).
+30: Runtime prediction agreement (C vs saved Python): 100/100.
+31: MNIST audit: 104 successful loads, 62 rejected loads, 300 cycles / 1384 inference calls; poisoned 784-float workspaces, partial-write failures at all four layers, unchanged parameters, zero allocations/frees or loader I/O during cycles, all 21 allocation points failed twice, and zero final live blocks/bytes/streams.
+36: Dense allocation tests passed: all five failures and allocation-free forward calls.
+37: Layer allocation tests passed: six Dense failures, one per activation, no working allocations.
+38: Model storage tests passed: allocation rollback, ownership, buffer reuse, and allocation-free inference.
+100% tests passed out of 38
+Total Test time (real) =  42.60 sec
+
+linux-Debug: configure/build/CTest exit 0; 0 build warnings, 0 build errors.
+11: Benchmark acceptance MNIST: real model/CLI, deterministic clock/report, faults and recovery; zero retained blocks/bytes/files.
+19: Protected buffers: both page edges passed; read-only inputs/parameters, exact capacities, constructor copies, kernels/layers/models, rejection and recovery; all mappings released.
+21: Audit: all 21 allocation points failed individually, with/without details and successful retry.
+21: Audit: 29 file-failure scenarios, each with/without details and successful retry.
+21: Audit: native byte extents passed zero/one/exact-limit/overflow checks, preserved output on failure, and performed no allocations.
+21: Audit: loaded lifecycle passed: 284 poisoned-buffer success/failure/recovery cycles (852 inference calls), zero inference allocations/frees or loader I/O, unchanged parameters, and 42 allocation failures with a surviving model and successful retry.
+21: Audit: chunk boundaries: 2567 parameter bit comparisons; 162 failures (80 non-finite, 16 truncation, 24 short-read, 42 allocation), each followed by successful load/inference/free.
+21: Audit: 1766 rejected calls checked for NULL output, unchanged prior owners, zero new live blocks, and no retained stream.
+29: dense1: 10 vectors / 40 values, max absolute error 0.
+29: relu: 10 vectors / 40 values, max absolute error 0.
+29: logits: 10 vectors / 20 values, max absolute error 0.
+30: dense1: 100 vectors / 12800 values, max absolute error 6.67572021e-06, max fraction of tolerance 0.178311515.
+30: relu: 100 vectors / 12800 values, max absolute error 4.76837158e-06, max fraction of tolerance 0.178311515.
+30: logits: 100 vectors / 1000 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.206670881.
+30: probabilities: 100 vectors / 1000 values, max absolute error 3.57627869e-07, max fraction of tolerance 0.0287552465.
+30: MNIST: 400 vectors / 27600 values passed (atol = rtol = 1e-5).
+30: Runtime prediction agreement (C vs saved Python): 100/100.
+31: MNIST audit: 104 successful loads, 62 rejected loads, 300 cycles / 1384 inference calls; poisoned 784-float workspaces, partial-write failures at all four layers, unchanged parameters, zero allocations/frees or loader I/O during cycles, all 21 allocation points failed twice, and zero final live blocks/bytes/streams.
+36: Dense allocation tests passed: all five failures and allocation-free forward calls.
+37: Layer allocation tests passed: six Dense failures, one per activation, no working allocations.
+38: Model storage tests passed: allocation rollback, ownership, buffer reuse, and allocation-free inference.
+100% tests passed, 0 tests failed out of 38
+Total Test time (real) =  11.05 sec
+
+linux-Release: configure/build/CTest exit 0; 0 build warnings, 0 build errors.
+11: Benchmark acceptance MNIST: real model/CLI, deterministic clock/report, faults and recovery; zero retained blocks/bytes/files.
+19: Protected buffers: both page edges passed; read-only inputs/parameters, exact capacities, constructor copies, kernels/layers/models, rejection and recovery; all mappings released.
+21: Audit: all 21 allocation points failed individually, with/without details and successful retry.
+21: Audit: 29 file-failure scenarios, each with/without details and successful retry.
+21: Audit: native byte extents passed zero/one/exact-limit/overflow checks, preserved output on failure, and performed no allocations.
+21: Audit: loaded lifecycle passed: 284 poisoned-buffer success/failure/recovery cycles (852 inference calls), zero inference allocations/frees or loader I/O, unchanged parameters, and 42 allocation failures with a surviving model and successful retry.
+21: Audit: chunk boundaries: 2567 parameter bit comparisons; 162 failures (80 non-finite, 16 truncation, 24 short-read, 42 allocation), each followed by successful load/inference/free.
+21: Audit: 1766 rejected calls checked for NULL output, unchanged prior owners, zero new live blocks, and no retained stream.
+29: dense1: 10 vectors / 40 values, max absolute error 0.
+29: relu: 10 vectors / 40 values, max absolute error 0.
+29: logits: 10 vectors / 20 values, max absolute error 0.
+30: dense1: 100 vectors / 12800 values, max absolute error 6.67572021e-06, max fraction of tolerance 0.178311515.
+30: relu: 100 vectors / 12800 values, max absolute error 4.76837158e-06, max fraction of tolerance 0.178311515.
+30: logits: 100 vectors / 1000 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.206670881.
+30: probabilities: 100 vectors / 1000 values, max absolute error 3.57627869e-07, max fraction of tolerance 0.0287552465.
+30: MNIST: 400 vectors / 27600 values passed (atol = rtol = 1e-5).
+30: Runtime prediction agreement (C vs saved Python): 100/100.
+31: MNIST audit: 104 successful loads, 62 rejected loads, 300 cycles / 1384 inference calls; poisoned 784-float workspaces, partial-write failures at all four layers, unchanged parameters, zero allocations/frees or loader I/O during cycles, all 21 allocation points failed twice, and zero final live blocks/bytes/streams.
+36: Dense allocation tests passed: all five failures and allocation-free forward calls.
+37: Layer allocation tests passed: six Dense failures, one per activation, no working allocations.
+38: Model storage tests passed: allocation rollback, ownership, buffer reuse, and allocation-free inference.
+100% tests passed, 0 tests failed out of 38
+Total Test time (real) =   5.51 sec
+
+NATIVE LEAK CHECK: loader; exit 0
+Process 4851 is not debuggable. Due to security restrictions, leaks can only show or save contents of readonly memory of restricted processes.
+Process 4851: 0 leaks for 0 total leaked bytes.
+
+NATIVE LEAK CHECK: boundaries; exit 0
+Process 4828 is not debuggable. Due to security restrictions, leaks can only show or save contents of readonly memory of restricted processes.
+Process 4828: 0 leaks for 0 total leaked bytes.
+
+NATIVE LEAK CHECK: input; exit 0
+Process 4853 is not debuggable. Due to security restrictions, leaks can only show or save contents of readonly memory of restricted processes.
+Process 4853: 0 leaks for 0 total leaked bytes.
+
+M6 remains open: hosted macOS/Linux verification of the resulting committed revision is pending.
+These deterministic tests are not exhaustive fuzzing or arbitrary-pointer/lifetime validation.
+Guard-page mappings are checked with munmap; heap leak tools alone do not audit mappings.

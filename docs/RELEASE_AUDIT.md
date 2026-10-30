@@ -18,8 +18,14 @@ That report identifies the changed code and its separate evidence. The audit
 snapshot below retains the work and evidence as they stood before that step;
 tiny timing reliability was the next scoped step. The subsequent
 [timing investigation](TIMING_INVESTIGATION.md) also completes locally, retaining
-explicit failure for equal native timestamps. Remaining robustness review is
-now next, and final verification of the resulting revision remains open.
+explicit failure for equal native timestamps.
+
+**Subsequent follow-up, October 30:** the [robustness review](ROBUSTNESS_REVIEW.md)
+fills decoding-chunk failure and protected-buffer coverage gaps. Local macOS
+Debug/Release/sanitizer, Linux GCC Debug/Release, and native leak checks pass;
+no production defect was exposed. Final M6 verification, including hosted CI
+for the resulting revision, is now next. The original audit table below remains
+a dated snapshot; these follow-ups record completion of its scoped work.
 
 The [roadmap checklist](../ROADMAP.md#16-definition-of-done) now distinguishes
 completed capabilities from remaining release gates and deferred scope. A

@@ -270,6 +270,22 @@ if(BUILD_TESTING)
     cinder_configure_target(test_model_run)
     add_test(NAME model_run COMMAND test_model_run)
 
+    # Guard pages catch reads as well as writes beyond caller buffers. Keep the
+    # POSIX mapping feature selection local to this macOS/Linux test target.
+    if(APPLE OR CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        add_executable(test_buffer_boundaries tests/test_buffer_boundaries.c)
+        target_link_libraries(test_buffer_boundaries PRIVATE cinder_core)
+        target_compile_definitions(test_buffer_boundaries PRIVATE _POSIX_C_SOURCE=200809L)
+        if(APPLE)
+            target_compile_definitions(test_buffer_boundaries PRIVATE _DARWIN_C_SOURCE)
+        else()
+            target_compile_definitions(test_buffer_boundaries PRIVATE _DEFAULT_SOURCE)
+        endif()
+        cinder_configure_target(test_buffer_boundaries)
+        add_test(NAME buffer_boundaries COMMAND test_buffer_boundaries)
+        set_tests_properties(buffer_boundaries PROPERTIES TIMEOUT 10)
+    endif()
+
     add_executable(test_model_load tests/test_model_load.c)
     target_include_directories(test_model_load PRIVATE "${PROJECT_SOURCE_DIR}/tests/fixtures")
     target_link_libraries(test_model_load PRIVATE cinder_core)

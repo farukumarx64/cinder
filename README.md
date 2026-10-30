@@ -71,9 +71,11 @@ checklist: seven stale entries are satisfied; `cinder info` is explicitly
 GCC 13.3 Debug/Release builds pass with zero warnings under `-Werror`.
 The [tiny-model timing investigation](docs/TIMING_INVESTIGATION.md) now captures
 equal native clock readings and preserves explicit failure for unresolved
-per-call timings. Next is the remaining robustness-coverage review; final
-verification, README review, release version/notes, fresh-checkout verification,
-and publication remain pending.
+per-call timings. The [robustness review](docs/ROBUSTNESS_REVIEW.md) adds decoder
+chunk-boundary failures and protected caller-buffer tests, with fresh local
+Debug/Release, sanitizer, Linux GCC, and native leak checks passing. Final M6
+verification including hosted CI, README review, release version/notes,
+fresh-checkout verification, and publication remain pending.
 
 - C11 compilation with `-Wall`, `-Wextra`, and `-Wpedantic` is configured.
 - A local Git repository on `main` tracks source and documentation. Generated
@@ -877,8 +879,9 @@ a tiny-model timing failure. The [evaluation](docs/M5_VERIFICATION.md) retains
 the implementation: an identical-executable repeat shows variation without a
 code change, numerical/allocation checks pass, and hosted CI verifies the
 unchanged implementation on both platforms. M5 closed October 29. The Phase 6
-release-checklist audit, GCC warning investigation, and tiny timing investigation
-are complete. Next is the remaining robustness review. See the
+release-checklist audit, GCC warning investigation, tiny timing investigation,
+and [robustness coverage review](docs/ROBUSTNESS_REVIEW.md) are complete locally.
+Next is final M6 verification of the resulting revision, including hosted CI. See the
 [release gates](ROADMAP.md#remaining-release-gates); M6 and M7 remain open.
 
 The v0.1.0 scope excludes training, GPU execution, convolutional layers,
