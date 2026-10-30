@@ -1,6 +1,7 @@
 # v0.1.0 release checklist audit — October 29, 2026
 
-**Audit complete; Phase 6 and the release remain open.** Of the ten unchecked
+**Audit complete.** Phase 6 and the release were open at this October 29
+snapshot; subsequent M6 closure is recorded below. Of the ten unchecked
 items in the original Definition of Done, seven already have implementation or
 documentation evidence, one (`cinder info`) is explicitly deferred beyond
 v0.1.0, and two remain open: the final README review and the GitHub release.
@@ -8,7 +9,7 @@ v0.1.0, and two remain open: the final README review and the GitHub release.
 This audit starts at `ecb2ff1` (M5 evaluation/closure). Runtime, headers, tests,
 exporter/example sources, CMake, and the CI workflow are unchanged from hosted
 revision `cd461c696aea932e6ea53e4093008d6463c42fa9`. The [M5 verification report](M5_VERIFICATION.md)
-and its saved logs remain the latest full-suite evidence: local Debug 46/46,
+and its saved logs were then the latest full-suite evidence: local Debug 46/46,
 Release and ASan/UBSan 37/37 each, four zero-leak native checks, and five passing
 hosted jobs. This documentation audit does not claim a new full-suite or CI run.
 
@@ -23,9 +24,11 @@ explicit failure for equal native timestamps.
 **Subsequent follow-up, October 30:** the [robustness review](ROBUSTNESS_REVIEW.md)
 fills decoding-chunk failure and protected-buffer coverage gaps. Local macOS
 Debug/Release/sanitizer, Linux GCC Debug/Release, and native leak checks pass;
-no production defect was exposed. Final M6 verification, including hosted CI
-for the resulting revision, is now next. The original audit table below remains
-a dated snapshot; these follow-ups record completion of its scoped work.
+no production defect was exposed. [Final M6 verification](M6_VERIFICATION.md)
+then passed fresh local checks and all five hosted jobs at `cace0df`, closing
+M6 on October 30. Phase 7 release documentation is next. The original audit
+table below remains a dated snapshot; these follow-ups record completion of
+its scoped work.
 
 The [roadmap checklist](../ROADMAP.md#16-definition-of-done) now distinguishes
 completed capabilities from remaining release gates and deferred scope. A
@@ -76,6 +79,10 @@ cleanup, and output failures. The existing `.cnd` v1 byte format need not change
 merely to report metadata already derivable from valid layers.
 
 ## Actual work remaining before release
+
+This table preserves the October 29 audit plan. Its four Phase 6 rows are now
+complete; [M6 verification](M6_VERIFICATION.md) records their results. The three
+Phase 7 rows remain open, with final candidate checks after later changes.
 
 | Work | Completion evidence needed | Phase |
 | --- | --- | --- |

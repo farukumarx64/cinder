@@ -1,0 +1,514 @@
+Cinder final Phase 6 local verification — October 30, 2026
+
+Checked-out revision: cace0dfb4898ad4f569e8ebd60df3f13089ee966
+All five builds configured fresh from a clean checkout of this revision.
+No runtime/test/build/fixture changes during verification; subsequent edits are closure documentation.
+Compiler flags: C11, -Wall -Wextra -Wpedantic -Werror.
+Debug: -g. Release: -O3 -DNDEBUG. No fast-math or LTO.
+mac-Debug: all optional NumPy/exporter/offline MNIST test switches ON; .venv/bin/python.
+Other builds: C tests and committed fixtures only.
+mac-Sanitize: Debug + CINDER_ENABLE_ASAN=ON + CINDER_ENABLE_UBSAN=ON.
+ASAN_OPTIONS=detect_leaks=0:halt_on_error=1
+UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
+Linux: existing cinder-gcc13-audit:20261029 image, --platform linux/amd64 --network none,
+read-only source mount, separate build output, GCC /usr/bin/gcc-13.
+Docker amd64 execution is emulated on Apple M4; this is not performance evidence.
+
+MACOS ENVIRONMENT
+ProductName:		macOS
+ProductVersion:		27.0.1
+BuildVersion:		26A434
+arm64
+Apple clang version 21.0.0 (clang-2100.3.34.2)
+Target: arm64-apple-darwin27.0.0
+Thread model: posix
+InstalledDir: /Library/Developer/CommandLineTools/usr/bin
+cmake version 4.4.4
+
+CMake suite maintained and supported by Kitware (kitware.com/cmake).
+3.12.14 (main, Aug 25 2026, 13:50:33) [Clang 22.1.3 ]
+NumPy 2.3.5
+PyTorch 2.14.1
+
+LINUX ENVIRONMENT
+Linux 61ab6dd7da88 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux
+PRETTY_NAME="Ubuntu 24.04.5 LTS"
+NAME="Ubuntu"
+VERSION_ID="24.04"
+VERSION="24.04.5 LTS (Noble Numbat)"
+VERSION_CODENAME=noble
+ID=ubuntu
+ID_LIKE=debian
+HOME_URL="https://www.ubuntu.com/"
+SUPPORT_URL="https://help.ubuntu.com/"
+BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"
+PRIVACY_POLICY_URL="https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"
+UBUNTU_CODENAME=noble
+LOGO=ubuntu-logo
+gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+Copyright (C) 2023 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+cmake version 3.28.3
+
+CMake suite maintained and supported by Kitware (kitware.com/cmake).
+
+mac-Debug: configure/build/CTest exit 0; zero build warnings/errors.
+9: CLI setup 2 -> 2: one load/read, exact input/output allocations, 100 repeated calls plus benchmark warm-up/measurement/recovery after source deletion, 23 allocation points failed with/without details, I/O/format/non-finite failures and successful retries; zero retained blocks/bytes/streams.
+9: CLI setup 784 -> 10: one load/read, exact input/output allocations, 100 repeated calls plus benchmark warm-up/measurement/recovery after source deletion, 23 allocation points failed with/without details, I/O/format/non-finite failures and successful retries; zero retained blocks/bytes/streams.
+10: CLI processes: 133 passed (11 benchmark cases); MNIST prediction/top-three index agreement 100/100; maximum displayed-score absolute error 3.57627869e-07.
+11: Benchmark timing: 41/42 ns samples retained; zero at 9853, 37270, and 100000 stops immediately with no partial result/report, complete cleanup, and successful recovery.
+11: Benchmark acceptance MNIST: real model/CLI, deterministic clock/report, faults and recovery; zero retained blocks/bytes/files.
+11: Benchmark acceptance: 1095 command invocations passed; clock backend controlled; no speed threshold.
+12: Benchmark acceptance: 2 command invocations passed; clock backend unavailable; no speed threshold.
+19: Protected buffers: both page edges passed; read-only inputs/parameters, exact capacities, constructor copies, kernels/layers/models, rejection and recovery; all mappings released.
+21: Audit: all 21 allocation points failed individually, with/without details and successful retry.
+21: Audit: 29 file-failure scenarios, each with/without details and successful retry.
+21: Audit: native byte extents passed zero/one/exact-limit/overflow checks, preserved output on failure, and performed no allocations.
+21: Audit: loaded lifecycle passed: 284 poisoned-buffer success/failure/recovery cycles (852 inference calls), zero inference allocations/frees or loader I/O, unchanged parameters, and 42 allocation failures with a surviving model and successful retry.
+21: Audit: chunk boundaries: 2567 parameter bit comparisons; 162 failures (80 non-finite, 16 truncation, 24 short-read, 42 allocation), each followed by successful load/inference/free.
+21: Audit: 1766 rejected calls checked for NULL output, unchanged prior owners, zero new live blocks, and no retained stream.
+27: Max absolute error: 1.1920929e-07; max fraction of tolerance: 0.00600148273 (must be <= 1).
+28: Max absolute error: 5.96046448e-08; max fraction of tolerance: 0.00303036345 (must be <= 1).
+29: dense1: 10 vectors / 40 values, max absolute error 0.
+29: relu: 10 vectors / 40 values, max absolute error 0.
+29: logits: 10 vectors / 20 values, max absolute error 0.
+29: softmax: 10 vectors / 20 values, max absolute error 5.96046448e-08.
+29: Round trip: 40 vectors / 120 values, max absolute error 5.96046448e-08, max fraction of tolerance 0.00303036345 (atol = rtol = 1e-5).
+30: dense1: 100 vectors / 12800 values, max absolute error 6.19888306e-06, max fraction of tolerance 0.178311515.
+30: relu: 100 vectors / 12800 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.178311515.
+30: logits: 100 vectors / 1000 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.176519426.
+30: probabilities: 100 vectors / 1000 values, max absolute error 3.57627869e-07, max fraction of tolerance 0.0287552465.
+30: MNIST: 400 vectors / 27600 values passed (atol = rtol = 1e-5).
+30: Runtime prediction agreement (C vs saved Python): 100/100.
+30: Classification on fixed test subset: C 99/100; Python 99/100.
+31: MNIST audit: 104 successful loads, 62 rejected loads, 300 cycles / 1384 inference calls; poisoned 784-float workspaces, partial-write failures at all four layers, unchanged parameters, zero allocations/frees or loader I/O during cycles, all 21 allocation points failed twice, and zero final live blocks/bytes/streams.
+32: MNIST lifecycle: 62 successful loads, 20 rejected loads, 500 cycles / 2100 inference calls; all 100 inputs match saved references and bit-identical repeat baselines, independent models, deleted source files, concurrent independent instances, and caller-serialized shared access.
+33: Model lifecycle passed: 4120 success/failure/recovery cycles, independent owners, and caller-serialized threads.
+34: Loaded lifecycle passed: 502 successful loads, 100 rejected loads, 4720 success/failure/recovery cycles (14160 inference calls), concurrent independent loads, deleted source files, and caller-serialized threads.
+35: Max absolute error: 1.1920929e-07; max fraction of tolerance: 0.00600148273 (must be <= 1).
+36: Max absolute error: 5.96046448e-08; max fraction of tolerance: 0.00303036345 (must be <= 1).
+39: dense1: 10 vectors / 40 values, max absolute error 0.
+39: relu: 10 vectors / 40 values, max absolute error 0.
+39: logits: 10 vectors / 20 values, max absolute error 0.
+39: softmax: 10 vectors / 20 values, max absolute error 5.96046448e-08.
+39: Round trip: 40 vectors / 120 values, max absolute error 5.96046448e-08, max fraction of tolerance 0.00303036345 (atol = rtol = 1e-5).
+43: dense1: 100 vectors / 12800 values, max absolute error 6.19888306e-06, max fraction of tolerance 0.178311515.
+43: relu: 100 vectors / 12800 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.178311515.
+43: logits: 100 vectors / 1000 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.176519426.
+43: probabilities: 100 vectors / 1000 values, max absolute error 3.57627869e-07, max fraction of tolerance 0.0287552465.
+43: MNIST: 400 vectors / 27600 values passed (atol = rtol = 1e-5).
+43: Runtime prediction agreement (C vs saved Python): 100/100.
+43: Classification on fixed test subset: C 99/100; Python 99/100.
+45: Dense allocation tests passed: all five failures and allocation-free forward calls.
+47: Model storage tests passed: allocation rollback, ownership, buffer reuse, and allocation-free inference.
+100% tests passed out of 47
+Total Test time (real) =  52.75 sec
+
+mac-Release: configure/build/CTest exit 0; zero build warnings/errors.
+9: CLI setup 2 -> 2: one load/read, exact input/output allocations, 100 repeated calls plus benchmark warm-up/measurement/recovery after source deletion, 23 allocation points failed with/without details, I/O/format/non-finite failures and successful retries; zero retained blocks/bytes/streams.
+9: CLI setup 784 -> 10: one load/read, exact input/output allocations, 100 repeated calls plus benchmark warm-up/measurement/recovery after source deletion, 23 allocation points failed with/without details, I/O/format/non-finite failures and successful retries; zero retained blocks/bytes/streams.
+10: CLI processes: 133 passed (11 benchmark cases); MNIST prediction/top-three index agreement 100/100; maximum displayed-score absolute error 3.57627869e-07.
+11: Benchmark timing: 41/42 ns samples retained; zero at 9853, 37270, and 100000 stops immediately with no partial result/report, complete cleanup, and successful recovery.
+11: Benchmark acceptance MNIST: real model/CLI, deterministic clock/report, faults and recovery; zero retained blocks/bytes/files.
+11: Benchmark acceptance: 1095 command invocations passed; clock backend controlled; no speed threshold.
+12: Benchmark acceptance: 2 command invocations passed; clock backend unavailable; no speed threshold.
+19: Protected buffers: both page edges passed; read-only inputs/parameters, exact capacities, constructor copies, kernels/layers/models, rejection and recovery; all mappings released.
+21: Audit: all 21 allocation points failed individually, with/without details and successful retry.
+21: Audit: 29 file-failure scenarios, each with/without details and successful retry.
+21: Audit: native byte extents passed zero/one/exact-limit/overflow checks, preserved output on failure, and performed no allocations.
+21: Audit: loaded lifecycle passed: 284 poisoned-buffer success/failure/recovery cycles (852 inference calls), zero inference allocations/frees or loader I/O, unchanged parameters, and 42 allocation failures with a surviving model and successful retry.
+21: Audit: chunk boundaries: 2567 parameter bit comparisons; 162 failures (80 non-finite, 16 truncation, 24 short-read, 42 allocation), each followed by successful load/inference/free.
+21: Audit: 1766 rejected calls checked for NULL output, unchanged prior owners, zero new live blocks, and no retained stream.
+27: Max absolute error: 1.1920929e-07; max fraction of tolerance: 0.00600148273 (must be <= 1).
+28: Max absolute error: 5.96046448e-08; max fraction of tolerance: 0.00303036345 (must be <= 1).
+29: dense1: 10 vectors / 40 values, max absolute error 0.
+29: relu: 10 vectors / 40 values, max absolute error 0.
+29: logits: 10 vectors / 20 values, max absolute error 0.
+29: softmax: 10 vectors / 20 values, max absolute error 5.96046448e-08.
+29: Round trip: 40 vectors / 120 values, max absolute error 5.96046448e-08, max fraction of tolerance 0.00303036345 (atol = rtol = 1e-5).
+30: dense1: 100 vectors / 12800 values, max absolute error 6.19888306e-06, max fraction of tolerance 0.178311515.
+30: relu: 100 vectors / 12800 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.178311515.
+30: logits: 100 vectors / 1000 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.176519426.
+30: probabilities: 100 vectors / 1000 values, max absolute error 3.57627869e-07, max fraction of tolerance 0.0287552465.
+30: MNIST: 400 vectors / 27600 values passed (atol = rtol = 1e-5).
+30: Runtime prediction agreement (C vs saved Python): 100/100.
+30: Classification on fixed test subset: C 99/100; Python 99/100.
+31: MNIST audit: 104 successful loads, 62 rejected loads, 300 cycles / 1384 inference calls; poisoned 784-float workspaces, partial-write failures at all four layers, unchanged parameters, zero allocations/frees or loader I/O during cycles, all 21 allocation points failed twice, and zero final live blocks/bytes/streams.
+32: MNIST lifecycle: 62 successful loads, 20 rejected loads, 500 cycles / 2100 inference calls; all 100 inputs match saved references and bit-identical repeat baselines, independent models, deleted source files, concurrent independent instances, and caller-serialized shared access.
+33: Model lifecycle passed: 4120 success/failure/recovery cycles, independent owners, and caller-serialized threads.
+34: Loaded lifecycle passed: 502 successful loads, 100 rejected loads, 4720 success/failure/recovery cycles (14160 inference calls), concurrent independent loads, deleted source files, and caller-serialized threads.
+36: Dense allocation tests passed: all five failures and allocation-free forward calls.
+38: Model storage tests passed: allocation rollback, ownership, buffer reuse, and allocation-free inference.
+100% tests passed out of 38
+Total Test time (real) =  22.08 sec
+
+mac-Sanitize: configure/build/CTest exit 0; zero build warnings/errors.
+9: CLI setup 2 -> 2: one load/read, exact input/output allocations, 100 repeated calls plus benchmark warm-up/measurement/recovery after source deletion, 23 allocation points failed with/without details, I/O/format/non-finite failures and successful retries; zero retained blocks/bytes/streams.
+9: CLI setup 784 -> 10: one load/read, exact input/output allocations, 100 repeated calls plus benchmark warm-up/measurement/recovery after source deletion, 23 allocation points failed with/without details, I/O/format/non-finite failures and successful retries; zero retained blocks/bytes/streams.
+10: CLI processes: 133 passed (11 benchmark cases); MNIST prediction/top-three index agreement 100/100; maximum displayed-score absolute error 3.57627869e-07.
+11: Benchmark timing: 41/42 ns samples retained; zero at 9853, 37270, and 100000 stops immediately with no partial result/report, complete cleanup, and successful recovery.
+11: Benchmark acceptance MNIST: real model/CLI, deterministic clock/report, faults and recovery; zero retained blocks/bytes/files.
+11: Benchmark acceptance: 1095 command invocations passed; clock backend controlled; no speed threshold.
+12: Benchmark acceptance: 2 command invocations passed; clock backend unavailable; no speed threshold.
+19: Protected buffers: both page edges passed; read-only inputs/parameters, exact capacities, constructor copies, kernels/layers/models, rejection and recovery; all mappings released.
+21: Audit: all 21 allocation points failed individually, with/without details and successful retry.
+21: Audit: 29 file-failure scenarios, each with/without details and successful retry.
+21: Audit: native byte extents passed zero/one/exact-limit/overflow checks, preserved output on failure, and performed no allocations.
+21: Audit: loaded lifecycle passed: 284 poisoned-buffer success/failure/recovery cycles (852 inference calls), zero inference allocations/frees or loader I/O, unchanged parameters, and 42 allocation failures with a surviving model and successful retry.
+21: Audit: chunk boundaries: 2567 parameter bit comparisons; 162 failures (80 non-finite, 16 truncation, 24 short-read, 42 allocation), each followed by successful load/inference/free.
+21: Audit: 1766 rejected calls checked for NULL output, unchanged prior owners, zero new live blocks, and no retained stream.
+27: Max absolute error: 1.1920929e-07; max fraction of tolerance: 0.00600148273 (must be <= 1).
+28: Max absolute error: 5.96046448e-08; max fraction of tolerance: 0.00303036345 (must be <= 1).
+29: dense1: 10 vectors / 40 values, max absolute error 0.
+29: relu: 10 vectors / 40 values, max absolute error 0.
+29: logits: 10 vectors / 20 values, max absolute error 0.
+29: softmax: 10 vectors / 20 values, max absolute error 5.96046448e-08.
+29: Round trip: 40 vectors / 120 values, max absolute error 5.96046448e-08, max fraction of tolerance 0.00303036345 (atol = rtol = 1e-5).
+30: dense1: 100 vectors / 12800 values, max absolute error 6.19888306e-06, max fraction of tolerance 0.178311515.
+30: relu: 100 vectors / 12800 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.178311515.
+30: logits: 100 vectors / 1000 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.176519426.
+30: probabilities: 100 vectors / 1000 values, max absolute error 3.57627869e-07, max fraction of tolerance 0.0287552465.
+30: MNIST: 400 vectors / 27600 values passed (atol = rtol = 1e-5).
+30: Runtime prediction agreement (C vs saved Python): 100/100.
+30: Classification on fixed test subset: C 99/100; Python 99/100.
+31: MNIST audit: 104 successful loads, 62 rejected loads, 300 cycles / 1384 inference calls; poisoned 784-float workspaces, partial-write failures at all four layers, unchanged parameters, zero allocations/frees or loader I/O during cycles, all 21 allocation points failed twice, and zero final live blocks/bytes/streams.
+32: MNIST lifecycle: 62 successful loads, 20 rejected loads, 500 cycles / 2100 inference calls; all 100 inputs match saved references and bit-identical repeat baselines, independent models, deleted source files, concurrent independent instances, and caller-serialized shared access.
+33: Model lifecycle passed: 4120 success/failure/recovery cycles, independent owners, and caller-serialized threads.
+34: Loaded lifecycle passed: 502 successful loads, 100 rejected loads, 4720 success/failure/recovery cycles (14160 inference calls), concurrent independent loads, deleted source files, and caller-serialized threads.
+36: Dense allocation tests passed: all five failures and allocation-free forward calls.
+38: Model storage tests passed: allocation rollback, ownership, buffer reuse, and allocation-free inference.
+100% tests passed out of 38
+Total Test time (real) =  43.00 sec
+
+linux-Debug: configure/build/CTest exit 0; zero build warnings/errors.
+9: CLI setup 2 -> 2: one load/read, exact input/output allocations, 100 repeated calls plus benchmark warm-up/measurement/recovery after source deletion, 23 allocation points failed with/without details, I/O/format/non-finite failures and successful retries; zero retained blocks/bytes/streams.
+9: CLI setup 784 -> 10: one load/read, exact input/output allocations, 100 repeated calls plus benchmark warm-up/measurement/recovery after source deletion, 23 allocation points failed with/without details, I/O/format/non-finite failures and successful retries; zero retained blocks/bytes/streams.
+10: CLI processes: 133 passed (11 benchmark cases); MNIST prediction/top-three index agreement 100/100; maximum displayed-score absolute error 3.57627869e-07.
+11: Benchmark timing: 41/42 ns samples retained; zero at 9853, 37270, and 100000 stops immediately with no partial result/report, complete cleanup, and successful recovery.
+11: Benchmark acceptance MNIST: real model/CLI, deterministic clock/report, faults and recovery; zero retained blocks/bytes/files.
+11: Benchmark acceptance: 1095 command invocations passed; clock backend controlled; no speed threshold.
+12: Benchmark acceptance: 2 command invocations passed; clock backend unavailable; no speed threshold.
+19: Protected buffers: both page edges passed; read-only inputs/parameters, exact capacities, constructor copies, kernels/layers/models, rejection and recovery; all mappings released.
+21: Audit: all 21 allocation points failed individually, with/without details and successful retry.
+21: Audit: 29 file-failure scenarios, each with/without details and successful retry.
+21: Audit: native byte extents passed zero/one/exact-limit/overflow checks, preserved output on failure, and performed no allocations.
+21: Audit: loaded lifecycle passed: 284 poisoned-buffer success/failure/recovery cycles (852 inference calls), zero inference allocations/frees or loader I/O, unchanged parameters, and 42 allocation failures with a surviving model and successful retry.
+21: Audit: chunk boundaries: 2567 parameter bit comparisons; 162 failures (80 non-finite, 16 truncation, 24 short-read, 42 allocation), each followed by successful load/inference/free.
+21: Audit: 1766 rejected calls checked for NULL output, unchanged prior owners, zero new live blocks, and no retained stream.
+27: Max absolute error: 1.1920929e-07; max fraction of tolerance: 0.00600148273 (must be <= 1).
+28: Max absolute error: 5.96046448e-08; max fraction of tolerance: 0.00303036345 (must be <= 1).
+29: dense1: 10 vectors / 40 values, max absolute error 0.
+29: relu: 10 vectors / 40 values, max absolute error 0.
+29: logits: 10 vectors / 20 values, max absolute error 0.
+29: softmax: 10 vectors / 20 values, max absolute error 5.96046448e-08.
+29: Round trip: 40 vectors / 120 values, max absolute error 5.96046448e-08, max fraction of tolerance 0.00303036345 (atol = rtol = 1e-5).
+30: dense1: 100 vectors / 12800 values, max absolute error 6.67572021e-06, max fraction of tolerance 0.178311515.
+30: relu: 100 vectors / 12800 values, max absolute error 4.76837158e-06, max fraction of tolerance 0.178311515.
+30: logits: 100 vectors / 1000 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.206670881.
+30: probabilities: 100 vectors / 1000 values, max absolute error 3.57627869e-07, max fraction of tolerance 0.0287552465.
+30: MNIST: 400 vectors / 27600 values passed (atol = rtol = 1e-5).
+30: Runtime prediction agreement (C vs saved Python): 100/100.
+30: Classification on fixed test subset: C 99/100; Python 99/100.
+31: MNIST audit: 104 successful loads, 62 rejected loads, 300 cycles / 1384 inference calls; poisoned 784-float workspaces, partial-write failures at all four layers, unchanged parameters, zero allocations/frees or loader I/O during cycles, all 21 allocation points failed twice, and zero final live blocks/bytes/streams.
+32: MNIST lifecycle: 62 successful loads, 20 rejected loads, 500 cycles / 2100 inference calls; all 100 inputs match saved references and bit-identical repeat baselines, independent models, deleted source files, concurrent independent instances, and caller-serialized shared access.
+33: Model lifecycle passed: 4120 success/failure/recovery cycles, independent owners, and caller-serialized threads.
+34: Loaded lifecycle passed: 502 successful loads, 100 rejected loads, 4720 success/failure/recovery cycles (14160 inference calls), concurrent independent loads, deleted source files, and caller-serialized threads.
+36: Dense allocation tests passed: all five failures and allocation-free forward calls.
+38: Model storage tests passed: allocation rollback, ownership, buffer reuse, and allocation-free inference.
+100% tests passed, 0 tests failed out of 38
+Total Test time (real) =  11.63 sec
+
+linux-Release: configure/build/CTest exit 0; zero build warnings/errors.
+9: CLI setup 2 -> 2: one load/read, exact input/output allocations, 100 repeated calls plus benchmark warm-up/measurement/recovery after source deletion, 23 allocation points failed with/without details, I/O/format/non-finite failures and successful retries; zero retained blocks/bytes/streams.
+9: CLI setup 784 -> 10: one load/read, exact input/output allocations, 100 repeated calls plus benchmark warm-up/measurement/recovery after source deletion, 23 allocation points failed with/without details, I/O/format/non-finite failures and successful retries; zero retained blocks/bytes/streams.
+10: CLI processes: 133 passed (11 benchmark cases); MNIST prediction/top-three index agreement 100/100; maximum displayed-score absolute error 3.57627869e-07.
+11: Benchmark timing: 41/42 ns samples retained; zero at 9853, 37270, and 100000 stops immediately with no partial result/report, complete cleanup, and successful recovery.
+11: Benchmark acceptance MNIST: real model/CLI, deterministic clock/report, faults and recovery; zero retained blocks/bytes/files.
+11: Benchmark acceptance: 1095 command invocations passed; clock backend controlled; no speed threshold.
+12: Benchmark acceptance: 2 command invocations passed; clock backend unavailable; no speed threshold.
+19: Protected buffers: both page edges passed; read-only inputs/parameters, exact capacities, constructor copies, kernels/layers/models, rejection and recovery; all mappings released.
+21: Audit: all 21 allocation points failed individually, with/without details and successful retry.
+21: Audit: 29 file-failure scenarios, each with/without details and successful retry.
+21: Audit: native byte extents passed zero/one/exact-limit/overflow checks, preserved output on failure, and performed no allocations.
+21: Audit: loaded lifecycle passed: 284 poisoned-buffer success/failure/recovery cycles (852 inference calls), zero inference allocations/frees or loader I/O, unchanged parameters, and 42 allocation failures with a surviving model and successful retry.
+21: Audit: chunk boundaries: 2567 parameter bit comparisons; 162 failures (80 non-finite, 16 truncation, 24 short-read, 42 allocation), each followed by successful load/inference/free.
+21: Audit: 1766 rejected calls checked for NULL output, unchanged prior owners, zero new live blocks, and no retained stream.
+27: Max absolute error: 1.1920929e-07; max fraction of tolerance: 0.00600148273 (must be <= 1).
+28: Max absolute error: 5.96046448e-08; max fraction of tolerance: 0.00303036345 (must be <= 1).
+29: dense1: 10 vectors / 40 values, max absolute error 0.
+29: relu: 10 vectors / 40 values, max absolute error 0.
+29: logits: 10 vectors / 20 values, max absolute error 0.
+29: softmax: 10 vectors / 20 values, max absolute error 5.96046448e-08.
+29: Round trip: 40 vectors / 120 values, max absolute error 5.96046448e-08, max fraction of tolerance 0.00303036345 (atol = rtol = 1e-5).
+30: dense1: 100 vectors / 12800 values, max absolute error 6.67572021e-06, max fraction of tolerance 0.178311515.
+30: relu: 100 vectors / 12800 values, max absolute error 4.76837158e-06, max fraction of tolerance 0.178311515.
+30: logits: 100 vectors / 1000 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.206670881.
+30: probabilities: 100 vectors / 1000 values, max absolute error 3.57627869e-07, max fraction of tolerance 0.0287552465.
+30: MNIST: 400 vectors / 27600 values passed (atol = rtol = 1e-5).
+30: Runtime prediction agreement (C vs saved Python): 100/100.
+30: Classification on fixed test subset: C 99/100; Python 99/100.
+31: MNIST audit: 104 successful loads, 62 rejected loads, 300 cycles / 1384 inference calls; poisoned 784-float workspaces, partial-write failures at all four layers, unchanged parameters, zero allocations/frees or loader I/O during cycles, all 21 allocation points failed twice, and zero final live blocks/bytes/streams.
+32: MNIST lifecycle: 62 successful loads, 20 rejected loads, 500 cycles / 2100 inference calls; all 100 inputs match saved references and bit-identical repeat baselines, independent models, deleted source files, concurrent independent instances, and caller-serialized shared access.
+33: Model lifecycle passed: 4120 success/failure/recovery cycles, independent owners, and caller-serialized threads.
+34: Loaded lifecycle passed: 502 successful loads, 100 rejected loads, 4720 success/failure/recovery cycles (14160 inference calls), concurrent independent loads, deleted source files, and caller-serialized threads.
+36: Dense allocation tests passed: all five failures and allocation-free forward calls.
+38: Model storage tests passed: allocation rollback, ownership, buffer reuse, and allocation-free inference.
+100% tests passed, 0 tests failed out of 38
+Total Test time (real) =   5.75 sec
+
+NATIVE LEAK CHECK: loader; exit 0
+Reject: magic
+Reject: version zero
+Reject: future version
+Reject: wrong byte order
+Reject: zero header input
+Reject: header vector limit
+Reject: header connection
+Reject: zero layers
+Reject: layer count limit
+Reject: insufficient record space
+Reject: zero type
+Reject: unknown type
+Reject: unknown last type
+Reject: zero input
+Reject: zero output
+Reject: input limit
+Reject: output limit
+Reject: Dense payload short
+Reject: Dense payload long
+Reject: Dense payload huge
+Reject: ReLU connection
+Reject: ReLU shape change
+Reject: ReLU payload
+Reject: Dense connection
+Reject: Softmax shape change
+Reject: Softmax payload
+Reject: infinite weight
+Reject: negative infinite bias
+Reject: NaN later weight
+Reject: signaling NaN last bias
+Loader: 709 rejected cases (each with/without error details); 50 NumPy vectors, 100 values, max absolute error 5.96046448e-08.
+Audit: all 21 allocation points failed individually, with/without details and successful retry.
+Audit: 29 file-failure scenarios, each with/without details and successful retry.
+Audit: native byte extents passed zero/one/exact-limit/overflow checks, preserved output on failure, and performed no allocations.
+Audit: loaded lifecycle passed: 284 poisoned-buffer success/failure/recovery cycles (852 inference calls), zero inference allocations/frees or loader I/O, unchanged parameters, and 42 allocation failures with a surviving model and successful retry.
+Audit: chunk boundaries: 2567 parameter bit comparisons; 162 failures (80 non-finite, 16 truncation, 24 short-read, 42 allocation), each followed by successful load/inference/free.
+Audit: 1766 rejected calls checked for NULL output, unchanged prior owners, zero new live blocks, and no retained stream.
+Process 11755 is not debuggable. Due to security restrictions, leaks can only show or save contents of readonly memory of restricted processes.
+
+Process:         test_loader_failures [11755]
+Path:            /Users/USER/*/test_loader_failures
+Load Address:    0x10243c000
+Identifier:      test_loader_failures
+Version:         0
+Code Type:       ARM64
+Platform:        macOS
+Parent Process:  leaks [11753]
+Target Type:     live task
+
+Date/Time:       2026-10-30 03:05:32.630 +0100
+Launch Time:     2026-10-30 03:05:32.192 +0100
+OS Version:      macOS 27.0.1 (26A434)
+Report Version:  7
+Analysis Tool:   /usr/bin/leaks
+
+Physical footprint:         323.5M
+Physical footprint (peak):  323.5M
+Idle exit:                  untracked
+----
+
+leaks Report Version: 4.0, multi-line stacks
+Process 11755: 191 nodes malloced for 16 KB
+Process 11755: 0 leaks for 0 total leaked bytes.
+
+NATIVE LEAK CHECK: boundaries; exit 0
+Protected buffers: both page edges passed; read-only inputs/parameters, exact capacities, constructor copies, kernels/layers/models, rejection and recovery; all mappings released.
+Process 11734 is not debuggable. Due to security restrictions, leaks can only show or save contents of readonly memory of restricted processes.
+
+Process:         test_buffer_boundaries [11734]
+Path:            /Users/USER/*/test_buffer_boundaries
+Load Address:    0x104318000
+Identifier:      test_buffer_boundaries
+Version:         0
+Code Type:       ARM64
+Platform:        macOS
+Parent Process:  leaks [11733]
+Target Type:     live task
+
+Date/Time:       2026-10-30 03:05:29.525 +0100
+Launch Time:     2026-10-30 03:05:29.520 +0100
+OS Version:      macOS 27.0.1 (26A434)
+Report Version:  7
+Analysis Tool:   /usr/bin/leaks
+
+Physical footprint:         2448K
+Physical footprint (peak):  2544K
+Idle exit:                  untracked
+----
+
+leaks Report Version: 4.0, multi-line stacks
+Process 11734: 188 nodes malloced for 16 KB
+Process 11734: 0 leaks for 0 total leaked bytes.
+
+NATIVE LEAK CHECK: input; exit 0
+Input reader: binary32 decoding, lengths, non-finite values, I/O faults and cleanup passed.
+Process 11738 is not debuggable. Due to security restrictions, leaks can only show or save contents of readonly memory of restricted processes.
+
+Process:         test_input [11738]
+Path:            /Users/USER/*/test_input
+Load Address:    0x100a80000
+Identifier:      test_input
+Version:         0
+Code Type:       ARM64
+Platform:        macOS
+Parent Process:  leaks [11737]
+Target Type:     live task
+
+Date/Time:       2026-10-30 03:05:30.239 +0100
+Launch Time:     2026-10-30 03:05:30.232 +0100
+OS Version:      macOS 27.0.1 (26A434)
+Report Version:  7
+Analysis Tool:   /usr/bin/leaks
+
+Physical footprint:         2528K
+Physical footprint (peak):  2528K
+Idle exit:                  untracked
+----
+
+leaks Report Version: 4.0, multi-line stacks
+Process 11738: 188 nodes malloced for 16 KB
+Process 11738: 0 leaks for 0 total leaked bytes.
+
+NATIVE LEAK CHECK: cli-setup; exit 0
+CLI setup 2 -> 2: one load/read, exact input/output allocations, 100 repeated calls plus benchmark warm-up/measurement/recovery after source deletion, 23 allocation points failed with/without details, I/O/format/non-finite failures and successful retries; zero retained blocks/bytes/streams.
+CLI setup 784 -> 10: one load/read, exact input/output allocations, 100 repeated calls plus benchmark warm-up/measurement/recovery after source deletion, 23 allocation points failed with/without details, I/O/format/non-finite failures and successful retries; zero retained blocks/bytes/streams.
+Process 11724 is not debuggable. Due to security restrictions, leaks can only show or save contents of readonly memory of restricted processes.
+
+Process:         test_cli_setup [11724]
+Path:            /Users/USER/*/test_cli_setup
+Load Address:    0x104778000
+Identifier:      test_cli_setup
+Version:         0
+Code Type:       ARM64
+Platform:        macOS
+Parent Process:  leaks [11723]
+Target Type:     live task
+
+Date/Time:       2026-10-30 03:05:28.331 +0100
+Launch Time:     2026-10-30 03:05:28.274 +0100
+OS Version:      macOS 27.0.1 (26A434)
+Report Version:  7
+Analysis Tool:   /usr/bin/leaks
+
+Physical footprint:         4032K
+Physical footprint (peak):  4032K
+Idle exit:                  untracked
+----
+
+leaks Report Version: 4.0, multi-line stacks
+Process 11724: 188 nodes malloced for 16 KB
+Process 11724: 0 leaks for 0 total leaked bytes.
+
+NATIVE LEAK CHECK: benchmark; exit 0
+Benchmark timing: 41/42 ns samples retained; zero at 9853, 37270, and 100000 stops immediately with no partial result/report, complete cleanup, and successful recovery.
+Benchmark acceptance tiny: real model/CLI, deterministic clock/report, faults and recovery; zero retained blocks/bytes/files.
+Benchmark acceptance MNIST: real model/CLI, deterministic clock/report, faults and recovery; zero retained blocks/bytes/files.
+Benchmark acceptance: 1095 command invocations passed; clock backend controlled; no speed threshold.
+Process 11756 is not debuggable. Due to security restrictions, leaks can only show or save contents of readonly memory of restricted processes.
+
+Process:         test_benchmark_controlled [11756]
+Path:            /Users/USER/*/test_benchmark_controlled
+Load Address:    0x104c58000
+Identifier:      test_benchmark_controlled
+Version:         0
+Code Type:       ARM64
+Platform:        macOS
+Parent Process:  leaks [11754]
+Target Type:     live task
+
+Date/Time:       2026-10-30 03:05:33.260 +0100
+Launch Time:     2026-10-30 03:05:32.192 +0100
+OS Version:      macOS 27.0.1 (26A434)
+Report Version:  7
+Analysis Tool:   /usr/bin/leaks
+
+Physical footprint:         4464K
+Physical footprint (peak):  4464K
+Idle exit:                  untracked
+----
+
+leaks Report Version: 4.0, multi-line stacks
+Process 11756: 191 nodes malloced for 16 KB
+Process 11756: 0 leaks for 0 total leaked bytes.
+
+NATIVE LEAK CHECK: mnist-lifecycle; exit 0
+MNIST audit: 104 successful loads, 62 rejected loads, 300 cycles / 1384 inference calls; poisoned 784-float workspaces, partial-write failures at all four layers, unchanged parameters, zero allocations/frees or loader I/O during cycles, all 21 allocation points failed twice, and zero final live blocks/bytes/streams.
+Process 11736 is not debuggable. Due to security restrictions, leaks can only show or save contents of readonly memory of restricted processes.
+
+Process:         test_mnist_lifecycle_audit [11736]
+Path:            /Users/USER/*/test_mnist_lifecycle_audit
+Load Address:    0x100658000
+Identifier:      test_mnist_lifecycle_audit
+Version:         0
+Code Type:       ARM64
+Platform:        macOS
+Parent Process:  leaks [11735]
+Target Type:     live task
+
+Date/Time:       2026-10-30 03:05:30.334 +0100
+Launch Time:     2026-10-30 03:05:30.142 +0100
+OS Version:      macOS 27.0.1 (26A434)
+Report Version:  7
+Analysis Tool:   /usr/bin/leaks
+
+Physical footprint:         7104K
+Physical footprint (peak):  7104K
+Idle exit:                  untracked
+----
+
+leaks Report Version: 4.0, multi-line stacks
+Process 11736: 188 nodes malloced for 16 KB
+Process 11736: 0 leaks for 0 total leaked bytes.
+
+NATIVE LEAK CHECK: mnist-bench; exit 0
+Model: mnist.cnd
+Iterations: 1000
+Warm-up iterations: 10
+Clock: monotonic
+Clock resolution (ns): 42
+Mean latency (us): 112.641861
+Minimum latency (us): 107.375
+Maximum latency (us): 145.458
+Throughput (inferences/s): 8877.69423
+Process 11752 is not debuggable. Due to security restrictions, leaks can only show or save contents of readonly memory of restricted processes.
+
+Process:         cinder [11752]
+Path:            /Users/USER/*/cinder
+Load Address:    0x1027d0000
+Identifier:      cinder
+Version:         0
+Code Type:       ARM64
+Platform:        macOS
+Parent Process:  leaks [11750]
+Target Type:     live task
+
+Date/Time:       2026-10-30 03:05:31.516 +0100
+Launch Time:     2026-10-30 03:05:31.396 +0100
+OS Version:      macOS 27.0.1 (26A434)
+Report Version:  7
+Analysis Tool:   /usr/bin/leaks
+
+Physical footprint:         3456K
+Physical footprint (peak):  3456K
+Idle exit:                  untracked
+----
+
+leaks Report Version: 4.0, multi-line stacks
+Process 11752: 191 nodes malloced for 16 KB
+Process 11752: 0 leaks for 0 total leaked bytes.
+
+Native leaks results verify the exercised allocations; mmap release is checked explicitly by the guard test.
+Production MNIST bench timings above were collected under leaks and are not a new performance baseline.
+Hosted CI evidence is recorded separately after all jobs finish.

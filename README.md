@@ -63,7 +63,8 @@ records the exact revision, results, GCC warnings, and remaining limitations.
 The [M5 evaluation and closure report](docs/M5_VERIFICATION.md) records the
 Release baseline, unchanged-executable repeat, current numerical/lifecycle
 checks, and five passing hosted jobs for `cd461c6`. No measured evidence
-justifies a runtime optimization. Phase 6, the final hardening pass, is open.
+justifies a runtime optimization. [Phase 6 is complete](docs/M6_VERIFICATION.md)
+as of October 30, with the remaining limitations recorded.
 The [October 29 release audit](docs/RELEASE_AUDIT.md) reconciles the remaining
 checklist: seven stale entries are satisfied; `cinder info` is explicitly
 **deferred beyond v0.1.0**. The release CLI scope is `--version`, `run`, and
@@ -74,8 +75,11 @@ equal native clock readings and preserves explicit failure for unresolved
 per-call timings. The [robustness review](docs/ROBUSTNESS_REVIEW.md) adds decoder
 chunk-boundary failures and protected caller-buffer tests, with fresh local
 Debug/Release, sanitizer, Linux GCC, and native leak checks passing. Final M6
-verification including hosted CI, README review, release version/notes,
-fresh-checkout verification, and publication remain pending.
+verification passes at `cace0df`: local Debug 47/47; Release/ASan+UBSan and Linux
+Debug/Release 38/38 each; seven native leak checks report zero. All five hosted
+jobs pass, including Linux ASan/UBSan/LeakSanitizer. Phase 7 starts with the
+release README review; version/notes, fresh-checkout verification, final
+candidate checks, and publication remain pending.
 
 - C11 compilation with `-Wall`, `-Wextra`, and `-Wpedantic` is configured.
 - A local Git repository on `main` tracks source and documentation. Generated
@@ -334,7 +338,7 @@ fresh-checkout verification, and publication remain pending.
   Release and ASan/UBSan 37/37 each, all with `-Werror` and zero build warnings.
   Three focused native leak checks report zero. Numerical and allocation checks
   pass. All five hosted jobs subsequently passed for `fb9a655` after a macOS
-  runner-capacity retry; M6 stays open.
+  runner-capacity retry; final M6 results are recorded below.
 - The [October 29 timing investigation](docs/TIMING_INVESTIGATION.md) reproduces
   zero intervals in the original and current executables and captures equal
   raw timestamps around completed inferences. Preserve the per-call contract
@@ -344,7 +348,8 @@ fresh-checkout verification, and publication remain pending.
   The controlled audit now passes 1,095 commands. Release passes 37/37; macOS
   Debug/ASan+UBSan and Linux Release each pass the 12 benchmark tests, and the
   native controlled audit reports zero leaks. The runtime is unchanged; new
-  test additions await hosted CI. Tiny timing remains a documented limitation.
+  test additions subsequently pass all five M6 hosted jobs at `cace0df`.
+  Tiny timing remains a documented limitation.
 - The [`run` contract](docs/CLI.md) now defines two positional file paths, a
   zero-based prediction and up to three ranked raw scores, lower-index tie
   breaking, exit statuses `0/1/2`, and contextual errors. It accepts valid models
@@ -880,9 +885,11 @@ the implementation: an identical-executable repeat shows variation without a
 code change, numerical/allocation checks pass, and hosted CI verifies the
 unchanged implementation on both platforms. M5 closed October 29. The Phase 6
 release-checklist audit, GCC warning investigation, tiny timing investigation,
-and [robustness coverage review](docs/ROBUSTNESS_REVIEW.md) are complete locally.
-Next is final M6 verification of the resulting revision, including hosted CI. See the
-[release gates](ROADMAP.md#remaining-release-gates); M6 and M7 remain open.
+and [robustness coverage review](docs/ROBUSTNESS_REVIEW.md) are complete.
+[M6 closed October 30](docs/M6_VERIFICATION.md) after fresh local checks and all
+five hosted jobs passed for `cace0df`. Next is the Phase 7 release README and
+supported workflow/architecture overview. See the
+[remaining release gates](ROADMAP.md#remaining-release-gates); M7 remains open.
 
 The v0.1.0 scope excludes training, GPU execution, convolutional layers,
 quantization, SIMD, multithreading, and arbitrary computation graphs.

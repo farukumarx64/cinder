@@ -2,8 +2,9 @@
 
 **The scoped review is complete locally. Two coverage gaps are filled; no
 production defect was exposed.** Runtime code, public contracts, and the `.cnd`
-format remain unchanged. M6 remains open for final verification, including
-hosted macOS/Linux CI on the resulting committed revision.
+format remain unchanged. This step left M6 open for final verification.
+Subsequent [M6 verification](M6_VERIFICATION.md) passed all local checks and
+five hosted jobs at `cace0df`, closing the phase on October 30.
 
 This review starts at `ec2b69c` and tests the working-tree additions below.
 [Verification excerpts and SHA-256 hashes](verification/2026-10-30-robustness.txt)
@@ -176,6 +177,7 @@ The documented tiny-clock rejection policy also remains in force. No production
 correction was warranted by the reviewed paths or new tests.
 
 The existing CI workflow automatically includes both additions through CTest.
-**This step does not claim a hosted CI run for these edits.** Final M6 closure
-still requires verification of the resulting revision and recording its hosted
-macOS/Linux results. Commits and pushes remain subject to the owner's instruction.
+**This scoped review did not run hosted CI.** The additions were subsequently
+committed as `cace0df`; [M6 verification](M6_VERIFICATION.md#hosted-ci) records
+their passing macOS/Linux CI and final closure. Later release-candidate changes
+still require appropriate checks.

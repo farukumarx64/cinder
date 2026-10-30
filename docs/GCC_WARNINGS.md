@@ -7,7 +7,9 @@ Release builds now produce zero warnings with `-Werror`, and each passes all
 was found in the reported paths. The changes clarify initialization and checked
 size conversion while retaining validation, failure behavior, and optimization.
 
-This completes the warning-investigation step, not M6. Subsequent hosted
+This completed the warning-investigation step. The later
+[M6 verification](M6_VERIFICATION.md) closes the phase at `cace0df` with fresh
+warning-free local and hosted builds. Earlier hosted
 verification of `fb9a655` passed all five jobs in
 [run 40915045986](https://github.com/farukumarx64/cinder/actions/runs/40915045986),
 attempt 2. The first attempt's macOS jobs were cancelled before checkout because
@@ -209,9 +211,10 @@ every compiler/version emits no warnings. No native 32-bit build was run;
 lowered test ceilings exercise guards but do not emulate a complete 32-bit ABI.
 At initial local verification, hosted CI and Linux sanitizer/leak execution
 were pending. The subsequent run above passed Linux Debug 46/46, Linux Release
-and ASan/UBSan/leaks 37/37 each, and macOS Debug/Release 37/37 each. M6's final
-gate still requires verification of any later edits.
+and ASan/UBSan/leaks 37/37 each, and macOS Debug/Release 37/37 each. Later edits
+are separately verified in the [final M6 report](M6_VERIFICATION.md).
 
 The next scoped step at this point was the saved tiny-model zero-interval timing
-failures. The subsequent [timing report](TIMING_INVESTIGATION.md) now records
-that investigation; remaining robustness review and final M6 verification stay open.
+failures. The subsequent [timing report](TIMING_INVESTIGATION.md) records that
+investigation; robustness review and final M6 verification subsequently passed,
+closing the phase on October 30. Phase 7 release documentation is next.

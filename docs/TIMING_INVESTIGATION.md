@@ -8,8 +8,10 @@ that justifies changing the runtime. This remains a limitation of measuring
 each tiny inference separately on this machine. No batching, retry, rounding,
 clock substitution, or benchmark-contract change was added.
 
-The investigation step is complete locally. Remaining robustness review and
-final M6 verification are still open.
+The investigation step completed locally before the robustness review and
+final M6 verification. Subsequent [M6 verification](M6_VERIFICATION.md) includes
+these regressions in all five passing hosted jobs at `cace0df` and closes the
+phase on October 30, retaining the timing limitation.
 
 ## What the earlier failures established
 
@@ -250,6 +252,6 @@ and must retain explicit handling when even a batch interval is unresolved.
 
 For the current command, increasing `--iterations` does not lengthen any one
 measured interval. The accepted limitation is that tiny-model benchmarks can
-exit 1 on this host. Ordinary `cinder run` inference is unaffected. The next
-scoped step is the remaining robustness-coverage review, followed by M6's final
-verification gate.
+exit 1 on this host. Ordinary `cinder run` inference is unaffected. The subsequent
+robustness review and [M6 verification](M6_VERIFICATION.md) now pass, closing
+the phase on October 30. This timing limitation remains in the release handoff.
