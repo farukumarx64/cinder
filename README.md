@@ -10,8 +10,9 @@ models to `.cnd` files. Training happens outside the C runtime; the C build
 needs no Python or third-party numerical library.
 
 **Release status:** The executable reports `Cinder 0.1.0`, and the
-[v0.1.0 release notes](RELEASE_NOTES.md) are prepared. Final release-candidate
-verification, tagging, and publication remain pending.
+[v0.1.0 release notes](RELEASE_NOTES.md) are prepared. The
+[candidate verification](docs/RELEASE_VERIFICATION.md) passes local checks and
+all five macOS/Linux CI jobs at `1e5a5f6`. Tagging and publication remain pending.
 See the [roadmap](ROADMAP.md#current-progress) and
 [Phase 6 verification report](docs/M6_VERIFICATION.md).
 
@@ -317,10 +318,11 @@ On Linux with Clang and LeakSanitizer support, run:
 ```
 
 Native `leaks` needs permission to inspect its process; an inspection error is
-not a passing check. The [M6 report](docs/M6_VERIFICATION.md) records seven native
-checks with zero leaks, successful local Debug/Release/sanitizer suites, and
-[all five hosted jobs](https://github.com/farukumarx64/cinder/actions/runs/40989772451)
-passing at `cace0df`. Local builds also enforced `-Werror`. Hosted CI covers
+not a passing check. The [candidate report](docs/RELEASE_VERIFICATION.md) records
+eight native checks with zero leaks, successful local Debug/Release/sanitizer
+suites, a fresh Python environment, and
+[all five hosted jobs](https://github.com/farukumarx64/cinder/actions/runs/41029277234)
+passing at `1e5a5f6`. Local builds also enforced `-Werror`. Hosted CI covers
 macOS/Linux Debug and Release plus Linux ASan/UBSan/LeakSanitizer. Ordinary jobs
 use C fixtures; Linux Debug adds the optional Python suite. Hosted native macOS
 leak checking remains unavailable. See the [CI workflow](.github/workflows/ci.yml).
@@ -344,7 +346,7 @@ leak checking remains unavailable. See the [CI workflow](.github/workflows/ci.ym
   sanitizers are not an exhaustive correctness or memory-safety proof.
 - Tiny-model benchmark intervals may be unresolved by the clock. Measurements
   are not portable performance guarantees. `cinder info` is deferred beyond
-  v0.1.0; final verification and publication remain in the
+  v0.1.0; verification is complete and publication remains in the
   [release gates](ROADMAP.md#remaining-release-gates).
 
 ## Repository layout
@@ -372,7 +374,8 @@ Development history and evidence remain in the [roadmap](ROADMAP.md),
 [robustness review](docs/ROBUSTNESS_REVIEW.md), and
 [M6 verification](docs/M6_VERIFICATION.md). The [release notes](RELEASE_NOTES.md)
 describe v0.1.0's scope and constraints; final candidate checks and publication
-remain separate steps.
+are tracked in the [candidate report](docs/RELEASE_VERIFICATION.md). Verification
+is complete for `1e5a5f6`; publication remains pending.
 
 ## License
 

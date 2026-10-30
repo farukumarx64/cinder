@@ -30,7 +30,9 @@ M6 on October 30. The subsequent [release README](../README.md) rewrite now
 passes its [isolated-snapshot recipe checks](verification/2026-10-30-readme.txt).
 Version reporting is now finalized at `0.1.0`, and the [release notes](../RELEASE_NOTES.md)
 are prepared; [local checks](verification/2026-10-30-version.txt) pass.
-Final candidate verification and publication remain open. The original audit
+[Final candidate verification](RELEASE_VERIFICATION.md) now passes fresh local
+checks and all five hosted jobs at `1e5a5f6`. Authorized publication remains
+open. The original audit
 table below remains a dated snapshot; these follow-ups record completion of
 its scoped work.
 
@@ -86,8 +88,8 @@ merely to report metadata already derivable from valid layers.
 
 This table preserves the October 29 audit plan. Its four Phase 6 rows are now
 complete; [M6 verification](M6_VERIFICATION.md) records their results. The Phase 7
-README rewrite and version/release notes are also complete. The final
-release-candidate checkout/CI check and publication remain open.
+README rewrite, version/release notes, and final release-candidate checkout/CI
+verification are also complete. Authorized publication remains open.
 
 | Work | Completion evidence needed | Phase |
 | --- | --- | --- |

@@ -1,0 +1,202 @@
+Cinder v0.1.0 release-candidate CI verification — October 30, 2026
+Revision: 1e5a5f657d962dd062e073432ca5d864fcfba04a
+Run: https://github.com/farukumarx64/cinder/actions/runs/41029277234
+Attempt: 1; conclusion: success
+All five job logs inspected. Full logs are retained in the ignored verification directory.
+
+Build and test (macos-15, Debug)
+https://github.com/farukumarx64/cinder/actions/runs/41029277234/job/123974820255
+Checkout revision: 1e5a5f657d962dd062e073432ca5d864fcfba04a
+2026-10-30T08:55:40.0048480Z cmake version 4.4.3
+2026-10-30T08:55:41.3060610Z Apple clang version 17.0.0 (clang-1700.0.13.5)
+2026-10-30T08:55:41.9587560Z -- The C compiler identification is AppleClang 17.0.0.17000013
+2026-10-30T08:55:48.1845830Z 6: Test command: /opt/homebrew/bin/cmake "-DCINDER_EXECUTABLE=/Users/runner/work/cinder/cinder/build/cinder" "-DEXPECTED_VERSION=0.1.0" "-P" "/Users/runner/work/cinder/cinder/tests/check_version.cmake"
+2026-10-30T08:55:48.2015280Z  6/38 Test  #6: cli_version ......................   Passed    0.02 sec
+2026-10-30T08:55:48.5151250Z 9: CLI setup 2 -> 2: one load/read, exact input/output allocations, 100 repeated calls plus benchmark warm-up/measurement/recovery after source deletion, 23 allocation points failed with/without details, I/O/format/non-finite failures and successful retries; zero retained blocks/bytes/streams.
+2026-10-30T08:55:48.5155590Z 9: CLI setup 784 -> 10: one load/read, exact input/output allocations, 100 repeated calls plus benchmark warm-up/measurement/recovery after source deletion, 23 allocation points failed with/without details, I/O/format/non-finite failures and successful retries; zero retained blocks/bytes/streams.
+2026-10-30T08:55:49.9124760Z 10: CLI processes: 133 passed (11 benchmark cases); MNIST prediction/top-three index agreement 100/100; maximum displayed-score absolute error 3.57627869e-07.
+2026-10-30T08:55:59.3880190Z 21: Audit: all 21 allocation points failed individually, with/without details and successful retry.
+2026-10-30T08:55:59.3880710Z 21: Audit: 29 file-failure scenarios, each with/without details and successful retry.
+2026-10-30T08:55:59.3881420Z 21: Audit: native byte extents passed zero/one/exact-limit/overflow checks, preserved output on failure, and performed no allocations.
+2026-10-30T08:55:59.3882510Z 21: Audit: loaded lifecycle passed: 284 poisoned-buffer success/failure/recovery cycles (852 inference calls), zero inference allocations/frees or loader I/O, unchanged parameters, and 42 allocation failures with a surviving model and successful retry.
+2026-10-30T08:55:59.3883860Z 21: Audit: chunk boundaries: 2567 parameter bit comparisons; 162 failures (80 non-finite, 16 truncation, 24 short-read, 42 allocation), each followed by successful load/inference/free.
+2026-10-30T08:55:59.3884720Z 21: Audit: 1766 rejected calls checked for NULL output, unchanged prior owners, zero new live blocks, and no retained stream.
+2026-10-30T08:55:59.4245980Z 27: Max absolute error: 1.1920929e-07; max fraction of tolerance: 0.00600148273 (must be <= 1).
+2026-10-30T08:55:59.4308000Z 28: Max absolute error: 5.96046448e-08; max fraction of tolerance: 0.00303036345 (must be <= 1).
+2026-10-30T08:55:59.4372850Z 29: dense1: 10 vectors / 40 values, max absolute error 0.
+2026-10-30T08:55:59.4373570Z 29: relu: 10 vectors / 40 values, max absolute error 0.
+2026-10-30T08:55:59.4373890Z 29: logits: 10 vectors / 20 values, max absolute error 0.
+2026-10-30T08:55:59.4374850Z 29: softmax: 10 vectors / 20 values, max absolute error 5.96046448e-08.
+2026-10-30T08:55:59.4375510Z 29: Round trip: 40 vectors / 120 values, max absolute error 5.96046448e-08, max fraction of tolerance 0.00303036345 (atol = rtol = 1e-5).
+2026-10-30T08:55:59.7309810Z 30: dense1: 100 vectors / 12800 values, max absolute error 6.19888306e-06, max fraction of tolerance 0.178311515.
+2026-10-30T08:55:59.7310500Z 30: relu: 100 vectors / 12800 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.178311515.
+2026-10-30T08:55:59.7311250Z 30: logits: 100 vectors / 1000 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.176519426.
+2026-10-30T08:55:59.7311900Z 30: probabilities: 100 vectors / 1000 values, max absolute error 3.57627869e-07, max fraction of tolerance 0.0287552465.
+2026-10-30T08:55:59.7312520Z 30: MNIST: 400 vectors / 27600 values passed (atol = rtol = 1e-5).
+2026-10-30T08:56:00.7242440Z 31: MNIST audit: 104 successful loads, 62 rejected loads, 300 cycles / 1384 inference calls; poisoned 784-float workspaces, partial-write failures at all four layers, unchanged parameters, zero allocations/frees or loader I/O during cycles, all 21 allocation points failed twice, and zero final live blocks/bytes/streams.
+2026-10-30T08:56:01.8415600Z 32: MNIST lifecycle: 62 successful loads, 20 rejected loads, 500 cycles / 2100 inference calls; all 100 inputs match saved references and bit-identical repeat baselines, independent models, deleted source files, concurrent independent instances, and caller-serialized shared access.
+2026-10-30T08:56:01.8502150Z 33: Model lifecycle passed: 4120 success/failure/recovery cycles, independent owners, and caller-serialized threads.
+2026-10-30T08:56:01.8962620Z 34: Loaded lifecycle passed: 502 successful loads, 100 rejected loads, 4720 success/failure/recovery cycles (14160 inference calls), concurrent independent loads, deleted source files, and caller-serialized threads.
+2026-10-30T08:56:01.9078970Z 100% tests passed out of 38
+2026-10-30T08:56:01.9079890Z Total Test time (real) =  13.90 sec
+Warning lines: 0; sanitizer findings: 0
+
+Build and test (ubuntu-24.04, Release)
+https://github.com/farukumarx64/cinder/actions/runs/41029277234/job/123974820375
+Checkout revision: 1e5a5f657d962dd062e073432ca5d864fcfba04a
+2026-10-30T08:55:39.3082371Z cmake version 3.31.6
+2026-10-30T08:55:39.7692041Z -- The C compiler identification is GNU 13.3.0
+2026-10-30T08:55:52.3155737Z 6: Test command: /usr/local/bin/cmake "-DCINDER_EXECUTABLE=/home/runner/work/cinder/cinder/build/cinder" "-DEXPECTED_VERSION=0.1.0" "-P" "/home/runner/work/cinder/cinder/tests/check_version.cmake"
+2026-10-30T08:55:52.3201944Z  6/38 Test  #6: cli_version ......................   Passed    0.00 sec
+2026-10-30T08:55:52.4006217Z 9: CLI setup 2 -> 2: one load/read, exact input/output allocations, 100 repeated calls plus benchmark warm-up/measurement/recovery after source deletion, 23 allocation points failed with/without details, I/O/format/non-finite failures and successful retries; zero retained blocks/bytes/streams.
+2026-10-30T08:55:52.4012207Z 9: CLI setup 784 -> 10: one load/read, exact input/output allocations, 100 repeated calls plus benchmark warm-up/measurement/recovery after source deletion, 23 allocation points failed with/without details, I/O/format/non-finite failures and successful retries; zero retained blocks/bytes/streams.
+2026-10-30T08:55:52.6206103Z 10: CLI processes: 133 passed (11 benchmark cases); MNIST prediction/top-three index agreement 100/100; maximum displayed-score absolute error 3.57627869e-07.
+2026-10-30T08:55:56.2219663Z 21: Audit: all 21 allocation points failed individually, with/without details and successful retry.
+2026-10-30T08:55:56.2220305Z 21: Audit: 29 file-failure scenarios, each with/without details and successful retry.
+2026-10-30T08:55:56.2221095Z 21: Audit: native byte extents passed zero/one/exact-limit/overflow checks, preserved output on failure, and performed no allocations.
+2026-10-30T08:55:56.2223323Z 21: Audit: loaded lifecycle passed: 284 poisoned-buffer success/failure/recovery cycles (852 inference calls), zero inference allocations/frees or loader I/O, unchanged parameters, and 42 allocation failures with a surviving model and successful retry.
+2026-10-30T08:55:56.2225284Z 21: Audit: chunk boundaries: 2567 parameter bit comparisons; 162 failures (80 non-finite, 16 truncation, 24 short-read, 42 allocation), each followed by successful load/inference/free.
+2026-10-30T08:55:56.2228355Z 21: Audit: 1766 rejected calls checked for NULL output, unchanged prior owners, zero new live blocks, and no retained stream.
+2026-10-30T08:55:56.2354590Z 27: Max absolute error: 1.1920929e-07; max fraction of tolerance: 0.00600148273 (must be <= 1).
+2026-10-30T08:55:56.2369769Z 28: Max absolute error: 5.96046448e-08; max fraction of tolerance: 0.00303036345 (must be <= 1).
+2026-10-30T08:55:56.2383081Z 29: dense1: 10 vectors / 40 values, max absolute error 0.
+2026-10-30T08:55:56.2383754Z 29: relu: 10 vectors / 40 values, max absolute error 0.
+2026-10-30T08:55:56.2384333Z 29: logits: 10 vectors / 20 values, max absolute error 0.
+2026-10-30T08:55:56.2384820Z 29: softmax: 10 vectors / 20 values, max absolute error 5.96046448e-08.
+2026-10-30T08:55:56.2385701Z 29: Round trip: 40 vectors / 120 values, max absolute error 5.96046448e-08, max fraction of tolerance 0.00303036345 (atol = rtol = 1e-5).
+2026-10-30T08:55:56.2998913Z 30: dense1: 100 vectors / 12800 values, max absolute error 6.67572021e-06, max fraction of tolerance 0.178311515.
+2026-10-30T08:55:56.3000958Z 30: relu: 100 vectors / 12800 values, max absolute error 4.76837158e-06, max fraction of tolerance 0.178311515.
+2026-10-30T08:55:56.3002833Z 30: logits: 100 vectors / 1000 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.206670881.
+2026-10-30T08:55:56.3004414Z 30: probabilities: 100 vectors / 1000 values, max absolute error 3.57627869e-07, max fraction of tolerance 0.0287552465.
+2026-10-30T08:55:56.3005411Z 30: MNIST: 400 vectors / 27600 values passed (atol = rtol = 1e-5).
+2026-10-30T08:55:56.5796251Z 31: MNIST audit: 104 successful loads, 62 rejected loads, 300 cycles / 1384 inference calls; poisoned 784-float workspaces, partial-write failures at all four layers, unchanged parameters, zero allocations/frees or loader I/O during cycles, all 21 allocation points failed twice, and zero final live blocks/bytes/streams.
+2026-10-30T08:55:56.8846941Z 32: MNIST lifecycle: 62 successful loads, 20 rejected loads, 500 cycles / 2100 inference calls; all 100 inputs match saved references and bit-identical repeat baselines, independent models, deleted source files, concurrent independent instances, and caller-serialized shared access.
+2026-10-30T08:55:56.8881986Z 33: Model lifecycle passed: 4120 success/failure/recovery cycles, independent owners, and caller-serialized threads.
+2026-10-30T08:55:56.9222418Z 34: Loaded lifecycle passed: 502 successful loads, 100 rejected loads, 4720 success/failure/recovery cycles (14160 inference calls), concurrent independent loads, deleted source files, and caller-serialized threads.
+2026-10-30T08:55:56.9282774Z 100% tests passed, 0 tests failed out of 38
+2026-10-30T08:55:56.9284185Z Total Test time (real) =   4.74 sec
+Warning lines: 0; sanitizer findings: 0
+
+Build and test (ubuntu-24.04, Debug)
+https://github.com/farukumarx64/cinder/actions/runs/41029277234/job/123974820460
+Checkout revision: 1e5a5f657d962dd062e073432ca5d864fcfba04a
+2026-10-30T08:55:38.5399716Z cmake version 3.31.6
+2026-10-30T08:55:38.9440744Z -- The C compiler identification is GNU 13.3.0
+2026-10-30T08:56:05.2330265Z 6: Test command: /usr/local/bin/cmake "-DCINDER_EXECUTABLE=/home/runner/work/cinder/cinder/build/cinder" "-DEXPECTED_VERSION=0.1.0" "-P" "/home/runner/work/cinder/cinder/tests/check_version.cmake"
+2026-10-30T08:56:05.2357099Z  6/47 Test  #6: cli_version ......................   Passed    0.00 sec
+2026-10-30T08:56:05.3653717Z 9: CLI setup 2 -> 2: one load/read, exact input/output allocations, 100 repeated calls plus benchmark warm-up/measurement/recovery after source deletion, 23 allocation points failed with/without details, I/O/format/non-finite failures and successful retries; zero retained blocks/bytes/streams.
+2026-10-30T08:56:05.3656283Z 9: CLI setup 784 -> 10: one load/read, exact input/output allocations, 100 repeated calls plus benchmark warm-up/measurement/recovery after source deletion, 23 allocation points failed with/without details, I/O/format/non-finite failures and successful retries; zero retained blocks/bytes/streams.
+2026-10-30T08:56:05.5844641Z 10: CLI processes: 133 passed (11 benchmark cases); MNIST prediction/top-three index agreement 100/100; maximum displayed-score absolute error 3.57627869e-07.
+2026-10-30T08:56:12.1924787Z 21: Audit: all 21 allocation points failed individually, with/without details and successful retry.
+2026-10-30T08:56:12.1925242Z 21: Audit: 29 file-failure scenarios, each with/without details and successful retry.
+2026-10-30T08:56:12.1925803Z 21: Audit: native byte extents passed zero/one/exact-limit/overflow checks, preserved output on failure, and performed no allocations.
+2026-10-30T08:56:12.1926704Z 21: Audit: loaded lifecycle passed: 284 poisoned-buffer success/failure/recovery cycles (852 inference calls), zero inference allocations/frees or loader I/O, unchanged parameters, and 42 allocation failures with a surviving model and successful retry.
+2026-10-30T08:56:12.1927670Z 21: Audit: chunk boundaries: 2567 parameter bit comparisons; 162 failures (80 non-finite, 16 truncation, 24 short-read, 42 allocation), each followed by successful load/inference/free.
+2026-10-30T08:56:12.1928476Z 21: Audit: 1766 rejected calls checked for NULL output, unchanged prior owners, zero new live blocks, and no retained stream.
+2026-10-30T08:56:12.2186853Z 27: Max absolute error: 1.1920929e-07; max fraction of tolerance: 0.00600148273 (must be <= 1).
+2026-10-30T08:56:12.2195464Z 28: Max absolute error: 5.96046448e-08; max fraction of tolerance: 0.00303036345 (must be <= 1).
+2026-10-30T08:56:12.2204482Z 29: dense1: 10 vectors / 40 values, max absolute error 0.
+2026-10-30T08:56:12.2204897Z 29: relu: 10 vectors / 40 values, max absolute error 0.
+2026-10-30T08:56:12.2205213Z 29: logits: 10 vectors / 20 values, max absolute error 0.
+2026-10-30T08:56:12.2205678Z 29: softmax: 10 vectors / 20 values, max absolute error 5.96046448e-08.
+2026-10-30T08:56:12.2206312Z 29: Round trip: 40 vectors / 120 values, max absolute error 5.96046448e-08, max fraction of tolerance 0.00303036345 (atol = rtol = 1e-5).
+2026-10-30T08:56:12.3461782Z 30: dense1: 100 vectors / 12800 values, max absolute error 6.67572021e-06, max fraction of tolerance 0.178311515.
+2026-10-30T08:56:12.3462787Z 30: relu: 100 vectors / 12800 values, max absolute error 4.76837158e-06, max fraction of tolerance 0.178311515.
+2026-10-30T08:56:12.3463428Z 30: logits: 100 vectors / 1000 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.206670881.
+2026-10-30T08:56:12.3464402Z 30: probabilities: 100 vectors / 1000 values, max absolute error 3.57627869e-07, max fraction of tolerance 0.0287552465.
+2026-10-30T08:56:12.3464941Z 30: MNIST: 400 vectors / 27600 values passed (atol = rtol = 1e-5).
+2026-10-30T08:56:12.8024365Z 31: MNIST audit: 104 successful loads, 62 rejected loads, 300 cycles / 1384 inference calls; poisoned 784-float workspaces, partial-write failures at all four layers, unchanged parameters, zero allocations/frees or loader I/O during cycles, all 21 allocation points failed twice, and zero final live blocks/bytes/streams.
+2026-10-30T08:56:13.3327773Z 32: MNIST lifecycle: 62 successful loads, 20 rejected loads, 500 cycles / 2100 inference calls; all 100 inputs match saved references and bit-identical repeat baselines, independent models, deleted source files, concurrent independent instances, and caller-serialized shared access.
+2026-10-30T08:56:13.3366954Z 33: Model lifecycle passed: 4120 success/failure/recovery cycles, independent owners, and caller-serialized threads.
+2026-10-30T08:56:13.3837409Z 34: Loaded lifecycle passed: 502 successful loads, 100 rejected loads, 4720 success/failure/recovery cycles (14160 inference calls), concurrent independent loads, deleted source files, and caller-serialized threads.
+2026-10-30T08:56:13.3848601Z 35: Max absolute error: 1.1920929e-07; max fraction of tolerance: 0.00600148273 (must be <= 1).
+2026-10-30T08:56:13.3857979Z 36: Max absolute error: 5.96046448e-08; max fraction of tolerance: 0.00303036345 (must be <= 1).
+2026-10-30T08:56:19.1532153Z 39: dense1: 10 vectors / 40 values, max absolute error 0.
+2026-10-30T08:56:19.1532555Z 39: relu: 10 vectors / 40 values, max absolute error 0.
+2026-10-30T08:56:19.1532947Z 39: logits: 10 vectors / 20 values, max absolute error 0.
+2026-10-30T08:56:19.1533297Z 39: softmax: 10 vectors / 20 values, max absolute error 5.96046448e-08.
+2026-10-30T08:56:19.1533853Z 39: Round trip: 40 vectors / 120 values, max absolute error 5.96046448e-08, max fraction of tolerance 0.00303036345 (atol = rtol = 1e-5).
+2026-10-30T08:56:43.0315049Z 43: dense1: 100 vectors / 12800 values, max absolute error 6.67572021e-06, max fraction of tolerance 0.178311515.
+2026-10-30T08:56:43.0316035Z 43: relu: 100 vectors / 12800 values, max absolute error 4.76837158e-06, max fraction of tolerance 0.178311515.
+2026-10-30T08:56:43.0316957Z 43: logits: 100 vectors / 1000 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.206670881.
+2026-10-30T08:56:43.0317710Z 43: probabilities: 100 vectors / 1000 values, max absolute error 3.57627869e-07, max fraction of tolerance 0.0287552465.
+2026-10-30T08:56:43.0318365Z 43: MNIST: 400 vectors / 27600 values passed (atol = rtol = 1e-5).
+2026-10-30T08:56:43.2495505Z 100% tests passed, 0 tests failed out of 47
+2026-10-30T08:56:43.2496642Z Total Test time (real) =  38.20 sec
+Warning lines: 0; sanitizer findings: 0
+
+Sanitizers (Linux, ASan + UBSan + leaks)
+https://github.com/farukumarx64/cinder/actions/runs/41029277234/job/123974820476
+Checkout revision: 1e5a5f657d962dd062e073432ca5d864fcfba04a
+2026-10-30T08:55:38.8426466Z cmake version 3.31.6
+2026-10-30T08:55:41.4257365Z Ubuntu clang version 18.1.3 (1ubuntu1)
+2026-10-30T08:55:43.5201258Z -- The C compiler identification is Clang 18.1.3
+2026-10-30T08:55:51.8031400Z   ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
+2026-10-30T08:55:51.8031716Z   UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+2026-10-30T08:55:53.4677570Z 6: Test command: /usr/local/bin/cmake "-DCINDER_EXECUTABLE=/home/runner/work/cinder/cinder/build-sanitize/cinder" "-DEXPECTED_VERSION=0.1.0" "-P" "/home/runner/work/cinder/cinder/tests/check_version.cmake"
+2026-10-30T08:55:53.4794277Z  6/38 Test  #6: cli_version ......................   Passed    0.01 sec
+2026-10-30T08:55:53.8964259Z 9: CLI setup 2 -> 2: one load/read, exact input/output allocations, 100 repeated calls plus benchmark warm-up/measurement/recovery after source deletion, 23 allocation points failed with/without details, I/O/format/non-finite failures and successful retries; zero retained blocks/bytes/streams.
+2026-10-30T08:55:53.8965904Z 9: CLI setup 784 -> 10: one load/read, exact input/output allocations, 100 repeated calls plus benchmark warm-up/measurement/recovery after source deletion, 23 allocation points failed with/without details, I/O/format/non-finite failures and successful retries; zero retained blocks/bytes/streams.
+2026-10-30T08:55:55.6811899Z 10: CLI processes: 133 passed (11 benchmark cases); MNIST prediction/top-three index agreement 100/100; maximum displayed-score absolute error 3.57627869e-07.
+2026-10-30T08:56:09.7952725Z 21: Audit: all 21 allocation points failed individually, with/without details and successful retry.
+2026-10-30T08:56:09.7953056Z 21: Audit: 29 file-failure scenarios, each with/without details and successful retry.
+2026-10-30T08:56:09.7953639Z 21: Audit: native byte extents passed zero/one/exact-limit/overflow checks, preserved output on failure, and performed no allocations.
+2026-10-30T08:56:09.7954321Z 21: Audit: loaded lifecycle passed: 284 poisoned-buffer success/failure/recovery cycles (852 inference calls), zero inference allocations/frees or loader I/O, unchanged parameters, and 42 allocation failures with a surviving model and successful retry.
+2026-10-30T08:56:09.7955099Z 21: Audit: chunk boundaries: 2567 parameter bit comparisons; 162 failures (80 non-finite, 16 truncation, 24 short-read, 42 allocation), each followed by successful load/inference/free.
+2026-10-30T08:56:09.7955621Z 21: Audit: 1766 rejected calls checked for NULL output, unchanged prior owners, zero new live blocks, and no retained stream.
+2026-10-30T08:56:09.8777170Z 27: Max absolute error: 1.1920929e-07; max fraction of tolerance: 0.00600148273 (must be <= 1).
+2026-10-30T08:56:09.8865036Z 28: Max absolute error: 5.96046448e-08; max fraction of tolerance: 0.00303036345 (must be <= 1).
+2026-10-30T08:56:09.8948637Z 29: dense1: 10 vectors / 40 values, max absolute error 0.
+2026-10-30T08:56:09.8948956Z 29: relu: 10 vectors / 40 values, max absolute error 0.
+2026-10-30T08:56:09.8949550Z 29: logits: 10 vectors / 20 values, max absolute error 0.
+2026-10-30T08:56:09.8949834Z 29: softmax: 10 vectors / 20 values, max absolute error 5.96046448e-08.
+2026-10-30T08:56:09.8950191Z 29: Round trip: 40 vectors / 120 values, max absolute error 5.96046448e-08, max fraction of tolerance 0.00303036345 (atol = rtol = 1e-5).
+2026-10-30T08:56:10.2803194Z 30: dense1: 100 vectors / 12800 values, max absolute error 6.67572021e-06, max fraction of tolerance 0.178311515.
+2026-10-30T08:56:10.2803841Z 30: relu: 100 vectors / 12800 values, max absolute error 4.76837158e-06, max fraction of tolerance 0.178311515.
+2026-10-30T08:56:10.2804395Z 30: logits: 100 vectors / 1000 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.206670881.
+2026-10-30T08:56:10.2804976Z 30: probabilities: 100 vectors / 1000 values, max absolute error 3.57627869e-07, max fraction of tolerance 0.0287552465.
+2026-10-30T08:56:10.2805457Z 30: MNIST: 400 vectors / 27600 values passed (atol = rtol = 1e-5).
+2026-10-30T08:56:11.7969076Z 31: MNIST audit: 104 successful loads, 62 rejected loads, 300 cycles / 1384 inference calls; poisoned 784-float workspaces, partial-write failures at all four layers, unchanged parameters, zero allocations/frees or loader I/O during cycles, all 21 allocation points failed twice, and zero final live blocks/bytes/streams.
+2026-10-30T08:56:13.4173431Z 32: MNIST lifecycle: 62 successful loads, 20 rejected loads, 500 cycles / 2100 inference calls; all 100 inputs match saved references and bit-identical repeat baselines, independent models, deleted source files, concurrent independent instances, and caller-serialized shared access.
+2026-10-30T08:56:13.4505270Z 33: Model lifecycle passed: 4120 success/failure/recovery cycles, independent owners, and caller-serialized threads.
+2026-10-30T08:56:13.5094338Z 34: Loaded lifecycle passed: 502 successful loads, 100 rejected loads, 4720 success/failure/recovery cycles (14160 inference calls), concurrent independent loads, deleted source files, and caller-serialized threads.
+2026-10-30T08:56:13.5465283Z 100% tests passed, 0 tests failed out of 38
+2026-10-30T08:56:13.5467472Z Total Test time (real) =  20.46 sec
+Warning lines: 0; sanitizer findings: 0
+
+Build and test (macos-15, Release)
+https://github.com/farukumarx64/cinder/actions/runs/41029277234/job/123974820716
+Checkout revision: 1e5a5f657d962dd062e073432ca5d864fcfba04a
+2026-10-30T08:55:41.5731490Z cmake version 4.4.3
+2026-10-30T08:55:43.0845020Z Apple clang version 17.0.0 (clang-1700.0.13.5)
+2026-10-30T08:55:43.7520600Z -- The C compiler identification is AppleClang 17.0.0.17000013
+2026-10-30T08:55:53.4151180Z 6: Test command: /opt/homebrew/bin/cmake "-DCINDER_EXECUTABLE=/Users/runner/work/cinder/cinder/build/cinder" "-DEXPECTED_VERSION=0.1.0" "-P" "/Users/runner/work/cinder/cinder/tests/check_version.cmake"
+2026-10-30T08:55:53.4315480Z  6/38 Test  #6: cli_version ......................   Passed    0.02 sec
+2026-10-30T08:55:53.9508390Z 9: CLI setup 2 -> 2: one load/read, exact input/output allocations, 100 repeated calls plus benchmark warm-up/measurement/recovery after source deletion, 23 allocation points failed with/without details, I/O/format/non-finite failures and successful retries; zero retained blocks/bytes/streams.
+2026-10-30T08:55:53.9510530Z 9: CLI setup 784 -> 10: one load/read, exact input/output allocations, 100 repeated calls plus benchmark warm-up/measurement/recovery after source deletion, 23 allocation points failed with/without details, I/O/format/non-finite failures and successful retries; zero retained blocks/bytes/streams.
+2026-10-30T08:55:55.6674680Z 10: CLI processes: 133 passed (11 benchmark cases); MNIST prediction/top-three index agreement 100/100; maximum displayed-score absolute error 3.57627869e-07.
+2026-10-30T08:56:01.4225290Z 21: Audit: all 21 allocation points failed individually, with/without details and successful retry.
+2026-10-30T08:56:01.4225840Z 21: Audit: 29 file-failure scenarios, each with/without details and successful retry.
+2026-10-30T08:56:01.4226610Z 21: Audit: native byte extents passed zero/one/exact-limit/overflow checks, preserved output on failure, and performed no allocations.
+2026-10-30T08:56:01.4227730Z 21: Audit: loaded lifecycle passed: 284 poisoned-buffer success/failure/recovery cycles (852 inference calls), zero inference allocations/frees or loader I/O, unchanged parameters, and 42 allocation failures with a surviving model and successful retry.
+2026-10-30T08:56:01.4229260Z 21: Audit: chunk boundaries: 2567 parameter bit comparisons; 162 failures (80 non-finite, 16 truncation, 24 short-read, 42 allocation), each followed by successful load/inference/free.
+2026-10-30T08:56:01.4230140Z 21: Audit: 1766 rejected calls checked for NULL output, unchanged prior owners, zero new live blocks, and no retained stream.
+2026-10-30T08:56:01.4513080Z 27: Max absolute error: 1.1920929e-07; max fraction of tolerance: 0.00600148273 (must be <= 1).
+2026-10-30T08:56:01.4552480Z 28: Max absolute error: 5.96046448e-08; max fraction of tolerance: 0.00303036345 (must be <= 1).
+2026-10-30T08:56:01.4620130Z 29: dense1: 10 vectors / 40 values, max absolute error 0.
+2026-10-30T08:56:01.4621330Z 29: relu: 10 vectors / 40 values, max absolute error 0.
+2026-10-30T08:56:01.4622510Z 29: logits: 10 vectors / 20 values, max absolute error 0.
+2026-10-30T08:56:01.4626280Z 29: softmax: 10 vectors / 20 values, max absolute error 5.96046448e-08.
+2026-10-30T08:56:01.4628030Z 29: Round trip: 40 vectors / 120 values, max absolute error 5.96046448e-08, max fraction of tolerance 0.00303036345 (atol = rtol = 1e-5).
+2026-10-30T08:56:01.5714510Z 30: dense1: 100 vectors / 12800 values, max absolute error 6.19888306e-06, max fraction of tolerance 0.178311515.
+2026-10-30T08:56:01.5718910Z 30: relu: 100 vectors / 12800 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.178311515.
+2026-10-30T08:56:01.5720840Z 30: logits: 100 vectors / 1000 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.176519426.
+2026-10-30T08:56:01.5722850Z 30: probabilities: 100 vectors / 1000 values, max absolute error 3.57627869e-07, max fraction of tolerance 0.0287552465.
+2026-10-30T08:56:01.5724540Z 30: MNIST: 400 vectors / 27600 values passed (atol = rtol = 1e-5).
+2026-10-30T08:56:01.9123420Z 31: MNIST audit: 104 successful loads, 62 rejected loads, 300 cycles / 1384 inference calls; poisoned 784-float workspaces, partial-write failures at all four layers, unchanged parameters, zero allocations/frees or loader I/O during cycles, all 21 allocation points failed twice, and zero final live blocks/bytes/streams.
+2026-10-30T08:56:02.2849330Z 32: MNIST lifecycle: 62 successful loads, 20 rejected loads, 500 cycles / 2100 inference calls; all 100 inputs match saved references and bit-identical repeat baselines, independent models, deleted source files, concurrent independent instances, and caller-serialized shared access.
+2026-10-30T08:56:02.2911860Z 33: Model lifecycle passed: 4120 success/failure/recovery cycles, independent owners, and caller-serialized threads.
+2026-10-30T08:56:02.3751000Z 34: Loaded lifecycle passed: 502 successful loads, 100 rejected loads, 4720 success/failure/recovery cycles (14160 inference calls), concurrent independent loads, deleted source files, and caller-serialized threads.
+2026-10-30T08:56:02.3951010Z 100% tests passed out of 38
+2026-10-30T08:56:02.3953580Z Total Test time (real) =   9.32 sec
+Warning lines: 0; sanitizer findings: 0

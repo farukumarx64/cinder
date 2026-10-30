@@ -1,6 +1,6 @@
 # Cinder v0.1.0
 
-**Prepared for release; final candidate verification and publication are
+**Prepared for release; candidate verification passes and publication is
 pending.** The executable now reports `Cinder 0.1.0`. This document does not
 announce a published tag or release.
 
@@ -109,7 +109,16 @@ For this version finalization, fresh local macOS Debug and Release builds pass
 print exactly `Cinder 0.1.0` with empty stderr. The existing smoke test accepts
 the release version and rejects the former development-version expectation.
 [Local evidence](docs/verification/2026-10-30-version.txt) identifies the tested
-CMake contents; final candidate sanitizer/leak and hosted checks remain pending.
+CMake contents; candidate sanitizer/leak and hosted checks were still pending
+at that step.
+
+Subsequent [candidate verification](docs/RELEASE_VERIFICATION.md) at `1e5a5f6`
+passes all local Debug/Release, numerical/lifecycle, sanitizer, native leak,
+and documented setup checks, including a fresh Python environment. All five
+macOS/Linux CI jobs pass on the first attempt in
+[run 41029277234](https://github.com/farukumarx64/cinder/actions/runs/41029277234),
+including Linux ASan/UBSan/LeakSanitizer. The verification gate is complete;
+tagging and publication remain pending.
 
 ## Constraints and known limitations
 
@@ -143,7 +152,7 @@ public C API, model math, `.cnd` format version **1**, or committed fixtures.
 Existing `.cnd` v1 examples remain compatible. Historical reports retain the
 version strings that their original executables printed.
 
-Final fresh-checkout tests and macOS/Linux CI on the release candidate remain
-required before the owner authorizes its tag and publication. The
+Final fresh-checkout tests and macOS/Linux CI pass for candidate `1e5a5f6`.
+The owner must still authorize its tag and publication. The
 [release gates](ROADMAP.md#remaining-release-gates) track those remaining steps.
 Cinder is distributed under the [MIT License](LICENSE).

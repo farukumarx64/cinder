@@ -1,0 +1,714 @@
+Cinder v0.1.0 release-candidate local verification — October 30, 2026
+
+{
+  "candidate": "1e5a5f657d962dd062e073432ca5d864fcfba04a",
+  "tree": "a41ad662c812a3796c2d8204ceaab5e8dbd29358",
+  "initial_tracked_status": "clean",
+  "readme_sha256": "6a6ec7c8d0f98a4fc60fe04dd77f8cf67a2e8f2f6af6c20a37b7b67103591e1b",
+  "readme_shell_blocks_valid": 14,
+  "readme_local_links": "all resolve",
+  "checkout_method": "HTTPS clone of public repository, then fetch candidate SHA from local repository and detach; no uncommitted source copied"
+}
+
+sw_vers
+ProductName:		macOS
+ProductVersion:		27.0.1
+BuildVersion:		26A434
+uname -m
+arm64
+sysctl -n machdep.cpu.brand_string
+Apple M4 (confirmed outside sandbox after the sandbox blocked this read)
+cc --version
+Apple clang version 21.0.0 (clang-2100.3.34.2)
+Target: arm64-apple-darwin27.0.0
+Thread model: posix
+InstalledDir: /Library/Developer/CommandLineTools/usr/bin
+cmake --version
+cmake version 4.4.4
+
+CMake suite maintained and supported by Kitware (kitware.com/cmake).
+git --version
+git version 2.54.0
+
+Verification root: build-release-candidate-20261030/ (ignored).
+Separate fresh clone; no source changes. Fresh Python installation and verification completed later below.
+Configure adds -Werror; build parallelism 4; verbose CTest runs from each build directory.
+macOS sanitizer environment: ASAN_OPTIONS=detect_leaks=0:halt_on_error=1
+                             UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
+
+DEBUG
+{
+  "steps": [
+    {
+      "step": "configure",
+      "command": "cmake -S . -B build-debug -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DCMAKE_C_FLAGS=-Werror",
+      "cwd": "<checkout>",
+      "exit": 0,
+      "seconds": 0.837
+    },
+    {
+      "step": "build",
+      "command": "cmake --build build-debug --parallel 4",
+      "cwd": "<checkout>",
+      "exit": 0,
+      "seconds": 2.366
+    },
+    {
+      "step": "tests",
+      "command": "ctest --output-on-failure --verbose --no-tests=error",
+      "cwd": "<checkout>/build-debug",
+      "exit": 0,
+      "seconds": 35.539
+    },
+    {
+      "step": "version",
+      "command": "<checkout>/build-debug/cinder --version",
+      "cwd": "<checkout>",
+      "exit": 0,
+      "seconds": 0.01,
+      "stdout": "Cinder 0.1.0\n",
+      "stderr": ""
+    }
+  ],
+  "compiler_warnings": 0,
+  "test_summary": "100% tests passed out of 38",
+  "test_duration": "Total Test time (real) =  35.51 sec"
+}
+
+RELEASE
+{
+  "steps": [
+    {
+      "step": "configure",
+      "command": "cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DCMAKE_C_FLAGS=-Werror",
+      "cwd": "<checkout>",
+      "exit": 0,
+      "seconds": 0.839
+    },
+    {
+      "step": "build",
+      "command": "cmake --build build-release --parallel 4",
+      "cwd": "<checkout>",
+      "exit": 0,
+      "seconds": 3.148
+    },
+    {
+      "step": "tests",
+      "command": "ctest --output-on-failure --verbose --no-tests=error",
+      "cwd": "<checkout>/build-release",
+      "exit": 0,
+      "seconds": 29.476
+    },
+    {
+      "step": "version",
+      "command": "<checkout>/build-release/cinder --version",
+      "cwd": "<checkout>",
+      "exit": 0,
+      "seconds": 0.01,
+      "stdout": "Cinder 0.1.0\n",
+      "stderr": ""
+    }
+  ],
+  "compiler_warnings": 0,
+  "test_summary": "100% tests passed out of 38",
+  "test_duration": "Total Test time (real) =  29.47 sec"
+}
+
+SANITIZE
+{
+  "steps": [
+    {
+      "step": "configure",
+      "command": "cmake -S . -B build-sanitize -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DCMAKE_C_FLAGS=-Werror -DCINDER_ENABLE_ASAN=ON -DCINDER_ENABLE_UBSAN=ON",
+      "cwd": "<checkout>",
+      "exit": 0,
+      "seconds": 0.718
+    },
+    {
+      "step": "build",
+      "command": "cmake --build build-sanitize --parallel 4",
+      "cwd": "<checkout>",
+      "exit": 0,
+      "seconds": 1.914
+    },
+    {
+      "step": "tests",
+      "command": "ctest --output-on-failure --verbose --no-tests=error",
+      "cwd": "<checkout>/build-sanitize",
+      "exit": 0,
+      "seconds": 46.965
+    },
+    {
+      "step": "version",
+      "command": "<checkout>/build-sanitize/cinder --version",
+      "cwd": "<checkout>",
+      "exit": 0,
+      "seconds": 0.013,
+      "stdout": "Cinder 0.1.0\n",
+      "stderr": ""
+    }
+  ],
+  "compiler_warnings": 0,
+  "test_summary": "100% tests passed out of 38",
+  "test_duration": "Total Test time (real) =  46.94 sec"
+}
+
+MINIMAL
+{
+  "steps": [
+    {
+      "step": "configure",
+      "command": "cmake -S . -B build-minimal -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF -DCMAKE_C_FLAGS=-Werror",
+      "cwd": "<checkout>",
+      "exit": 0,
+      "seconds": 0.47
+    },
+    {
+      "step": "build",
+      "command": "cmake --build build-minimal --parallel 4",
+      "cwd": "<checkout>",
+      "exit": 0,
+      "seconds": 0.543
+    },
+    {
+      "step": "version",
+      "command": "<checkout>/build-minimal/cinder --version",
+      "cwd": "<checkout>",
+      "exit": 0,
+      "seconds": 0.28,
+      "stdout": "Cinder 0.1.0\n",
+      "stderr": ""
+    }
+  ],
+  "compiler_warnings": 0
+}
+
+DOCUMENTED COMMANDS
+{
+  "mnist-run": {
+    "command": "./build-release/cinder run examples/mnist/mnist.cnd tests/fixtures/mnist/inputs/00000.f32",
+    "exit": 0,
+    "stdout": "Model: mnist.cnd\nPrediction: 7\nScores:\n7\t0.9978019\n3\t0.0018843736\n2\t0.000236767111\n",
+    "stderr": ""
+  },
+  "tiny-run": {
+    "command": "./build-release/cinder run tests/fixtures/tiny/tiny.cnd tests/fixtures/tiny/inputs/worked.f32",
+    "exit": 0,
+    "stdout": "Model: tiny.cnd\nPrediction: 0\nScores:\n0\t0.904650509\n1\t0.0953494608\n",
+    "stderr": ""
+  },
+  "mnist-bench": {
+    "command": "./build-release/cinder bench examples/mnist/mnist.cnd tests/fixtures/mnist/inputs/00000.f32 --iterations 1000",
+    "exit": 0,
+    "stdout": "Model: mnist.cnd\nIterations: 1000\nWarm-up iterations: 10\nClock: monotonic\nClock resolution (ns): 42\nMean latency (us): 118.889557\nMinimum latency (us): 97.75\nMaximum latency (us): 700.125\nThroughput (inferences/s): 8411.16769\n",
+    "stderr": ""
+  }
+}
+Benchmark timing collected during checks; not a performance baseline.
+
+SELECTED RELEASE TEST OUTPUT
+9: CLI setup 2 -> 2: one load/read, exact input/output allocations, 100 repeated calls plus benchmark warm-up/measurement/recovery after source deletion, 23 allocation points failed with/without details, I/O/format/non-finite failures and successful retries; zero retained blocks/bytes/streams.
+9: CLI setup 784 -> 10: one load/read, exact input/output allocations, 100 repeated calls plus benchmark warm-up/measurement/recovery after source deletion, 23 allocation points failed with/without details, I/O/format/non-finite failures and successful retries; zero retained blocks/bytes/streams.
+10: CLI processes: 133 passed (11 benchmark cases); MNIST prediction/top-three index agreement 100/100; maximum displayed-score absolute error 3.57627869e-07.
+11: Benchmark acceptance tiny: real model/CLI, deterministic clock/report, faults and recovery; zero retained blocks/bytes/files.
+11: Benchmark acceptance MNIST: real model/CLI, deterministic clock/report, faults and recovery; zero retained blocks/bytes/files.
+11: Benchmark acceptance: 1095 command invocations passed; clock backend controlled; no speed threshold.
+12: Benchmark acceptance: 2 command invocations passed; clock backend unavailable; no speed threshold.
+21: Audit: all 21 allocation points failed individually, with/without details and successful retry.
+21: Audit: 29 file-failure scenarios, each with/without details and successful retry.
+21: Audit: native byte extents passed zero/one/exact-limit/overflow checks, preserved output on failure, and performed no allocations.
+21: Audit: loaded lifecycle passed: 284 poisoned-buffer success/failure/recovery cycles (852 inference calls), zero inference allocations/frees or loader I/O, unchanged parameters, and 42 allocation failures with a surviving model and successful retry.
+21: Audit: chunk boundaries: 2567 parameter bit comparisons; 162 failures (80 non-finite, 16 truncation, 24 short-read, 42 allocation), each followed by successful load/inference/free.
+21: Audit: 1766 rejected calls checked for NULL output, unchanged prior owners, zero new live blocks, and no retained stream.
+27: NumPy references passed: 11 dense fixtures, 12 activation fixtures, 79 vectors, 341 elements.
+27: Max absolute error: 1.1920929e-07; max fraction of tolerance: 0.00600148273 (must be <= 1).
+28: Tiny-network NumPy references passed: 10 inputs, four stages via layers and models, 80 vectors, 240 elements.
+28: Max absolute error: 5.96046448e-08; max fraction of tolerance: 0.00303036345 (must be <= 1).
+29: dense1: 10 vectors / 40 values, max absolute error 0.
+29: relu: 10 vectors / 40 values, max absolute error 0.
+29: logits: 10 vectors / 20 values, max absolute error 0.
+29: softmax: 10 vectors / 20 values, max absolute error 5.96046448e-08.
+29: Round trip: 40 vectors / 120 values, max absolute error 5.96046448e-08, max fraction of tolerance 0.00303036345 (atol = rtol = 1e-5).
+30: dense1: 100 vectors / 12800 values, max absolute error 6.19888306e-06, max fraction of tolerance 0.178311515.
+30: relu: 100 vectors / 12800 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.178311515.
+30: logits: 100 vectors / 1000 values, max absolute error 5.7220459e-06, max fraction of tolerance 0.176519426.
+30: probabilities: 100 vectors / 1000 values, max absolute error 3.57627869e-07, max fraction of tolerance 0.0287552465.
+30: MNIST: 400 vectors / 27600 values passed (atol = rtol = 1e-5).
+31: MNIST audit: 104 successful loads, 62 rejected loads, 300 cycles / 1384 inference calls; poisoned 784-float workspaces, partial-write failures at all four layers, unchanged parameters, zero allocations/frees or loader I/O during cycles, all 21 allocation points failed twice, and zero final live blocks/bytes/streams.
+32: MNIST lifecycle: 62 successful loads, 20 rejected loads, 500 cycles / 2100 inference calls; all 100 inputs match saved references and bit-identical repeat baselines, independent models, deleted source files, concurrent independent instances, and caller-serialized shared access.
+33: Model lifecycle passed: 4120 success/failure/recovery cycles, independent owners, and caller-serialized threads.
+34: Loaded lifecycle passed: 502 successful loads, 100 rejected loads, 4720 success/failure/recovery cycles (14160 inference calls), concurrent independent loads, deleted source files, and caller-serialized threads.
+100% tests passed out of 38
+Total Test time (real) =  29.47 sec
+
+NATIVE LEAK CHECKS
+
+loader
+{
+  "command": "leaks --atExit -- <checkout>/build-release/test_loader_failures <checkout>/tests/fixtures/tiny/tiny.cnd <checkout>/build-release/loader-audit-files/model.bin",
+  "exit": 0,
+  "zero_leaks": true
+}
+Reject: magic
+Reject: version zero
+Reject: future version
+Reject: wrong byte order
+Reject: zero header input
+Reject: header vector limit
+Reject: header connection
+Reject: zero layers
+Reject: layer count limit
+Reject: insufficient record space
+Reject: zero type
+Reject: unknown type
+Reject: unknown last type
+Reject: zero input
+Reject: zero output
+Reject: input limit
+Reject: output limit
+Reject: Dense payload short
+Reject: Dense payload long
+Reject: Dense payload huge
+Reject: ReLU connection
+Reject: ReLU shape change
+Reject: ReLU payload
+Reject: Dense connection
+Reject: Softmax shape change
+Reject: Softmax payload
+Reject: infinite weight
+Reject: negative infinite bias
+Reject: NaN later weight
+Reject: signaling NaN last bias
+Loader: 709 rejected cases (each with/without error details); 50 NumPy vectors, 100 values, max absolute error 5.96046448e-08.
+Audit: all 21 allocation points failed individually, with/without details and successful retry.
+Audit: 29 file-failure scenarios, each with/without details and successful retry.
+Audit: native byte extents passed zero/one/exact-limit/overflow checks, preserved output on failure, and performed no allocations.
+Audit: loaded lifecycle passed: 284 poisoned-buffer success/failure/recovery cycles (852 inference calls), zero inference allocations/frees or loader I/O, unchanged parameters, and 42 allocation failures with a surviving model and successful retry.
+Audit: chunk boundaries: 2567 parameter bit comparisons; 162 failures (80 non-finite, 16 truncation, 24 short-read, 42 allocation), each followed by successful load/inference/free.
+Audit: 1766 rejected calls checked for NULL output, unchanged prior owners, zero new live blocks, and no retained stream.
+Process:         test_loader_failures [70672]
+Path:            /Users/USER/*/test_loader_failures
+Load Address:    0x102380000
+Identifier:      test_loader_failures
+Version:         0
+Code Type:       ARM64
+Platform:        macOS
+Parent Process:  leaks [70671]
+Target Type:     live task
+
+Date/Time:       2026-10-30 09:31:05.730 +0100
+Launch Time:     2026-10-30 09:31:05.341 +0100
+OS Version:      macOS 27.0.1 (26A434)
+Report Version:  7
+Analysis Tool:   /usr/bin/leaks
+
+Physical footprint:         323.6M
+Physical footprint (peak):  323.6M
+Idle exit:                  untracked
+----
+
+leaks Report Version: 4.0, multi-line stacks
+Process 70672: 191 nodes malloced for 31 KB
+Process 70672: 0 leaks for 0 total leaked bytes.
+
+Process 70672 is not debuggable. Due to security restrictions, leaks can only show or save contents of readonly memory of restricted processes.
+
+
+
+boundaries
+{
+  "command": "leaks --atExit -- <checkout>/build-release/test_buffer_boundaries",
+  "exit": 0,
+  "zero_leaks": true
+}
+Protected buffers: both page edges passed; read-only inputs/parameters, exact capacities, constructor copies, kernels/layers/models, rejection and recovery; all mappings released.
+Process:         test_buffer_boundaries [70677]
+Path:            /Users/USER/*/test_buffer_boundaries
+Load Address:    0x102994000
+Identifier:      test_buffer_boundaries
+Version:         0
+Code Type:       ARM64
+Platform:        macOS
+Parent Process:  leaks [70675]
+Target Type:     live task
+
+Date/Time:       2026-10-30 09:31:06.590 +0100
+Launch Time:     2026-10-30 09:31:06.586 +0100
+OS Version:      macOS 27.0.1 (26A434)
+Report Version:  7
+Analysis Tool:   /usr/bin/leaks
+
+Physical footprint:         2544K
+Physical footprint (peak):  2640K
+Idle exit:                  untracked
+----
+
+leaks Report Version: 4.0, multi-line stacks
+Process 70677: 188 nodes malloced for 31 KB
+Process 70677: 0 leaks for 0 total leaked bytes.
+
+Process 70677 is not debuggable. Due to security restrictions, leaks can only show or save contents of readonly memory of restricted processes.
+
+
+
+input
+{
+  "command": "leaks --atExit -- <checkout>/build-release/test_input <checkout>/build-release/input-test-files/input.bin",
+  "exit": 0,
+  "zero_leaks": true
+}
+Input reader: binary32 decoding, lengths, non-finite values, I/O faults and cleanup passed.
+Process:         test_input [70689]
+Path:            /Users/USER/*/test_input
+Load Address:    0x104420000
+Identifier:      test_input
+Version:         0
+Code Type:       ARM64
+Platform:        macOS
+Parent Process:  leaks [70680]
+Target Type:     live task
+
+Date/Time:       2026-10-30 09:31:07.037 +0100
+Launch Time:     2026-10-30 09:31:07.031 +0100
+OS Version:      macOS 27.0.1 (26A434)
+Report Version:  7
+Analysis Tool:   /usr/bin/leaks
+
+Physical footprint:         2560K
+Physical footprint (peak):  2560K
+Idle exit:                  untracked
+----
+
+leaks Report Version: 4.0, multi-line stacks
+Process 70689: 188 nodes malloced for 31 KB
+Process 70689: 0 leaks for 0 total leaked bytes.
+
+Process 70689 is not debuggable. Due to security restrictions, leaks can only show or save contents of readonly memory of restricted processes.
+
+
+
+cli-setup
+{
+  "command": "leaks --atExit -- <checkout>/build-release/test_cli_setup <checkout> <checkout>/build-release/cli-setup-files",
+  "exit": 0,
+  "zero_leaks": true
+}
+CLI setup 2 -> 2: one load/read, exact input/output allocations, 100 repeated calls plus benchmark warm-up/measurement/recovery after source deletion, 23 allocation points failed with/without details, I/O/format/non-finite failures and successful retries; zero retained blocks/bytes/streams.
+CLI setup 784 -> 10: one load/read, exact input/output allocations, 100 repeated calls plus benchmark warm-up/measurement/recovery after source deletion, 23 allocation points failed with/without details, I/O/format/non-finite failures and successful retries; zero retained blocks/bytes/streams.
+Process:         test_cli_setup [70692]
+Path:            /Users/USER/*/test_cli_setup
+Load Address:    0x102780000
+Identifier:      test_cli_setup
+Version:         0
+Code Type:       ARM64
+Platform:        macOS
+Parent Process:  leaks [70691]
+Target Type:     live task
+
+Date/Time:       2026-10-30 09:31:07.532 +0100
+Launch Time:     2026-10-30 09:31:07.483 +0100
+OS Version:      macOS 27.0.1 (26A434)
+Report Version:  7
+Analysis Tool:   /usr/bin/leaks
+
+Physical footprint:         3584K
+Physical footprint (peak):  3584K
+Idle exit:                  untracked
+----
+
+leaks Report Version: 4.0, multi-line stacks
+Process 70692: 188 nodes malloced for 31 KB
+Process 70692: 0 leaks for 0 total leaked bytes.
+
+Process 70692 is not debuggable. Due to security restrictions, leaks can only show or save contents of readonly memory of restricted processes.
+
+
+
+benchmark
+{
+  "command": "leaks --atExit -- <checkout>/build-release/test_benchmark_controlled <checkout>",
+  "exit": 0,
+  "zero_leaks": true
+}
+Benchmark timing: 41/42 ns samples retained; zero at 9853, 37270, and 100000 stops immediately with no partial result/report, complete cleanup, and successful recovery.
+Benchmark acceptance tiny: real model/CLI, deterministic clock/report, faults and recovery; zero retained blocks/bytes/files.
+Benchmark acceptance MNIST: real model/CLI, deterministic clock/report, faults and recovery; zero retained blocks/bytes/files.
+Benchmark acceptance: 1095 command invocations passed; clock backend controlled; no speed threshold.
+Process:         test_benchmark_controlled [70694]
+Path:            /Users/USER/*/test_benchmark_controlled
+Load Address:    0x100b1c000
+Identifier:      test_benchmark_controlled
+Version:         0
+Code Type:       ARM64
+Platform:        macOS
+Parent Process:  leaks [70693]
+Target Type:     live task
+
+Date/Time:       2026-10-30 09:31:08.921 +0100
+Launch Time:     2026-10-30 09:31:07.969 +0100
+OS Version:      macOS 27.0.1 (26A434)
+Report Version:  7
+Analysis Tool:   /usr/bin/leaks
+
+Physical footprint:         3696K
+Physical footprint (peak):  3696K
+Idle exit:                  untracked
+----
+
+leaks Report Version: 4.0, multi-line stacks
+Process 70694: 191 nodes malloced for 31 KB
+Process 70694: 0 leaks for 0 total leaked bytes.
+
+Process 70694 is not debuggable. Due to security restrictions, leaks can only show or save contents of readonly memory of restricted processes.
+
+
+
+mnist-lifecycle
+{
+  "command": "leaks --atExit -- <checkout>/build-release/test_mnist_lifecycle_audit <checkout>/examples/mnist/mnist.cnd <checkout>/tests/fixtures/mnist <checkout>/build-release/mnist-lifecycle-audit-files/model.bin",
+  "exit": 0,
+  "zero_leaks": true
+}
+MNIST audit: 104 successful loads, 62 rejected loads, 300 cycles / 1384 inference calls; poisoned 784-float workspaces, partial-write failures at all four layers, unchanged parameters, zero allocations/frees or loader I/O during cycles, all 21 allocation points failed twice, and zero final live blocks/bytes/streams.
+Process:         test_mnist_lifecycle_audit [70706]
+Path:            /Users/USER/*/test_mnist_lifecycle_audit
+Load Address:    0x10403c000
+Identifier:      test_mnist_lifecycle_audit
+Version:         0
+Code Type:       ARM64
+Platform:        macOS
+Parent Process:  leaks [70705]
+Target Type:     live task
+
+Date/Time:       2026-10-30 09:31:09.536 +0100
+Launch Time:     2026-10-30 09:31:09.358 +0100
+OS Version:      macOS 27.0.1 (26A434)
+Report Version:  7
+Analysis Tool:   /usr/bin/leaks
+
+Physical footprint:         6336K
+Physical footprint (peak):  6336K
+Idle exit:                  untracked
+----
+
+leaks Report Version: 4.0, multi-line stacks
+Process 70706: 188 nodes malloced for 31 KB
+Process 70706: 0 leaks for 0 total leaked bytes.
+
+Process 70706 is not debuggable. Due to security restrictions, leaks can only show or save contents of readonly memory of restricted processes.
+
+
+
+mnist-run
+{
+  "command": "leaks --atExit -- <checkout>/build-release/cinder run examples/mnist/mnist.cnd tests/fixtures/mnist/inputs/00000.f32",
+  "exit": 0,
+  "zero_leaks": true
+}
+Model: mnist.cnd
+Prediction: 7
+Scores:
+7	0.9978019
+3	0.0018843736
+2	0.000236767111
+Process:         cinder [70709]
+Path:            /Users/USER/*/cinder
+Load Address:    0x104e80000
+Identifier:      cinder
+Version:         0
+Code Type:       ARM64
+Platform:        macOS
+Parent Process:  leaks [70708]
+Target Type:     live task
+
+Date/Time:       2026-10-30 09:31:09.981 +0100
+Launch Time:     2026-10-30 09:31:09.976 +0100
+OS Version:      macOS 27.0.1 (26A434)
+Report Version:  7
+Analysis Tool:   /usr/bin/leaks
+
+Physical footprint:         3520K
+Physical footprint (peak):  3520K
+Idle exit:                  untracked
+----
+
+leaks Report Version: 4.0, multi-line stacks
+Process 70709: 191 nodes malloced for 31 KB
+Process 70709: 0 leaks for 0 total leaked bytes.
+
+Process 70709 is not debuggable. Due to security restrictions, leaks can only show or save contents of readonly memory of restricted processes.
+
+
+
+mnist-bench
+{
+  "command": "leaks --atExit -- <checkout>/build-release/cinder bench examples/mnist/mnist.cnd tests/fixtures/mnist/inputs/00000.f32 --iterations 1000",
+  "exit": 0,
+  "zero_leaks": true
+}
+Model: mnist.cnd
+Iterations: 1000
+Warm-up iterations: 10
+Clock: monotonic
+Clock resolution (ns): 42
+Mean latency (us): 105.819603
+Minimum latency (us): 97.333
+Maximum latency (us): 132.875
+Throughput (inferences/s): 9450.0449
+Process:         cinder [70712]
+Path:            /Users/USER/*/cinder
+Load Address:    0x102a94000
+Identifier:      cinder
+Version:         0
+Code Type:       ARM64
+Platform:        macOS
+Parent Process:  leaks [70711]
+Target Type:     live task
+
+Date/Time:       2026-10-30 09:31:10.528 +0100
+Launch Time:     2026-10-30 09:31:10.417 +0100
+OS Version:      macOS 27.0.1 (26A434)
+Report Version:  7
+Analysis Tool:   /usr/bin/leaks
+
+Physical footprint:         3472K
+Physical footprint (peak):  3472K
+Idle exit:                  untracked
+----
+
+leaks Report Version: 4.0, multi-line stacks
+Process 70712: 191 nodes malloced for 31 KB
+Process 70712: 0 leaks for 0 total leaked bytes.
+
+Process 70712 is not debuggable. Due to security restrictions, leaks can only show or save contents of readonly memory of restricted processes.
+
+
+
+Scope: native macOS results only. Candidate hosted CI is not yet available.
+No runtime/test/fixture/build/workflow changes; no push, tag, or publication during these local checks.
+
+OPTIONAL PYTHON CHECKS USING EXISTING PINNED ENVIRONMENT
+Python 3.12.14, NumPy 2.3.5, PyTorch 2.14.1. Fresh candidate build and fixtures; existing interpreter environment supplied externally.
+[
+  {
+    "step": "configure",
+    "command": "cmake -S . -B build-python-existing -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DCMAKE_C_FLAGS=-Werror -DCINDER_ENABLE_NUMPY_TESTS=ON -DCINDER_ENABLE_EXPORTER_TESTS=ON -DCINDER_ENABLE_MNIST_TESTS=ON -DPython3_EXECUTABLE=/Users/farukumar/Developer/cinder/.venv/bin/python",
+    "cwd": "<checkout>",
+    "exit": 0,
+    "seconds": 1.802
+  },
+  {
+    "step": "build",
+    "command": "cmake --build build-python-existing --parallel 4",
+    "cwd": "<checkout>",
+    "exit": 0,
+    "seconds": 1.533
+  },
+  {
+    "step": "tests",
+    "command": "ctest --output-on-failure --verbose --no-tests=error",
+    "cwd": "<checkout>/build-python-existing",
+    "exit": 0,
+    "seconds": 48.636
+  },
+  {
+    "step": "version",
+    "command": "<checkout>/build-python-existing/cinder --version",
+    "cwd": "<checkout>",
+    "exit": 0,
+    "seconds": 0.009,
+    "stdout": "Cinder 0.1.0\n",
+    "stderr": ""
+  }
+]
+100% tests passed out of 47
+Total Test time (real) =  48.61 sec
+Zero compiler warnings. Fresh dependency installation remains in progress separately.
+
+FRESH PYTHON ENVIRONMENT AND DOCUMENTED EXPORT CHECK
+Created a separate virtual environment with the installed Python 3.12.14 executable.
+Both documented macOS pip install commands completed successfully. No dataset download or training.
+Fresh NumPy 2.3.5 and PyTorch 2.14.1; pip check: No broken requirements found.
+Sandboxed pip check/freeze emitted a cache-not-writable warning; neither command requires that cache and both succeeded.
+[
+  {
+    "step": "configure",
+    "command": "cmake -S . -B build-python -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DCMAKE_C_FLAGS=-Werror -DCINDER_ENABLE_NUMPY_TESTS=ON -DCINDER_ENABLE_EXPORTER_TESTS=ON -DCINDER_ENABLE_MNIST_TESTS=ON -DPython3_EXECUTABLE=<checkout>/.venv/bin/python",
+    "cwd": "<checkout>",
+    "exit": 0,
+    "seconds": 1.524
+  },
+  {
+    "step": "build",
+    "command": "cmake --build build-python --parallel 4",
+    "cwd": "<checkout>",
+    "exit": 0,
+    "seconds": 3.891
+  },
+  {
+    "step": "tests",
+    "command": "ctest --output-on-failure --verbose --no-tests=error",
+    "cwd": "<checkout>/build-python",
+    "exit": 0,
+    "seconds": 47.402
+  },
+  {
+    "step": "version",
+    "command": "<checkout>/build-python/cinder --version",
+    "cwd": "<checkout>",
+    "exit": 0,
+    "seconds": 0.01,
+    "stdout": "Cinder 0.1.0\n",
+    "stderr": ""
+  }
+]
+100% tests passed out of 47
+Total Test time (real) =  47.38 sec
+Zero compiler warnings; exact Cinder 0.1.0 output and empty stderr.
+
+Installed packages (pip freeze):
+filelock==4.2.4
+fsspec==2026.9.0
+Jinja2==3.1.6
+MarkupSafe==3.0.4
+mpmath==1.3.0
+networkx==3.7
+numpy==2.3.5
+setuptools==84.2.1
+sympy==1.14.0
+torch==2.14.1
+typing_extensions==4.16.0
+
+.venv/bin/python examples/mnist/export.py --check: exit 0
+Verified identical export: <checkout>/examples/mnist/mnist.cnd
+
+Final fresh-checkout git status: clean; HEAD still 1e5a5f657d962dd062e073432ca5d864fcfba04a.
+All required local checks pass. Hosted CI remains pending explicit permission to push the candidate.
+
+AUTHORIZED PUSH AND DIRECT HTTPS CLONE FOLLOW-UP
+The user authorized pushing the three reviewed commits through 1e5a5f6 and verifying CI.
+Push result: cace0df..1e5a5f6 -> main. New verification documentation remains uncommitted.
+A second plain HTTPS clone after the push retrieves the candidate directly from GitHub.
+{
+  "source": {
+    "head": "1e5a5f657d962dd062e073432ca5d864fcfba04a",
+    "tree": "a41ad662c812a3796c2d8204ceaab5e8dbd29358",
+    "status": "clean",
+    "readme_sha256": "6a6ec7c8d0f98a4fc60fe04dd77f8cf67a2e8f2f6af6c20a37b7b67103591e1b"
+  },
+  "remote-source": {
+    "head": "1e5a5f657d962dd062e073432ca5d864fcfba04a",
+    "tree": "a41ad662c812a3796c2d8204ceaab5e8dbd29358",
+    "status": "clean",
+    "readme_sha256": "6a6ec7c8d0f98a4fc60fe04dd77f8cf67a2e8f2f6af6c20a37b7b67103591e1b"
+  }
+}
+The two clean checkouts have identical commit, full tree, and README hashes.
+No source changes since local verification; CI run 41029277234 targets the same full SHA.
+
+CI FOLLOW-UP COMPLETE
+All five jobs in run 41029277234 passed on attempt 1 for 1e5a5f657d962dd062e073432ca5d864fcfba04a.
+Linux Debug: 47/47; macOS Debug/Release, Linux Release, Linux sanitizers: 38/38 each.
+Exact version smoke checks passed; zero compiler warnings and sanitizer findings.
+See 2026-10-30-release-candidate-ci.json and -ci.txt for metadata and original log excerpts.
+No implementation changes, new commit, tag, or release publication; evidence documentation remains uncommitted.

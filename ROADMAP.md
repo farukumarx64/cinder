@@ -182,7 +182,18 @@ Debug/Release pass 38/38 each; both and a build without tests print exactly
 `Cinder 0.1.0`. The smoke test accepts `0.1.0` and rejects the old development
 expectation. See [verification](docs/verification/2026-10-30-version.txt).
 Historical output records retain their original version strings.
-**Next scoped step: verify the final release candidate from a fresh checkout.**
+**Release-candidate verification completed October 30, 2026.** A fresh
+checkout of `1e5a5f6` passes Debug/Release and ASan+UBSan 38/38 each, all 47
+tests with a newly installed Python environment, the documented model/export
+commands, and eight native leak checks with zero leaks. The checkout remains
+clean; no runtime changes were needed. See [the candidate report](docs/RELEASE_VERIFICATION.md).
+After the authorized push, a direct GitHub clone matches the tested candidate.
+All five macOS/Linux jobs pass on the first attempt in
+[run 41029277234](https://github.com/farukumarx64/cinder/actions/runs/41029277234),
+including Linux ASan/UBSan/LeakSanitizer and all optional Python tests in Linux
+Debug. Every job verifies `1e5a5f6` and the `0.1.0` version. The final verification
+gate is complete.
+**Next scoped step: publish the verified v0.1.0 release after authorization.**
 Follow the [remaining release gates](#remaining-release-gates).
 Implement and verify one scoped step at a time.
 
@@ -1560,7 +1571,8 @@ The release README rewrite is complete October 30; its source-build workflow,
 commands, architecture/ownership, measured results, and limitations are verified
 as recorded in [the recipe evidence](docs/verification/2026-10-30-readme.txt).
 Version finalization and [release notes](RELEASE_NOTES.md) are also complete.
-Final candidate verification and authorized publication remain. M7 stays open.
+[Final candidate verification](docs/RELEASE_VERIFICATION.md) is complete for
+`1e5a5f6`. Authorized publication remains; M7 stays open.
 
 The README covers the planned topics below:
 
@@ -1672,9 +1684,9 @@ release-candidate gates below.
 ## Remaining release gates
 
 - [x] Close M6 on October 30 after GCC warning triage, tiny-clock investigation, robustness review, and verification of `cace0df`; see [the final report](docs/M6_VERIFICATION.md).
-- [x] Finish the release README on October 30: source installation, build/test commands, `run`/`bench`, architecture and memory ownership, measured results, and limitations, with history in linked reports. Isolated-snapshot recipes pass Debug/Release/ASan+UBSan 38/38 each, optional Python 47/47, model/benchmark/export examples, and a native leak check. That review recorded `0.1.0-dev`; version finalization below updates the current output. The final candidate checkout/CI gate remains open. See [evidence](docs/verification/2026-10-30-readme.txt).
-- [x] Finalize release version reporting and notes on October 30. CMake uses project version `0.1.0` for the executable, version smoke expectation, CLI audit, and both benchmark audit builds. Fresh local Debug/Release pass 38/38 each; builds with and without tests print exactly `Cinder 0.1.0` with empty stderr. A negative control rejects the obsolete `0.1.0-dev` expectation. Current examples and the [release notes](RELEASE_NOTES.md) describe the release features/constraints; `.cnd` stays at format version 1 and historical reports remain intact. See [evidence](docs/verification/2026-10-30-version.txt). Final candidate verification and publication remain separate gates.
-- [ ] Verify final documented commands from a fresh release-candidate checkout, and run final Debug/Release, numerical/lifecycle, sanitizer/leak, and macOS/Linux CI checks after the last code/build changes.
+- [x] Finish the release README on October 30: source installation, build/test commands, `run`/`bench`, architecture and memory ownership, measured results, and limitations, with history in linked reports. Isolated-snapshot recipes pass Debug/Release/ASan+UBSan 38/38 each, optional Python 47/47, model/benchmark/export examples, and a native leak check. That review recorded `0.1.0-dev`; version finalization below updates the current output. The final candidate checkout/CI gate was still open at that step. See [evidence](docs/verification/2026-10-30-readme.txt).
+- [x] Finalize release version reporting and notes on October 30. CMake uses project version `0.1.0` for the executable, version smoke expectation, CLI audit, and both benchmark audit builds. Fresh local Debug/Release pass 38/38 each; builds with and without tests print exactly `Cinder 0.1.0` with empty stderr. A negative control rejects the obsolete `0.1.0-dev` expectation. Current examples and the [release notes](RELEASE_NOTES.md) describe the release features/constraints; `.cnd` stays at format version 1 and historical reports remain intact. See [evidence](docs/verification/2026-10-30-version.txt). Final candidate verification and publication were separate subsequent gates.
+- [x] Verify final documented commands and required checks on October 30 for `1e5a5f6`. Fresh checkout Debug/Release and ASan+UBSan pass 38/38 each; a fresh Python environment passes 47/47; all eight native leak checks report zero leaks. After the authorized push, the direct GitHub clone matches the tested tree and all five macOS/Linux CI jobs pass on the first attempt, including Linux ASan/UBSan/LeakSanitizer. Version, numerical, lifecycle, and failure tests pass with no compiler warnings. See [the candidate report](docs/RELEASE_VERIFICATION.md) and [CI run 41029277234](https://github.com/farukumarx64/cinder/actions/runs/41029277234).
 - [ ] Publish a `v0.1.0` tag and GitHub release identifying the verified revision after the user authorizes publication. Neither existed in the October 29 read-only audit.
 
 `cinder info` is **deferred beyond v0.1.0**, not checked off as implemented.
@@ -1966,8 +1978,9 @@ locally and in hosted CI, adding chunk-boundary faults and protected-buffer test
 [M6 closed October 30](docs/M6_VERIFICATION.md) after fresh local checks and all
 five hosted jobs passed at `cace0df`. Phase 7's release README is now complete,
 with a verified supported workflow and architecture/ownership overview. Version
-finalization and release notes are also complete. Next is final candidate
-verification, followed by authorized publication. M7 remains open.
+finalization, release notes, and [final candidate verification](docs/RELEASE_VERIFICATION.md)
+are complete. All five hosted jobs pass for `1e5a5f6`; authorized publication is
+next. M7 remains open until publication.
 
 The **October 25 deadline is the internal deadline**.
 
