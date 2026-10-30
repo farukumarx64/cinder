@@ -9,10 +9,11 @@ float32 parameters and vectors. A Python exporter converts supported PyTorch
 models to `.cnd` files. Training happens outside the C runtime; the C build
 needs no Python or third-party numerical library.
 
-**Release status:** Phase 6 hardening is complete. The current executable reports
-`Cinder 0.1.0-dev`; version finalization and publication of v0.1.0 remain pending.
+**Release status:** The executable reports `Cinder 0.1.0`, and the
+[v0.1.0 release notes](RELEASE_NOTES.md) are prepared. Final release-candidate
+verification, tagging, and publication remain pending.
 See the [roadmap](ROADMAP.md#current-progress) and
-[final verification report](docs/M6_VERIFICATION.md).
+[Phase 6 verification report](docs/M6_VERIFICATION.md).
 
 ## Installation
 
@@ -50,7 +51,7 @@ cmake --build build-release --parallel
 Expected version output:
 
 ```text
-Cinder 0.1.0-dev
+Cinder 0.1.0
 ```
 
 Generated files belong in `build/` or `build-*/`, which Git ignores. CMake
@@ -343,7 +344,8 @@ leak checking remains unavailable. See the [CI workflow](.github/workflows/ci.ym
   sanitizers are not an exhaustive correctness or memory-safety proof.
 - Tiny-model benchmark intervals may be unresolved by the clock. Measurements
   are not portable performance guarantees. `cinder info` is deferred beyond
-  v0.1.0; version/release work remains in the [release gates](ROADMAP.md#remaining-release-gates).
+  v0.1.0; final verification and publication remain in the
+  [release gates](ROADMAP.md#remaining-release-gates).
 
 ## Repository layout
 
@@ -368,8 +370,9 @@ Development history and evidence remain in the [roadmap](ROADMAP.md),
 [release audit](docs/RELEASE_AUDIT.md), [GCC warning investigation](docs/GCC_WARNINGS.md),
 [timing investigation](docs/TIMING_INVESTIGATION.md),
 [robustness review](docs/ROBUSTNESS_REVIEW.md), and
-[M6 verification](docs/M6_VERIFICATION.md). Version finalization, release notes,
-final candidate checks, and publication are separate remaining steps.
+[M6 verification](docs/M6_VERIFICATION.md). The [release notes](RELEASE_NOTES.md)
+describe v0.1.0's scope and constraints; final candidate checks and publication
+remain separate steps.
 
 ## License
 

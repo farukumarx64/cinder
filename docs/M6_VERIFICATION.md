@@ -212,12 +212,13 @@ leaks --atExit -- ./build-m6-release/cinder bench \
 - **Numerics and accuracy:** saved deterministic fixtures exercise numerical
   agreement. They do not establish correctness for every model or full-test
   classification accuracy in C.
-- **Release scope:** `cinder info` is explicitly deferred. The version remains
-  `0.1.0-dev`; the release README, version finalization, release notes, final
-  fresh-checkout instructions, candidate checks, and authorized tag/publication
-  belong to Phase 7.
+- **Release scope at M6 closure:** `cinder info` was explicitly deferred and the
+  tested executable reported `0.1.0-dev`. The subsequent release README and
+  [version/release notes](../RELEASE_NOTES.md) now describe `0.1.0`; final
+  candidate checks and authorized tag/publication remain Phase 7 work. This
+  report's original revision and results are unchanged.
 
-**M6 is closed with these limitations recorded.** The next scoped work is the
-release README and supported workflow/architecture overview. Later source,
+**M6 is closed with these limitations recorded.** At closure, the next scoped work
+was the release README and supported workflow/architecture overview. Later source,
 build, or version changes require appropriate verification of that release
 candidate; M6 evidence is tied to the revision above.

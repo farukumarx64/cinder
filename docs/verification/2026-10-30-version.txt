@@ -1,0 +1,51 @@
+Cinder version and release-notes verification — October 30, 2026
+
+Base commit: d08306eaab899732281c2ca1b51f6adffd2d7abb
+Verified CMakeLists.txt SHA-256: eff341e19c7df8d374cc9e3fc4abbc725812ce9d04a65537ea7a2d901f7f17a5
+Change: use project version 0.1.0 unchanged for cinder, cli_version, test_cli, and both benchmark audit targets.
+No changes to runtime C sources, public API, file-format version 1, or fixtures.
+Historical verification/benchmark logs retain the version of their original executables.
+No commit, push, tag, release publication, or new CI run in this scoped step.
+
+Environment: macOS 27.0.1 arm64, Apple Clang 21.0.0, CMake 4.4.4.
+Fresh builds under ignored build-version-20261030/; C11, -Wall -Wextra -Wpedantic -Werror.
+Debug: -g, BUILD_TESTING=ON. Release: -O3 -DNDEBUG, BUILD_TESTING=ON.
+Minimal: Release, BUILD_TESTING=OFF. All optional Python tests and sanitizers OFF.
+Additional configure option: CMAKE_EXPORT_COMPILE_COMMANDS=ON.
+Compiler command inspection confirms every CINDER_VERSION definition is the string 0.1.0:
+seven compiler commands each in Debug/Release, three in Minimal.
+
+Debug: configure/build/version/CTest exit 0; zero compiler warnings.
+Version stdout bytes: Cinder 0.1.0\n; stderr empty.
+100% tests passed out of 38
+Total Test time (real) =  25.79 sec
+
+Release: configure/build/version/CTest exit 0; zero compiler warnings.
+Version stdout bytes: Cinder 0.1.0\n; stderr empty.
+100% tests passed out of 38
+Total Test time (real) =  22.51 sec
+
+Minimal: configure/build/version/CTest exit 0; zero compiler warnings.
+Version stdout bytes: Cinder 0.1.0\n; stderr empty.
+Total Tests: 0
+
+Existing tests/check_version.cmake with EXPECTED_VERSION=0.1.0:
+Exit status: 0
+
+Existing tests/check_version.cmake with EXPECTED_VERSION=0.1.0-dev:
+Exit status: 1
+CMake Error at tests/check_version.cmake:13 (message):
+  Expected exactly 'Cinder 0.1.0-dev' followed by a newline; got: 'Cinder
+  0.1.0
+
+  '
+
+Reproduce from the repository root:
+cmake -S . -B build-version-check -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DCMAKE_C_FLAGS=-Werror
+cmake --build build-version-check --parallel 4
+(cd build-version-check && ctest --output-on-failure)
+./build-version-check/cinder --version
+
+The required final candidate gate remains: fresh checkout, documented commands, Debug/Release,
+numerical/lifecycle checks, sanitizers, supported leaks, and macOS/Linux CI on the resulting revision.
+Earlier M6 CI evidence identifies cace0df and is not relabeled as verification of these version edits.

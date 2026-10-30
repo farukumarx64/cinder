@@ -107,7 +107,8 @@ cinder_configure_target(cinder_cli_benchmark)
 
 add_executable(cinder src/cli.c src/cli_session.c src/input.c)
 target_link_libraries(cinder PRIVATE cinder_cli_benchmark)
-target_compile_definitions(cinder PRIVATE CINDER_VERSION="${PROJECT_VERSION}-dev")
+# Report the project version unchanged in the CLI and its source-including tests.
+target_compile_definitions(cinder PRIVATE CINDER_VERSION="${PROJECT_VERSION}")
 cinder_configure_target(cinder)
 
 if(BUILD_TESTING)
@@ -158,7 +159,7 @@ if(BUILD_TESTING)
     add_test(NAME cli_version
         COMMAND "${CMAKE_COMMAND}"
             "-DCINDER_EXECUTABLE=$<TARGET_FILE:cinder>"
-            "-DEXPECTED_VERSION=${PROJECT_VERSION}-dev"
+            "-DEXPECTED_VERSION=${PROJECT_VERSION}"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/check_version.cmake"
     )
     set_tests_properties(cli_version PROPERTIES TIMEOUT 10)
@@ -171,7 +172,7 @@ if(BUILD_TESTING)
 
     add_executable(test_cli tests/test_cli.c src/benchmark_stats.c)
     target_include_directories(test_cli PRIVATE "${PROJECT_SOURCE_DIR}/include")
-    target_compile_definitions(test_cli PRIVATE CINDER_VERSION="${PROJECT_VERSION}-dev")
+    target_compile_definitions(test_cli PRIVATE CINDER_VERSION="${PROJECT_VERSION}")
     if(UNIX)
         target_link_libraries(test_cli PRIVATE m)
     endif()
@@ -216,7 +217,7 @@ if(BUILD_TESTING)
             target_compile_definitions(test_benchmark_${backend} PRIVATE
                 ${CINDER_TIMER_PLATFORM_DEFINITIONS}
                 CINDER_HAVE_MONOTONIC_RAW_CLOCK=$<STREQUAL:${backend},controlled>
-                CINDER_VERSION="${PROJECT_VERSION}-dev")
+                CINDER_VERSION="${PROJECT_VERSION}")
             if(UNIX)
                 target_link_libraries(test_benchmark_${backend} PRIVATE m)
             endif()

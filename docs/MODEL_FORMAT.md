@@ -4,7 +4,7 @@
 format for Cinder v0.1.0. [Python validation and binary export](EXPORTER.md) are
 implemented, as is the [C loader API](LOADER.md), with initial successful-load
 and malformed-file tests. The format version is
-the integer `1`, independent of the runtime's `0.1.0-dev` version string.
+the integer `1`, independent of the runtime's `0.1.0` version string.
 
 This is the authoritative byte layout. Writers must produce it and readers
 must validate it. It describes one fixed-shape, nonempty sequential model for
