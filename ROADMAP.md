@@ -193,7 +193,15 @@ All five macOS/Linux jobs pass on the first attempt in
 including Linux ASan/UBSan/LeakSanitizer and all optional Python tests in Linux
 Debug. Every job verifies `1e5a5f6` and the `0.1.0` version. The final verification
 gate is complete.
-**Next scoped step: publish the verified v0.1.0 release after authorization.**
+**Publication recorded October 30, 2026.** The owner published
+[Cinder v0.1.0 — Initial Release](https://github.com/farukumarx64/cinder/releases/tag/v0.1.0)
+at **14:54:41 Africa/Lagos (UTC+01:00)**. The `v0.1.0` tag points to
+`d4e96dba8decb81df3c5cf32d17d0877fae6170e`; its
+[CI run 41066635400](https://github.com/farukumarx64/cinder/actions/runs/41066635400)
+passed all five macOS/Linux jobs on the first attempt. The
+[publication record](docs/RELEASE_VERIFICATION.md#publication-record) preserves
+these details and distinguishes the released commit from candidate `1e5a5f6`.
+**Next scoped step: mark the publication checklist complete and close M7.**
 Follow the [remaining release gates](#remaining-release-gates).
 Implement and verify one scoped step at a time.
 

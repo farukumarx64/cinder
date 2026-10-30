@@ -3,7 +3,9 @@
 **Release-candidate verification is complete: local checks and all five hosted
 CI jobs pass.** The
 candidate is `1e5a5f657d962dd062e073432ca5d864fcfba04a`, whose executable reports
-`Cinder 0.1.0`. This report does not authorize or announce a tag or publication.
+`Cinder 0.1.0`. Those results remain tied to that candidate. The subsequent
+[publication record](#publication-record) identifies the released tag, its
+commit, and the CI run for that commit.
 
 ## Checkout and documented setup
 
@@ -164,13 +166,49 @@ revision, conclusions, steps, toolchains, version checks, and test totals.
 preserve numerical/lifecycle output and sanitizer settings. Complete job logs
 remain in the ignored verification directory.
 
-## Remaining release step
+## Release status at candidate verification
 
-The final verification checklist is satisfied for `1e5a5f6`; no implementation
-fix was needed. This report records that verified revision. A `v0.1.0` tag and
-GitHub release still require authorization, so M7 remains open for publication.
-No tag or release was created by this verification. Later runtime, test, build,
-or workflow changes require appropriate verification of the changed candidate.
+The final verification checklist was satisfied for `1e5a5f6`; no implementation
+fix was needed. At that point, a `v0.1.0` tag and GitHub release still required
+the owner's publication step. No tag or release was created by that verification.
+Later runtime, test, build, or workflow changes require appropriate verification
+of the changed candidate.
+
+## Publication record
+
+The owner published **Cinder v0.1.0 — Initial Release** on October 30, 2026.
+GitHub reports a published release with `draft: false` and `prerelease: false`.
+
+| Field | Recorded value |
+| --- | --- |
+| Release | [Cinder v0.1.0 — Initial Release](https://github.com/farukumarx64/cinder/releases/tag/v0.1.0) |
+| Publication date and time | **October 30, 2026, 14:54:41 Africa/Lagos (UTC+01:00)**; GitHub timestamp `2026-10-30T13:54:41Z` |
+| Tag | `v0.1.0` |
+| Tagged commit | [`d4e96dba8decb81df3c5cf32d17d0877fae6170e`](https://github.com/farukumarx64/cinder/commit/d4e96dba8decb81df3c5cf32d17d0877fae6170e) |
+| CI | [Run 41066635400](https://github.com/farukumarx64/cinder/actions/runs/41066635400), **success**, attempt **1**, all **five jobs passed** |
+
+The tag reference points directly to the commit above. The CI run was triggered
+by a push to `main` and its `head_sha` matches that exact tagged commit. Its
+five completed jobs are:
+
+| Job | Result |
+| --- | --- |
+| [macOS Debug](https://github.com/farukumarx64/cinder/actions/runs/41066635400/job/124099563421) | Passed |
+| [macOS Release](https://github.com/farukumarx64/cinder/actions/runs/41066635400/job/124099563492) | Passed |
+| [Linux Debug, including Python](https://github.com/farukumarx64/cinder/actions/runs/41066635400/job/124099563809) | Passed |
+| [Linux Release](https://github.com/farukumarx64/cinder/actions/runs/41066635400/job/124099563333) | Passed |
+| [Linux ASan + UBSan + LeakSanitizer](https://github.com/farukumarx64/cinder/actions/runs/41066635400/job/124099562968) | Passed |
+
+Only documentation and verification evidence changed between the earlier
+candidate `1e5a5f6` and released commit `d4e96db`. The earlier local results and
+CI run 41029277234 retain their original candidate attribution; the release
+uses the separate CI result above for its tagged revision.
+
+[Publication metadata](verification/2026-10-30-release-publication.json)
+preserves the release URL and timestamp, tag reference, full commit SHA, CI
+revision and conclusion, job results, and GitHub API source URLs. These were
+read-only checks of the published release; no tag, release, or CI run was
+created or modified while recording this evidence.
 
 ## Scope and limitations
 
