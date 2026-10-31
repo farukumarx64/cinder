@@ -266,6 +266,11 @@ if(BUILD_TESTING)
     cinder_configure_target(test_model)
     add_test(NAME model_allocation COMMAND test_model)
 
+    add_executable(test_model_info tests/test_model_info.c)
+    target_link_libraries(test_model_info PRIVATE cinder_core)
+    cinder_configure_target(test_model_info)
+    add_test(NAME model_info COMMAND test_model_info)
+
     add_executable(test_model_run tests/test_model_run.c)
     target_link_libraries(test_model_run PRIVATE cinder_core)
     cinder_configure_target(test_model_run)
@@ -574,7 +579,7 @@ if(BUILD_TESTING)
         tensor_softmax tensor_numpy_fixtures tensor_allocation_failures
         dense_allocation dense_allocation_failures dense_forward
         layer_interface layer_allocation_failures
-        model_allocation model_allocation_failures model_run model_numpy_fixtures
+        model_allocation model_info model_allocation_failures model_run model_numpy_fixtures
         PROPERTIES TIMEOUT 10
     )
 endif()

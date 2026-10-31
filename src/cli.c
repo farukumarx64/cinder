@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 static const char *status_name(cinder_status_t status)
@@ -67,11 +68,79 @@ static int usage(const char *reason)
     fprintf(stderr, "cinder: usage: %s\nUsage:\n"
                     "  cinder --version\n"
                     "  cinder run <model.cnd> <input.bin>\n"
-                    "  cinder bench <model.cnd> <input.bin> --iterations N\n", reason);
+                    "  cinder bench <model.cnd> <input.bin> --iterations N\n"
+                    "  cinder info <model.cnd>\n", reason);
     return 2;
 }
 
 typedef struct { size_t index; float value; } score_t;
+
+static const char *layer_name(cinder_layer_type_t type)
+{
+    switch (type) {
+        case CINDER_LAYER_DENSE: return "Dense";
+        case CINDER_LAYER_RELU: return "ReLU";
+        case CINDER_LAYER_SOFTMAX: return "Softmax";
+        default: return NULL;
+    }
+}
+
+static int info(const char *path)
+{
+    cinder_model_t *model = NULL;
+    cinder_error_t error = {0};
+    cinder_status_t status = cinder_model_load(path, &model, &error);
+    if (status != CINDER_OK) return diagnostic("model", path, status, &error);
+
+    cinder_model_info_t summary = {0};
+    cinder_layer_info_t *layers = NULL;
+    status = cinder_model_get_info(model, &summary, &error);
+    if (status != CINDER_OK) goto cleanup;
+    if (summary.layer_count > SIZE_MAX / sizeof(*layers)) {
+        status = CINDER_ERROR_OVERFLOW;
+        error = (cinder_error_t){CINDER_ERROR_OVERFLOW, "Model metadata byte count is not representable."};
+        goto cleanup;
+    }
+    layers = malloc(summary.layer_count * sizeof(*layers));
+    if (layers == NULL) {
+        status = CINDER_ERROR_ALLOCATION;
+        error = (cinder_error_t){CINDER_ERROR_ALLOCATION, "Could not allocate model metadata."};
+        goto cleanup;
+    }
+    /* Complete inspection before printing, so load/metadata failures produce
+     * no partial report. The snapshot lets us release model storage first. */
+    for (size_t i = 0; i < summary.layer_count; ++i) {
+        status = cinder_model_get_layer_info(model, i, &layers[i], &error);
+        if (status != CINDER_OK) goto cleanup;
+        if (layer_name(layers[i].type) == NULL) {
+            status = CINDER_ERROR_UNSUPPORTED;
+            error = (cinder_error_t){CINDER_ERROR_UNSUPPORTED, "Model contains an unsupported layer type."};
+            goto cleanup;
+        }
+    }
+cleanup:
+    cinder_model_free(model);
+    if (status != CINDER_OK) {
+        free(layers);
+        return diagnostic("inspection", NULL, status, &error);
+    }
+    const char *basename = strrchr(path, '/');
+    basename = basename != NULL ? basename + 1 : path;
+    bool ok = fputs("Model: ", stdout) != EOF &&
+        print_escaped(stdout, basename, SIZE_MAX, true) &&
+        fprintf(stdout, "\nInput: %zu\nOutput: %zu\nLayers: %zu\n",
+                summary.input_size, summary.output_size, summary.layer_count) >= 0;
+    for (size_t i = 0; ok && i < summary.layer_count; ++i) {
+        ok = fprintf(stdout, "  %zu: %s %zu -> %zu (parameters: %zu)\n", i,
+                     layer_name(layers[i].type), layers[i].input_size,
+                     layers[i].output_size, layers[i].parameter_count) >= 0;
+    }
+    free(layers);
+    if (!ok || fprintf(stdout, "Parameters: %zu\n", summary.parameter_count) < 0) {
+        return output_failure("inspection");
+    }
+    return fflush(stdout) == 0 ? 0 : output_failure("inspection");
+}
 
 static int run(const char *model_path, const char *input_path)
 {
@@ -201,7 +270,12 @@ int main(int argc, char *argv[])
         return fflush(stdout) == 0 ? 0 : output_failure("prediction");
     }
     if (argc >= 2 && strcmp(argv[1], "bench") == 0) return bench_arguments(argc, argv);
-    if (argc < 2 || strcmp(argv[1], "run") != 0) return usage("expected --version, run, or bench.");
+    if (argc >= 2 && strcmp(argv[1], "info") == 0) {
+        if (argc != 3) return usage("info requires exactly one file path.");
+        if (argv[2][0] == '\0') return usage("model path must not be empty.");
+        return info(argv[2]);
+    }
+    if (argc < 2 || strcmp(argv[1], "run") != 0) return usage("expected --version, run, bench, or info.");
     if (argc != 4) return usage("run requires exactly two file paths.");
     if (argv[2][0] == '\0') return usage("model path must not be empty.");
     if (argv[3][0] == '\0') return usage("input path must not be empty.");

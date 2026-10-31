@@ -1,11 +1,30 @@
 # Sequential-model contract
 
 The public declarations are in [`include/cinder/model.h`](../include/cinder/model.h).
-Construction, connection validation, size accessors, inference, and cleanup are implemented
+Construction, connection validation, metadata accessors, inference, and cleanup are implemented
 in [`src/model.c`](../src/model.c) and linked into `cinder_core`. Each model owns
 its ordered layers and two reusable working buffers. `cinder_model_run` executes
 through the existing common layer operations without allocating, and copies the
 final result to caller output only after every layer succeeds.
+
+## Read-only inspection (unreleased)
+
+`cinder_model_get_info` returns `input_size`, `output_size`, `layer_count`, and
+`parameter_count`. `cinder_model_get_layer_info` takes a zero-based index and
+returns the layer's `type`, `input_size`, `output_size`, and `parameter_count`.
+Both write value copies, expose no pointers into the model, and allocate nothing.
+The copies remain usable after the model is freed. Neither reads parameter values,
+changes buffers, nor executes layers. Dense counts `input_size * output_size +
+output_size`; ReLU and Softmax count zero. Arithmetic is checked for overflow.
+
+NULL model/output returns `INVALID_ARGUMENT`; an index outside the sequence
+returns `OUT_OF_BOUNDS`. Overflow returns `OVERFLOW`, and an unknown type returns
+`UNSUPPORTED`. Failures leave the caller's metadata output unchanged. Error
+storage is optional and follows `error.h`. Use a live, intact model and disjoint
+writable output/error storage. Metadata reads may overlap inference, but never
+model destruction or mutation; concurrent readers need separate output storage.
+
+See [INFO.md](INFO.md) for declarations, command output, and verification.
 
 ## Representation and public API
 

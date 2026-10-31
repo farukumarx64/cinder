@@ -267,13 +267,15 @@ Usage:
   cinder --version
   cinder run <model.cnd> <input.bin>
   cinder bench <model.cnd> <input.bin> --iterations N
+  cinder info <model.cnd>
 ```
 
 Every line ends with LF. The global reason for missing/unknown commands or extra
-arguments to `--version` is `expected --version, run, or bench.` Existing
+arguments to `--version` is `expected --version, run, bench, or info.` Existing
 `run` argument reasons, successful output, and operational errors stay as defined
-in [CLI.md](CLI.md). This intentional usage-text change took effect with the
-October 28 implementation; successful `run`/`--version` output is unchanged.
+in [CLI.md](CLI.md). Benchmark usage was added October 28; the unreleased
+[inspection command](INFO.md) adds `info` on October 31. Successful
+`run`/`--version` output is unchanged.
 
 For recognized `bench`, select the first applicable reason in this order:
 

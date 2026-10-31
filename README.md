@@ -16,6 +16,11 @@ constraints. The [publication record](docs/RELEASE_VERIFICATION.md#publication-r
 identifies tagged commit `d4e96db` and its five passing macOS/Linux CI jobs.
 The [v0.1.0 roadmap](ROADMAP.md#current-progress) is complete through M7.
 
+**Unreleased development addition:** `cinder info <model.cnd>` inspects model
+structure and parameter counts. This command is available in the current
+source tree; the published v0.1.0 tag does not include it. See the
+[inspection guide and verification](docs/INFO.md).
+
 ## Installation
 
 Build from source on macOS or Linux. You need:
@@ -137,6 +142,30 @@ samples. Increasing `--iterations` cannot fix a zero-length individual interval.
 See the [benchmark contract](docs/BENCHMARK.md) and
 [timing investigation](docs/TIMING_INVESTIGATION.md).
 
+### Inspect a model (unreleased)
+
+```sh
+./build-release/cinder info examples/mnist/mnist.cnd
+```
+
+```text
+Model: mnist.cnd
+Input: 784
+Output: 10
+Layers: 4
+  0: Dense 784 -> 128 (parameters: 100480)
+  1: ReLU 128 -> 128 (parameters: 0)
+  2: Dense 128 -> 10 (parameters: 1290)
+  3: Softmax 10 -> 10 (parameters: 0)
+Parameters: 101770
+```
+
+`info` loads and validates the model without an input file or inference. Dense
+counts include every weight and bias; activations have no learned parameters.
+Indices start at zero, and layer dimensions show the execution order. It uses
+the normal loader, including allocation of the model's two working buffers.
+See [the full command and metadata API](docs/INFO.md) for errors and ownership.
+
 ### Exit statuses and errors
 
 | Status | Meaning |
@@ -147,8 +176,8 @@ See the [benchmark contract](docs/BENCHMARK.md) and
 
 Diagnostics go to stderr. Failures before printing leave stdout empty; a write
 failure may leave partial output. Paths are literal file paths: quote spaces,
-and do not use `-` as stdin. Only `--version`, `run`, and `bench` are supported;
-there is no `--help` or `info` command in this version.
+and do not use `-` as stdin. The current source supports `--version`, `run`, `bench`, and `info`;
+there is no `--help`. The published v0.1.0 supports the first three commands.
 
 ## Architecture and memory ownership
 
@@ -233,7 +262,7 @@ cmake --build build-debug --parallel
 (cd build-debug && ctest --output-on-failure)
 ```
 
-The **38 ordinary C tests** cover numerical references, malformed files,
+The **39 ordinary C tests** cover numerical references, malformed files,
 allocation/I/O failures, exact and spare buffer boundaries, cleanup, recovery,
 repeated inference, and CLI/benchmark errors. Timing tests use controlled values
 without a machine-speed threshold. `-Wall -Wextra -Wpedantic` applies to all C
@@ -273,7 +302,7 @@ cmake --build build-python --parallel
 (cd build-python && ctest --output-on-failure)
 ```
 
-This runs **47 tests** using saved data, without downloading MNIST or retraining
+This runs **48 tests** using saved data, without downloading MNIST or retraining
 the reference model. The [exporter guide](docs/EXPORTER.md) documents
 `tools.export_model.export_model(model, path, *, input_size=None)` for supported
 `nn.Sequential` models. Use evaluation mode before export; unsupported layers,
@@ -345,8 +374,8 @@ leak checking remains unavailable. See the [CI workflow](.github/workflows/ci.ym
   arithmetic and produce an error. Passing fixtures, fault injection, and
   sanitizers are not an exhaustive correctness or memory-safety proof.
 - Tiny-model benchmark intervals may be unresolved by the clock. Measurements
-  are not portable performance guarantees. `cinder info` is deferred beyond
-  v0.1.0; see the [post-MVP backlog](ROADMAP.md#17-post-mvp-roadmap).
+  are not portable performance guarantees. `cinder info` is an unreleased addition after
+  v0.1.0; see the [inspection guide](docs/INFO.md).
 
 ## Repository layout
 

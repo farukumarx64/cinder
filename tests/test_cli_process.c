@@ -38,6 +38,8 @@ static int execute_command(const char *executable, const char *model, const char
         close(out); close(err);
         if (iterations != NULL) {
             execl(executable, executable, "bench", model, input, "--iterations", iterations, (char *)NULL);
+        } else if (input == NULL) {
+            execl(executable, executable, "info", model, (char *)NULL);
         } else {
             execl(executable, executable, "run", model, input, (char *)NULL);
         }
@@ -212,15 +214,22 @@ int main(int argc, char **argv)
     write_model("-model with spaces", bias, 4);
     execute(executable, "-model with spaces", "-", 0);
     compare_output("-model with spaces", bias, 4);
+    execute(executable, "-model with spaces", NULL, 0);
+    CHECK(strcmp(output, "Model: -model with spaces\nInput: 1\nOutput: 4\nLayers: 1\n"
+        "  0: Dense 1 -> 4 (parameters: 8)\nParameters: 8\n") == 0);
     const char *odd = "a \"\\\n\t\xC3\xA9";
     write_model(odd, bias, 4);
     execute(executable, odd, "-", 0);
     compare_output("a \\\"\\\\\\x0A\\x09\\xC3\\xA9", bias, 4);
     benchmark_command(executable, odd, "-", "0003", "a \\\"\\\\\\x0A\\x09\\xC3\\xA9", 3);
+    execute(executable, odd, NULL, 0);
+    CHECK(strstr(output, "Model: a \\\"\\\\\\x0A\\x09\\xC3\\xA9\n") == output);
     CHECK(symlink(odd, "alias.cnd") == 0);
     execute(executable, "alias.cnd", "-", 0);
     compare_output("alias.cnd", bias, 4);
     CHECK(unlink("alias.cnd") == 0 && remove(odd) == 0);
+    execute(executable, odd, NULL, 1);
+    CHECK(strstr(error, "[IO]") != NULL);
     execute(executable, odd, "missing", 1);
     CHECK(strstr(error, "cinder: model \"a \\\"\\\\\\x0A\\x09\\xC3\\xA9\" [IO]: ") == error);
     execute_command(executable, odd, "missing", "3", 1);
@@ -253,10 +262,14 @@ int main(int argc, char **argv)
     }
     mutate_word("scores", 4, 2); execute(executable, "scores", "missing", 1);
     CHECK(strstr(error, "[UNSUPPORTED]") != NULL);
+    execute(executable, "scores", NULL, 1); CHECK(strstr(error, "[UNSUPPORTED]") != NULL);
     write_model("scores", bias, 3); mutate_word("scores", 8, 65537);
     execute(executable, "scores", "missing", 1); CHECK(strstr(error, "[LIMIT]") != NULL);
     write_model("scores", bias, 3); mutate_word("scores", 0, 0);
     execute(executable, "scores", "missing", 1); CHECK(strstr(error, "[FORMAT]") != NULL);
+    execute(executable, "scores", NULL, 1); CHECK(strstr(error, "[FORMAT]") != NULL);
+    write_model("scores", bias, 1); mutate_word("scores", 32, UINT32_C(0x7fc00000));
+    execute(executable, "scores", NULL, 1); CHECK(strstr(error, "[NONFINITE]") != NULL);
     /* A valid model and finite input causing real arithmetic overflow. */
     write_model("scores", bias, 1); mutate_word("scores", 32, UINT32_C(0x7f7fffff));
     write_input("bad-input", 2.0f); execute(executable, "scores", "bad-input", 1);
@@ -271,11 +284,20 @@ int main(int argc, char **argv)
     CHECK(snprintf(model, sizeof(model), "%s/tests/fixtures/tiny/tiny.cnd", source) < (int)sizeof(model));
     CHECK(snprintf(input, sizeof(input), "%s/tests/fixtures/tiny/inputs/worked.f32", source) < (int)sizeof(input));
     execute(executable, model, input, 0);
+    execute(executable, model, NULL, 0);
+    CHECK(strcmp(output, "Model: tiny.cnd\nInput: 2\nOutput: 2\nLayers: 4\n"
+        "  0: Dense 2 -> 4 (parameters: 12)\n  1: ReLU 4 -> 4 (parameters: 0)\n"
+        "  2: Dense 4 -> 2 (parameters: 10)\n  3: Softmax 2 -> 2 (parameters: 0)\nParameters: 22\n") == 0);
+    execute(executable, model, input, 0);
     const float tiny[] = {0.904650509f, 0.0953494608f}; compare_output("tiny.cnd", tiny, 2);
     benchmark_command(executable, model, input, "1", "tiny.cnd", 1);
     benchmark_command(executable, model, input, "17", "tiny.cnd", 17);
     CHECK(snprintf(model, sizeof(model), "%s/examples/mnist/mnist.cnd", source) < (int)sizeof(model));
     CHECK(snprintf(references, sizeof(references), "%s/tests/fixtures/mnist/probabilities.f32", source) < (int)sizeof(references));
+    execute(executable, model, NULL, 0);
+    CHECK(strcmp(output, "Model: mnist.cnd\nInput: 784\nOutput: 10\nLayers: 4\n"
+        "  0: Dense 784 -> 128 (parameters: 100480)\n  1: ReLU 128 -> 128 (parameters: 0)\n"
+        "  2: Dense 128 -> 10 (parameters: 1290)\n  3: Softmax 10 -> 10 (parameters: 0)\nParameters: 101770\n") == 0);
     FILE *file = fopen(references, "rb"); CHECK(file != NULL);
     double maximum = 0;
     for (size_t sample = 0; sample < 100; ++sample) {

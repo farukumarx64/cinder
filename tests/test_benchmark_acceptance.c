@@ -25,6 +25,7 @@ static size_t calls, forwards, elements, element_index, fail_call, fail_layer;
 static size_t corrupt_call, corrupt_element, queries, clock_reads, fault_read;
 static size_t writes, flushes, fail_write, invocations;
 static bool executing, fail_flush, fail_stderr, partial_write, large_uptime;
+static bool inspecting;
 static FILE *owned_stream, *captured_out, *captured_err;
 static float corrupt_value, saved_input[784];
 static cinder_model_t *saved_model;
@@ -241,7 +242,9 @@ static cinder_status_t tracked_execute(const cinder_cli_session_t *session, uint
 
 static int output_failed(FILE *file)
 {
-    CHECK(live == 0 && live_bytes == 0 && owned_stream == NULL && !executing);
+    CHECK((live == 0 && live_bytes == 0) ||
+          (inspecting && file == captured_out && live == 1 && live_bytes == 4 * sizeof(cinder_layer_info_t)));
+    CHECK(owned_stream == NULL && !executing);
     if (file == captured_err) return fail_stderr;
     CHECK(file == captured_out); return ++writes == fail_write;
 }
@@ -283,9 +286,15 @@ static int output_flush(FILE *file)
 #define fputc output_putc
 #define fflush output_flush
 #define cinder_benchmark_execute tracked_execute
+#define cinder_model_load tracked_load
+#define malloc tracked_malloc
+#define free tracked_free
 #define main cli_main
 #include "../src/cli.c"
 #undef main
+#undef cinder_model_load
+#undef malloc
+#undef free
 #undef stdout
 #undef stderr
 #undef fprintf
@@ -301,6 +310,7 @@ static void reset(void)
     loads = input_reads = calls = forwards = elements = element_index = fail_call = fail_layer = 0;
     corrupt_call = corrupt_element = queries = clock_reads = fault_read = writes = flushes = fail_write = 0;
     executing = fail_flush = fail_stderr = partial_write = large_uptime = false;
+    inspecting = false;
     saved_model = NULL; saved_source = NULL; saved_destination = NULL;
     clock_fault = CLOCK_GOOD; query_result = 0; corrupt_value = NAN;
     current = (struct timespec){100, 999999500}; resolution = (struct timespec){0, 42};
@@ -535,11 +545,40 @@ static void fixture(const char *root, bool mnist)
         CHECK(fclose(file) == 0); reference = (numpy_vector_t){values, COUNT(values)};
     }
 }
+static void inspection(void)
+{
+    char *args[] = {"cinder", "info", model_path, NULL};
+    reset(); inspecting = true; invoke_args(3, args, 0);
+    CHECK(loads == 1 && opens == 1 && closes == 1);
+    CHECK(input_reads == 0 && calls == 0 && forwards == 0 && queries == 0 && clock_reads == 0);
+    CHECK(strstr(out_text, "Layers: 4\n") != NULL && err_text[0] == '\0');
+    size_t allocation_count = allocations, write_count = writes;
+    for (size_t failure = 1; failure <= allocation_count; ++failure) {
+        reset(); inspecting = true; fail_allocation = failure; invoke_args(3, args, 1);
+        CHECK(out_text[0] == '\0' && strstr(err_text, "[ALLOCATION]") != NULL);
+        CHECK(closes == 1 && input_reads == 0 && calls == 0 && queries == 0);
+        reset(); inspecting = true; invoke_args(3, args, 0);
+    }
+    for (size_t failure = 1; failure <= write_count; ++failure) {
+        reset(); inspecting = true; fail_write = failure; partial_write = true;
+        invoke_args(3, args, 1);
+        CHECK(strcmp(err_text, "cinder: output [IO]: Could not write inspection output.\n") == 0);
+    }
+    reset(); inspecting = true; fail_flush = true; invoke_args(3, args, 1);
+    CHECK(strcmp(err_text, "cinder: output [IO]: Could not write inspection output.\n") == 0);
+    reset(); inspecting = true; fail_close = 1; invoke_args(3, args, 1);
+    CHECK(out_text[0] == '\0' && strstr(err_text, "[IO]") != NULL && closes == 1);
+    reset(); inspecting = true; invoke_args(3, args, 0);
+    printf("Inspection acceptance: %zu allocation points and %zu output writes faulted; no inference/input/timing, no retained blocks/bytes/files.\n",
+           allocation_count, write_count);
+}
+
 int main(int argc, char **argv)
 {
     CHECK(argc == 2);
     for (int mnist = 0; mnist < 2; ++mnist) {
         fixture(argv[1], mnist != 0);
+        inspection();
         if (!CINDER_HAVE_MONOTONIC_RAW_CLOCK) {
             reset(); invoke("3", 1);
             diagnostic_is("benchmark", "UNSUPPORTED", "No monotonic clock is available.");

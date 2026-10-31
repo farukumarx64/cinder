@@ -1,10 +1,10 @@
 # `cinder run` command contract
 
 **Defined October 26, 2026; implemented October 27, 2026.**
-[`src/cli.c`](../src/cli.c) supports `--version`, `run`, and `bench`, using the private
+[`src/cli.c`](../src/cli.c) supports `--version`, `run`, `bench`, and `info`, using the private
 [`shared preparation helpers`](../src/cli_session.h),
-[`input reader`](../src/input.c), and public model API. Preparation loads once,
-reads input once, and allocates output before execution; release handles all
+[`input reader`](../src/input.c), and public model API. For `run` and `bench`,
+preparation loads once, reads input once, and allocates output before execution; release handles all
 ownership. This October 27 refactor preserves the command contract below. See
 the [preparation verification](BENCHMARK.md#preparation-implementation-and-verification)
 for reuse/failure tests and the
@@ -20,9 +20,10 @@ and changes the global unknown-command reason as shown below. Successful
 `run`/`--version` output and `run` operational errors retain this contract.
 
 The [October 29 release scope decision](RELEASE_AUDIT.md#scope-decision-defer-cinder-info-beyond-v010)
-explicitly defers `cinder info` beyond v0.1.0. It is not implemented; invoking
-`info` follows the existing unknown-command usage error (exit 2). The v0.1.0
-command surface is `--version`, `run`, and `bench`.
+deferred `cinder info` beyond v0.1.0. It is now implemented in the unreleased
+source tree; see [INFO.md](INFO.md). The published v0.1.0 command surface
+remains `--version`, `run`, and `bench`. The current shared usage block includes
+`info`; successful output and operational errors of existing commands are unchanged.
 
 ## Invocation and argument rules
 
@@ -186,15 +187,17 @@ Usage:
   cinder --version
   cinder run <model.cnd> <input.bin>
   cinder bench <model.cnd> <input.bin> --iterations N
+  cinder info <model.cnd>
 ```
 
 Each line ends with LF, with no extra blank line. For `bench`, use the argument
 rules and reasons in [BENCHMARK.md](BENCHMARK.md#exit-statuses-and-usage-diagnostics).
+For `info`, see [INFO.md](INFO.md#ownership-and-failures).
 For the commands documented here, select the reason in this order:
 
 | Condition | Exact reason |
 | --- | --- |
-| No command, an unknown top-level command, or `--version` with extra arguments | `expected --version, run, or bench.` |
+| No command, an unknown top-level command, or `--version` with extra arguments | `expected --version, run, bench, or info.` |
 | Command is `run`, but not exactly two path arguments | `run requires exactly two file paths.` |
 | Correct argument count but model path is empty | `model path must not be empty.` |
 | Model path nonempty but input path is empty | `input path must not be empty.` |

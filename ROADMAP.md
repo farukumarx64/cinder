@@ -329,8 +329,8 @@ cinder run <model.cnd> <input.bin>
 cinder bench <model.cnd> <input.bin> --iterations N
 ```
 
-`cinder info` was part of the original plan but is explicitly deferred beyond
-v0.1.0. It is not implemented and is not a release gate; see the
+`cinder info` was part of the original plan and was deferred beyond v0.1.0.
+It is now implemented as unreleased post-MVP work; see the
 [scope decision](docs/RELEASE_AUDIT.md#scope-decision-defer-cinder-info-beyond-v010)
 and the [post-MVP backlog](#17-post-mvp-roadmap). The export → load → inference
 workflow and its Python validation remain the release goal.
@@ -409,7 +409,9 @@ Reconciled at M7 closure on October 30, 2026; the
 
 **Deferred beyond v0.1.0:**
 
-- [ ] CLI model inspection (`cinder info`), as decided in the
+- [x] CLI model inspection (`cinder info`), implemented October 31, 2026 in the
+  unreleased source tree; see [implementation and verification](docs/INFO.md).
+  It remains outside the published v0.1.0 scope, as decided in the
   [October 29 scope review](docs/RELEASE_AUDIT.md#scope-decision-defer-cinder-info-beyond-v010).
 
 ---
@@ -1713,7 +1715,7 @@ release-candidate gates below.
 - [x] Verify final documented commands and required checks on October 30 for `1e5a5f6`. Fresh checkout Debug/Release and ASan+UBSan pass 38/38 each; a fresh Python environment passes 47/47; all eight native leak checks report zero leaks. After the authorized push, the direct GitHub clone matches the tested tree and all five macOS/Linux CI jobs pass on the first attempt, including Linux ASan/UBSan/LeakSanitizer. Version, numerical, lifecycle, and failure tests pass with no compiler warnings. See [the candidate report](docs/RELEASE_VERIFICATION.md) and [CI run 41029277234](https://github.com/farukumarx64/cinder/actions/runs/41029277234).
 - [x] Publish `v0.1.0`: the owner published [Cinder v0.1.0 — Initial Release](https://github.com/farukumarx64/cinder/releases/tag/v0.1.0) on October 30, 2026, at 14:54:41 Africa/Lagos (UTC+01:00), tagged at `d4e96dba8decb81df3c5cf32d17d0877fae6170e`. All five jobs in [CI run 41066635400](https://github.com/farukumarx64/cinder/actions/runs/41066635400) pass on the first attempt for that exact commit. The [publication record](docs/RELEASE_VERIFICATION.md#publication-record) preserves the release metadata and evidence. **M7 closed October 30, 2026.**
 
-`cinder info` is **deferred beyond v0.1.0**, not checked off as implemented.
+`cinder info` is **implemented as unreleased post-v0.1.0 work** on October 31, 2026.
 See [the decision](docs/RELEASE_AUDIT.md#scope-decision-defer-cinder-info-beyond-v010)
 and [backlog](#17-post-mvp-roadmap). Existing passing checks must remain green;
 M6 and M7 are complete.
@@ -1728,31 +1730,28 @@ Deferred features belong to future versions and do not reopen this release's sco
 
 # 17. Post-MVP Roadmap
 
-**Deferred October 29, 2026: `cinder info <model.cnd>`.** Model inspection is
-not part of v0.1.0 and has no committed delivery date. Define read-only metadata
-access and the output/error contract before implementation; reuse the validated
-loader and test reporting, counts, failures, and cleanup. See [the scope decision](docs/RELEASE_AUDIT.md#scope-decision-defer-cinder-info-beyond-v010).
+**Implemented October 31, 2026 (unreleased): `cinder info <model.cnd>`.**
+Reuse the validated loader, inspect read-only metadata, and report dimensions,
+ordered layers, and parameter counts. Test reporting, malformed files,
+allocation failures, output failures, cleanup, and recovery. See the
+[command/API guide and actual verification](docs/INFO.md).
+This preserves the [v0.1.0 scope decision](docs/RELEASE_AUDIT.md#scope-decision-defer-cinder-info-beyond-v010);
+no new release or date is assigned, and M7 remains closed.
 
-The original proposed example is retained below as an **unimplemented future
-illustration**, not current command output:
-
-```bash
-$ cinder info mnist.cnd
+```sh
+./build-release/cinder info examples/mnist/mnist.cnd
 ```
-
-Output:
 
 ```text
 Model: mnist.cnd
 Input: 784
-
-Layers:
-  Dense 784 -> 128
-  ReLU
-  Dense 128 -> 10
-  Softmax
-
-Parameters: 101,770
+Output: 10
+Layers: 4
+  0: Dense 784 -> 128 (parameters: 100480)
+  1: ReLU 128 -> 128 (parameters: 0)
+  2: Dense 128 -> 10 (parameters: 1290)
+  3: Softmax 10 -> 10 (parameters: 0)
+Parameters: 101770
 ```
 
 A possible progression:

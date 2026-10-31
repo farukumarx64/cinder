@@ -1,3 +1,17 @@
+# Unreleased
+
+- Add `cinder info <model.cnd>` to report input/output sizes, ordered Dense/ReLU/
+  Softmax layers, per-layer parameter counts, and the total. Reuse normal `.cnd`
+  validation without reading an input file or running inference.
+- Add allocation-free, read-only model/layer metadata accessors returning value
+  copies. Preserve existing successful `run`, `bench`, and `--version` output;
+  common usage diagnostics now also list `info`.
+- Include metadata, command, malformed-file, allocation/output failure, cleanup,
+  and recovery tests. See [the inspection guide](docs/INFO.md) for results and
+  limitations. No new release version or publication is assigned yet.
+
+The published v0.1.0 notes below describe the existing tag and remain unchanged.
+
 # Cinder v0.1.0
 
 **Released October 30, 2026:** [Cinder v0.1.0 — Initial Release](https://github.com/farukumarx64/cinder/releases/tag/v0.1.0).

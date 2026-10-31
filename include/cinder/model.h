@@ -6,14 +6,29 @@
 #include "cinder/layer.h"
 
 /*
- * Construction, connection validation, size accessors, file loading, inference,
+ * Construction, connection validation, metadata accessors, file loading, inference,
  * and cleanup are implemented.
  * A model executes a fixed, nonempty sequence of layers on one float32 vector.
  * Its representation is private: it owns the layer list, every layer, and two
- * reusable working buffers. Public size accessors expose immutable dimensions.
+ * reusable working buffers. Accessors expose immutable metadata as value copies.
  * See docs/MODEL.md for ownership, construction order, and execution examples.
  */
 typedef struct cinder_model cinder_model_t;
+
+/* Value copies: no owned/borrowed pointers; valid after model destruction. */
+typedef struct {
+    size_t input_size;
+    size_t output_size;
+    size_t layer_count;
+    size_t parameter_count;
+} cinder_model_info_t;
+
+typedef struct {
+    cinder_layer_type_t type;
+    size_t input_size;
+    size_t output_size;
+    size_t parameter_count;
+} cinder_layer_info_t;
 
 /*
  * Construct from an ordered, writable array of uniquely owned layer pointers.
@@ -126,6 +141,26 @@ cinder_status_t cinder_model_load(
  */
 size_t cinder_model_input_size(const cinder_model_t *model);
 size_t cinder_model_output_size(const cinder_model_t *model);
+
+/*
+ * Inspect a live, intact model without allocating, executing, or exposing its
+ * storage. Dense parameters count every weight and bias (including zeros);
+ * activations count zero. Counts use checked size_t arithmetic.
+ * NULL model/info -> INVALID_ARGUMENT; index >= layer_count -> OUT_OF_BOUNDS;
+ * unrepresentable counts -> OVERFLOW; unknown layer type -> UNSUPPORTED.
+ * On failure, leave *info unchanged. On success, write a complete value copy.
+ * Optional error storage follows error.h. Writable info/error storage must be
+ * disjoint from each other and model-owned storage. Reads may overlap inference,
+ * never destruction or mutation. Model inspection is O(layers); single-layer
+ * inspection is O(1).
+ */
+cinder_status_t cinder_model_get_info(
+    const cinder_model_t *model, cinder_model_info_t *info, cinder_error_t *error
+);
+cinder_status_t cinder_model_get_layer_info(
+    const cinder_model_t *model, size_t index,
+    cinder_layer_info_t *info, cinder_error_t *error
+);
 
 /*
  * Run the fixed sequence on one input vector without allocations or frees.

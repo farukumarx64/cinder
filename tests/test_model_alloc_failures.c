@@ -577,6 +577,55 @@ static void check_run_arithmetic_without_allocation(cinder_error_t *error)
     }
 }
 
+static void check_metadata(cinder_error_t *error)
+{
+    reset_allocator();
+    cinder_layer_t *layers[4];
+    example_layers(layers);
+    cinder_model_t *model = NULL;
+    CHECK(cinder_model_create(layers, 4, &model, NULL) == CINDER_OK);
+    size_t allocations_before = allocation_calls, frees_before = free_attempts;
+    fail_on_call = allocation_calls + 1;
+    forward_calls = 0;
+    cinder_model_info_t summary;
+    cinder_layer_info_t layer;
+    check_result(cinder_model_get_info(model, &summary, error), CINDER_OK, error);
+    CHECK(summary.parameter_count == 22);
+    for (size_t i = 0; i < 4; ++i) {
+        check_result(cinder_model_get_layer_info(model, i, &layer, error), CINDER_OK, error);
+    }
+    CHECK(allocation_calls == allocations_before && free_attempts == frees_before && forward_calls == 0);
+    cinder_model_free(model);
+    CHECK(live_count == 0);
+
+    /* Private synthetic metadata exercises arithmetic impossible to allocate
+     * on a real host. These are not valid public model-construction examples. */
+    cinder_layer_t dense = {.type = CINDER_LAYER_DENSE, .input_size = SIZE_MAX, .output_size = 2};
+    cinder_layer_t *entries[] = {&dense, &dense};
+    cinder_model_t synthetic = {.layers = entries, .layer_count = 1};
+    cinder_model_info_t saved;
+    cinder_layer_info_t saved_layer;
+    memset(&summary, 0x7f, sizeof(summary));
+    memset(&layer, 0x7f, sizeof(layer));
+    memcpy(&saved, &summary, sizeof(saved));
+    memcpy(&saved_layer, &layer, sizeof(saved_layer));
+    for (size_t scenario = 0; scenario < 4; ++scenario) {
+        if (scenario == 1) dense.output_size = 1; /* Product fits, bias does not. */
+        if (scenario == 2) {
+            dense.input_size = SIZE_MAX / 2; /* Each fits, aggregate does not. */
+            synthetic.layer_count = 2;
+        }
+        if (scenario == 3) dense.type = CINDER_LAYER_INVALID;
+        cinder_status_t expected = scenario == 3 ? CINDER_ERROR_UNSUPPORTED : CINDER_ERROR_OVERFLOW;
+        check_result(cinder_model_get_info(&synthetic, &summary, error), expected, error);
+        CHECK(memcmp(&summary, &saved, sizeof(summary)) == 0);
+        if (scenario != 2) {
+            check_result(cinder_model_get_layer_info(&synthetic, 0, &layer, error), expected, error);
+            CHECK(memcmp(&layer, &saved_layer, sizeof(layer)) == 0);
+        }
+    }
+}
+
 int main(void)
 {
     for (int with_error = 0; with_error <= 1; ++with_error) {
@@ -590,6 +639,7 @@ int main(void)
         check_validation_without_allocation(error);
         check_run_storage(error);
         check_run_arithmetic_without_allocation(error);
+        check_metadata(error);
     }
     check_capacities();
     check_largest_representable_buffer();

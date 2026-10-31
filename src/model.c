@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* Private representation: callers inspect dimensions through the accessors. */
+/* Private representation: callers inspect metadata through value-copy accessors. */
 struct cinder_model {
     cinder_layer_t **layers;
     size_t layer_count;
@@ -136,6 +136,67 @@ size_t cinder_model_input_size(const cinder_model_t *model)
 size_t cinder_model_output_size(const cinder_model_t *model)
 {
     return model == NULL ? 0 : model->output_size;
+}
+
+cinder_status_t cinder_model_get_layer_info(
+    const cinder_model_t *model, size_t index,
+    cinder_layer_info_t *info, cinder_error_t *error)
+{
+    if (model == NULL || info == NULL) {
+        return model_result(CINDER_ERROR_INVALID_ARGUMENT, error,
+                            "Model and metadata output must not be NULL.");
+    }
+    if (index >= model->layer_count) {
+        return model_result(CINDER_ERROR_OUT_OF_BOUNDS, error,
+                            "Layer index must be less than the model layer count.");
+    }
+    const cinder_layer_t *layer = model->layers[index];
+    size_t parameters = 0;
+    switch (layer->type) {
+        case CINDER_LAYER_DENSE:
+            /* Check product and bias addition independently; do not form I+1. */
+            if (layer->output_size != 0 && layer->input_size > SIZE_MAX / layer->output_size) {
+                return model_result(CINDER_ERROR_OVERFLOW, error,
+                                    "Dense weight count exceeds SIZE_MAX.");
+            }
+            parameters = layer->input_size * layer->output_size;
+            if (parameters > SIZE_MAX - layer->output_size) {
+                return model_result(CINDER_ERROR_OVERFLOW, error,
+                                    "Dense parameter count exceeds SIZE_MAX.");
+            }
+            parameters += layer->output_size;
+            break;
+        case CINDER_LAYER_RELU:
+        case CINDER_LAYER_SOFTMAX:
+            break;
+        default:
+            return model_result(CINDER_ERROR_UNSUPPORTED, error,
+                                "Model contains an unsupported layer type.");
+    }
+    *info = (cinder_layer_info_t){layer->type, layer->input_size, layer->output_size, parameters};
+    return model_result(CINDER_OK, error, "");
+}
+
+cinder_status_t cinder_model_get_info(
+    const cinder_model_t *model, cinder_model_info_t *info, cinder_error_t *error)
+{
+    if (model == NULL || info == NULL) {
+        return model_result(CINDER_ERROR_INVALID_ARGUMENT, error,
+                            "Model and metadata output must not be NULL.");
+    }
+    size_t parameters = 0;
+    for (size_t i = 0; i < model->layer_count; ++i) {
+        cinder_layer_info_t layer = {0};
+        cinder_status_t status = cinder_model_get_layer_info(model, i, &layer, error);
+        if (status != CINDER_OK) return status;
+        if (parameters > SIZE_MAX - layer.parameter_count) {
+            return model_result(CINDER_ERROR_OVERFLOW, error,
+                                "Model parameter count exceeds SIZE_MAX.");
+        }
+        parameters += layer.parameter_count;
+    }
+    *info = (cinder_model_info_t){model->input_size, model->output_size, model->layer_count, parameters};
+    return model_result(CINDER_OK, error, "");
 }
 
 cinder_status_t cinder_model_run(

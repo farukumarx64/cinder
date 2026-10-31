@@ -33,6 +33,14 @@ static cinder_benchmark_phase_t benchmark_phase;
 static uint32_t benchmark_iteration;
 static int invalid_statistics;
 static cinder_benchmark_result_t benchmark_result;
+static cinder_status_t info_status, layer_status;
+static size_t info_calls, layer_calls, info_count, fail_layer_index;
+static int inspecting, invalid_layer;
+
+static cinder_status_t test_get_info(const cinder_model_t *model,
+    cinder_model_info_t *info, cinder_error_t *error);
+static cinder_status_t test_get_layer_info(const cinder_model_t *model, size_t index,
+    cinder_layer_info_t *info, cinder_error_t *error);
 
 static void *test_malloc(size_t bytes)
 {
@@ -69,6 +77,28 @@ static cinder_status_t test_load(const char *path, cinder_model_t **model, cinde
         model_live = 1;
     }
     return answer(error, load_status);
+}
+static cinder_status_t test_get_info(const cinder_model_t *model,
+    cinder_model_info_t *info, cinder_error_t *error)
+{
+    CHECK(model == (cinder_model_t *)&model_token && model_live && inputs == 0 && runs == 0);
+    ++info_calls;
+    if (info_status == CINDER_OK) *info = (cinder_model_info_t){2, 2, info_count, 22};
+    return answer(error, info_status);
+}
+static cinder_status_t test_get_layer_info(const cinder_model_t *model, size_t index,
+    cinder_layer_info_t *info, cinder_error_t *error)
+{
+    CHECK(model == (cinder_model_t *)&model_token && model_live && index < 4);
+    ++layer_calls;
+    const cinder_layer_info_t layers[] = {
+        {CINDER_LAYER_DENSE, 2, 4, 12}, {CINDER_LAYER_RELU, 4, 4, 0},
+        {CINDER_LAYER_DENSE, 4, 2, 10}, {CINDER_LAYER_SOFTMAX, 2, 2, 0}
+    };
+    if (index == fail_layer_index && layer_status != CINDER_OK) return answer(error, layer_status);
+    *info = layers[index];
+    if (invalid_layer && index == fail_layer_index) info->type = CINDER_LAYER_INVALID;
+    return answer(error, CINDER_OK);
 }
 static size_t test_input_size(const cinder_model_t *model)
 {
@@ -127,7 +157,8 @@ static cinder_status_t test_benchmark(const cinder_cli_session_t *session, uint3
 }
 static int fail_output(FILE *file)
 {
-    CHECK(live == 0 && model_live == 0); /* Cleanup must precede all output. */
+    /* Only the value-copy metadata snapshot may remain during info output. */
+    CHECK((live == 0 || (inspecting && live == 1 && file == captured_out)) && model_live == 0);
     if (file == captured_err) return fail_stderr;
     CHECK(file == captured_out);
     return ++write_calls == fail_write;
@@ -169,6 +200,8 @@ static int test_flush(FILE *file)
 #define cinder_model_output_size test_output_size
 #define cinder_model_free test_model_free
 #define cinder_model_run test_run
+#define cinder_model_get_info test_get_info
+#define cinder_model_get_layer_info test_get_layer_info
 #define cinder_input_read test_input
 #define cinder_benchmark_execute test_benchmark
 #include "../src/cli_session.c"
@@ -188,6 +221,8 @@ static int test_flush(FILE *file)
 #undef cinder_model_output_size
 #undef cinder_model_free
 #undef cinder_model_run
+#undef cinder_model_get_info
+#undef cinder_model_get_layer_info
 #undef cinder_input_read
 #undef cinder_benchmark_execute
 
@@ -205,6 +240,9 @@ static void reset(void)
     benchmarks = requested_iterations = benchmark_iteration = invalid_statistics = 0;
     benchmark_status = CINDER_OK; benchmark_phase = CINDER_BENCHMARK_SETUP;
     benchmark_result = (cinder_benchmark_result_t){3, 1, 6000, 1000, 3000};
+    info_status = layer_status = CINDER_OK;
+    info_calls = layer_calls = invalid_layer = inspecting = 0;
+    info_count = 4; fail_layer_index = 2;
 }
 static char out_text[4096], err_text[4096];
 static void capture(FILE *file, char *text, size_t capacity)
@@ -289,7 +327,7 @@ static void benchmark_cases(void)
         reset(); invoke(invalid[i].argc, args, 2);
         char expected[512]; snprintf(expected, sizeof(expected), "cinder: usage: %s\nUsage:\n"
             "  cinder --version\n  cinder run <model.cnd> <input.bin>\n"
-            "  cinder bench <model.cnd> <input.bin> --iterations N\n", invalid[i].reason);
+            "  cinder bench <model.cnd> <input.bin> --iterations N\n  cinder info <model.cnd>\n", invalid[i].reason);
         expect_failure(expected); CHECK(loads == 0 && inputs == 0 && benchmarks == 0 && allocations == 0);
     }
     args[2] = "dir/model.cnd"; args[3] = "input.f32"; args[4] = "--iterations";
@@ -302,7 +340,7 @@ static void benchmark_cases(void)
                                      "iterations must be between 1 and 1000000.";
         char expected[512]; snprintf(expected, sizeof(expected), "cinder: usage: %s\nUsage:\n"
             "  cinder --version\n  cinder run <model.cnd> <input.bin>\n"
-            "  cinder bench <model.cnd> <input.bin> --iterations N\n", reason);
+            "  cinder bench <model.cnd> <input.bin> --iterations N\n  cinder info <model.cnd>\n", reason);
         expect_failure(expected); CHECK(loads == 0 && benchmarks == 0 && allocations == 0);
     }
     args[5] = "3";
@@ -331,9 +369,61 @@ static void benchmark_cases(void)
     expect_failure("cinder: benchmark [NONFINITE]: Benchmark statistics must be finite and positive.\n");
     reset(); invoke(6, args, 0); CHECK(err_text[0] == '\0'); /* Recovery. */
 }
+static void info_cases(void)
+{
+    char *args[] = {"cinder", "info", "dir/model.cnd", "extra", NULL};
+    reset(); inspecting = 1; invoke(3, args, 0);
+    CHECK(strcmp(out_text, "Model: model.cnd\nInput: 2\nOutput: 2\nLayers: 4\n"
+        "  0: Dense 2 -> 4 (parameters: 12)\n  1: ReLU 4 -> 4 (parameters: 0)\n"
+        "  2: Dense 4 -> 2 (parameters: 10)\n  3: Softmax 2 -> 2 (parameters: 0)\nParameters: 22\n") == 0);
+    CHECK(err_text[0] == '\0' && loads == 1 && allocations == 1 && info_calls == 1 && layer_calls == 4);
+    CHECK(inputs == 0 && runs == 0 && benchmarks == 0);
+    size_t writes = write_calls;
+    for (size_t i = 1; i <= writes; ++i) {
+        reset(); inspecting = 1; fail_write = i; invoke(3, args, 1);
+        CHECK(strcmp(err_text, "cinder: output [IO]: Could not write inspection output.\n") == 0);
+    }
+    reset(); inspecting = 1; fail_flush = 1; invoke(3, args, 1);
+    CHECK(strcmp(err_text, "cinder: output [IO]: Could not write inspection output.\n") == 0);
+    reset(); inspecting = 1; fail_write = fail_stderr = 1; invoke(3, args, 1);
+    reset(); load_status = CINDER_ERROR_FORMAT; invoke(3, args, 1);
+    expect_failure("cinder: model \"dir/model.cnd\" [FORMAT]: Operation failed.\n");
+    CHECK(allocations == 0 && info_calls == 0);
+    reset(); info_status = CINDER_ERROR_OVERFLOW; invoke(3, args, 1);
+    expect_failure("cinder: inspection [OVERFLOW]: Operation failed.\n");
+    CHECK(allocations == 0 && layer_calls == 0);
+    reset(); info_count = SIZE_MAX; invoke(3, args, 1);
+    expect_failure("cinder: inspection [OVERFLOW]: Model metadata byte count is not representable.\n");
+    CHECK(allocations == 0);
+    reset(); fail_allocation = 1; invoke(3, args, 1);
+    expect_failure("cinder: inspection [ALLOCATION]: Could not allocate model metadata.\n");
+    CHECK(layer_calls == 0);
+    for (size_t i = 0; i < 4; ++i) {
+        reset(); fail_layer_index = i; layer_status = CINDER_ERROR_UNSUPPORTED; invoke(3, args, 1);
+        expect_failure("cinder: inspection [UNSUPPORTED]: Operation failed.\n");
+        CHECK(layer_calls == i + 1);
+    }
+    reset(); invalid_layer = 1; invoke(3, args, 1);
+    expect_failure("cinder: inspection [UNSUPPORTED]: Model contains an unsupported layer type.\n");
+    for (int argc = 2; argc <= 4; ++argc) {
+        reset(); args[2] = ""; invoke(argc, args, 2);
+        const char *reason = argc == 3 ? "model path must not be empty." : "info requires exactly one file path.";
+        char expected[512];
+        snprintf(expected, sizeof(expected), "cinder: usage: %s\nUsage:\n  cinder --version\n"
+            "  cinder run <model.cnd> <input.bin>\n  cinder bench <model.cnd> <input.bin> --iterations N\n"
+            "  cinder info <model.cnd>\n", reason);
+        expect_failure(expected);
+        CHECK(loads == 0 && allocations == 0);
+    }
+    /* Recovery uses fresh resources, and option-looking paths remain literal. */
+    args[2] = "--help"; reset(); inspecting = 1; invoke(3, args, 0);
+    CHECK(strstr(out_text, "Model: --help\n") == out_text);
+}
+
 int main(void)
 {
     benchmark_cases();
+    info_cases();
     char *args[] = {"cinder", "run", "dir/model.cnd", "input.f32", "extra", NULL};
     reset(); invoke(4, args, 0);
     CHECK(strcmp(out_text, "Model: model.cnd\nPrediction: 0\nScores:\n0\t0.5\n1\t0.5\n3\t0.5\n") == 0);
@@ -397,10 +487,10 @@ int main(void)
     }
 
     const struct { int argc; const char *command, *model, *input, *reason; } usages[] = {
-        {1, "", "x", "y", "expected --version, run, or bench."},
-        {2, "--help", "x", "y", "expected --version, run, or bench."},
-        {4, "Run", "x", "y", "expected --version, run, or bench."},
-        {3, "--version", "x", "y", "expected --version, run, or bench."},
+        {1, "", "x", "y", "expected --version, run, bench, or info."},
+        {2, "--help", "x", "y", "expected --version, run, bench, or info."},
+        {4, "Run", "x", "y", "expected --version, run, bench, or info."},
+        {3, "--version", "x", "y", "expected --version, run, bench, or info."},
         {2, "run", "x", "y", "run requires exactly two file paths."},
         {3, "run", "x", "y", "run requires exactly two file paths."},
         {5, "run", "x", "y", "run requires exactly two file paths."},
@@ -411,7 +501,7 @@ int main(void)
         args[1] = (char *)usages[i].command; args[2] = (char *)usages[i].model; args[3] = (char *)usages[i].input;
         reset(); invoke(usages[i].argc, args, 2);
         char expected[512];
-        snprintf(expected, sizeof(expected), "cinder: usage: %s\nUsage:\n  cinder --version\n  cinder run <model.cnd> <input.bin>\n  cinder bench <model.cnd> <input.bin> --iterations N\n", usages[i].reason);
+        snprintf(expected, sizeof(expected), "cinder: usage: %s\nUsage:\n  cinder --version\n  cinder run <model.cnd> <input.bin>\n  cinder bench <model.cnd> <input.bin> --iterations N\n  cinder info <model.cnd>\n", usages[i].reason);
         expect_failure(expected); CHECK(loads == 0 && inputs == 0 && allocations == 0);
     }
     args[1] = "--version";
