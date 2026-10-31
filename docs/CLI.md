@@ -20,8 +20,8 @@ and changes the global unknown-command reason as shown below. Successful
 `run`/`--version` output and `run` operational errors retain this contract.
 
 The [October 29 release scope decision](RELEASE_AUDIT.md#scope-decision-defer-cinder-info-beyond-v010)
-deferred `cinder info` beyond v0.1.0. It is now implemented in the unreleased
-source tree; see [INFO.md](INFO.md). The published v0.1.0 command surface
+deferred `cinder info` beyond v0.1.0. It is now implemented for v0.1.1
+(publication pending); see [INFO.md](INFO.md). The published v0.1.0 command surface
 remains `--version`, `run`, and `bench`. The current shared usage block includes
 `info`; successful output and operational errors of existing commands are unchanged.
 

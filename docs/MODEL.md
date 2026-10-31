@@ -7,7 +7,7 @@ its ordered layers and two reusable working buffers. `cinder_model_run` executes
 through the existing common layer operations without allocating, and copies the
 final result to caller output only after every layer succeeds.
 
-## Read-only inspection (unreleased)
+## Read-only inspection (v0.1.1)
 
 `cinder_model_get_info` returns `input_size`, `output_size`, `layer_count`, and
 `parameter_count`. `cinder_model_get_layer_info` takes a zero-based index and

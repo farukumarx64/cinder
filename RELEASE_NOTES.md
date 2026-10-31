@@ -1,16 +1,58 @@
-# Unreleased
+# Cinder v0.1.1 — Model Inspection
 
-- Add `cinder info <model.cnd>` to report input/output sizes, ordered Dense/ReLU/
-  Softmax layers, per-layer parameter counts, and the total. Reuse normal `.cnd`
-  validation without reading an input file or running inference.
-- Add allocation-free, read-only model/layer metadata accessors returning value
-  copies. Preserve existing successful `run`, `bench`, and `--version` output;
-  common usage diagnostics now also list `info`.
-- Include metadata, command, malformed-file, allocation/output failure, cleanup,
-  and recovery tests. See [the inspection guide](docs/INFO.md) for results and
-  limitations. No new release version or publication is assigned yet.
+**Prepared October 31, 2026; publication pending.** The source reports
+`Cinder 0.1.1`. The owner will create tag `v0.1.1` and publish the release after
+pushing the candidate and checking macOS/Linux CI.
 
-The published v0.1.0 notes below describe the existing tag and remain unchanged.
+## Added
+
+- **Model inspection:** `cinder info <model.cnd>` reports input/output sizes,
+  the ordered Dense/ReLU/Softmax layers, per-layer parameter counts, and the
+  total. It loads and validates the model without an input file or inference.
+- **Read-only metadata API:** `cinder_model_get_info` and
+  `cinder_model_get_layer_info` return value copies without allocations or
+  exposing model-owned pointers. Parameter counts use checked arithmetic;
+  failures preserve the caller's metadata output.
+- **Tests and documentation:** exact reports for the tiny and MNIST models,
+  malformed-file rejection, invalid arguments, allocation/output failures,
+  cleanup, recovery, and an [inspection guide](docs/INFO.md).
+
+## Usage
+
+```sh
+./build-release/cinder info examples/mnist/mnist.cnd
+```
+
+The saved MNIST model reports **784 inputs**, **10 outputs**, **4 layers**, and
+**101770 parameters**. Dense counts include weights and biases; activation
+layers contribute zero parameters.
+
+## Compatibility and limitations
+
+- `.cnd` remains at **format version 1**. Existing models require no conversion.
+- Successful `run` and `bench` output and behavior are unchanged. Shared usage
+  diagnostics now list `info`; `--version` prints `Cinder 0.1.1`.
+- Inspection uses the normal loader and its validation/resource limits. It
+  constructs the model, including its two work buffers; it is not a streaming
+  or low-memory inspector. There is no JSON or class-label output.
+- Build from source on macOS or Linux. No packaged binaries or CMake install
+  target are added. CPU float32 sequential Dense/ReLU/Softmax remains the
+  supported execution scope.
+
+## Verification
+
+Local implementation verification passed **39/39 Debug tests**, **48/48 Release
+tests including optional Python comparisons**, and **39/39 ASan/UBSan tests**.
+Both native macOS leak checks reported **zero leaks**. Fault injection covers
+all 22 inspection allocation points for each example model, output failures,
+and subsequent recovery. Ordinary C tests use committed fixtures without
+Python or downloads.
+
+See [the inspection report](docs/INFO.md#verification) for the dated results and
+v0.1.1 version checks. Hosted macOS/Linux CI for this candidate is pending;
+previous release CI is not evidence for this revision.
+
+---
 
 # Cinder v0.1.0
 

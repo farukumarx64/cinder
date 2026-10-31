@@ -1,8 +1,8 @@
 # Model inspection
 
-**Implemented October 31, 2026; unreleased.** This is post-v0.1.0 work. The
-published v0.1.0 tag does not contain `info`. The source version remains 0.1.0
-until a separate version/release decision; no tag or publication is changed.
+**Implemented October 31, 2026; included in v0.1.1, publication pending.** The
+published v0.1.0 tag does not contain `info`. The current source reports
+`Cinder 0.1.1`; the owner will create the tag and publish the release separately.
 
 ## Command
 
@@ -170,7 +170,26 @@ The Release build used the existing `.venv`, with
 `UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1`. LeakSanitizer is not supported
 on this macOS configuration; the native leak checks above are separate.
 
-Linux and hosted macOS/Linux CI have not been run for these uncommitted changes.
+Linux and hosted macOS/Linux CI were not run for this implementation review.
 The existing workflow discovers the new CTest case without a workflow edit.
-No commit, push, version bump, or release was performed; the v0.1.0 publication
-and its historical verification remain unchanged.
+These results preceded the v0.1.1 version update. The v0.1.0 publication and
+its historical verification remain unchanged.
+
+### v0.1.1 version preparation — October 31, 2026
+
+After committing the implementation as `c082f17`, update CMake's project
+version to `0.1.1`. The executable, CLI audit, benchmark audit builds, and CTest
+version expectation all derive their version from that one value. No separate
+hard-coded test version needs changing.
+
+Rebuild Debug, Release, and ASan/UBSan and rerun the affected command checks:
+`cli_version`, `cli_audit`, `cli_process`, `benchmark_controlled`,
+`benchmark_unavailable`, and `model_info`. **All six pass in each configuration**,
+with no compiler warnings. Each executable prints exactly `Cinder 0.1.1\n`
+with exit 0 and empty stderr. A negative control using `EXPECTED_VERSION=0.1.0`
+fails as expected. The earlier full-suite and leak results above remain the
+implementation evidence; this version-only follow-up reruns the relevant checks.
+
+The README, current command guides, roadmap, and release notes identify v0.1.1
+as prepared with publication pending. The published v0.1.0 notes are unchanged.
+No push, tag creation, release publication, or hosted CI run was performed here.

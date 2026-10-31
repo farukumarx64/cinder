@@ -9,14 +9,16 @@ float32 parameters and vectors. A Python exporter converts supported PyTorch
 models to `.cnd` files. Training happens outside the C runtime; the C build
 needs no Python or third-party numerical library.
 
-**Released:** [v0.1.0](https://github.com/farukumarx64/cinder/releases/tag/v0.1.0)
-on **October 30, 2026**. The executable reports `Cinder 0.1.0`.
-The [release notes](RELEASE_NOTES.md) describe its supported features and
-constraints. The [publication record](docs/RELEASE_VERIFICATION.md#publication-record)
+**Current source: v0.1.1 — publication pending.** The executable reports
+`Cinder 0.1.1`. The [release notes](RELEASE_NOTES.md) describe the new model
+inspection command and its compatibility with existing models.
+
+**Previously released:** [v0.1.0](https://github.com/farukumarx64/cinder/releases/tag/v0.1.0)
+on **October 30, 2026**. The [publication record](docs/RELEASE_VERIFICATION.md#publication-record)
 identifies tagged commit `d4e96db` and its five passing macOS/Linux CI jobs.
 The [v0.1.0 roadmap](ROADMAP.md#current-progress) is complete through M7.
 
-**Unreleased development addition:** `cinder info <model.cnd>` inspects model
+**New in v0.1.1:** `cinder info <model.cnd>` inspects model
 structure and parameter counts. This command is available in the current
 source tree; the published v0.1.0 tag does not include it. See the
 [inspection guide and verification](docs/INFO.md).
@@ -57,7 +59,7 @@ cmake --build build-release --parallel
 Expected version output:
 
 ```text
-Cinder 0.1.0
+Cinder 0.1.1
 ```
 
 Generated files belong in `build/` or `build-*/`, which Git ignores. CMake
@@ -142,7 +144,7 @@ samples. Increasing `--iterations` cannot fix a zero-length individual interval.
 See the [benchmark contract](docs/BENCHMARK.md) and
 [timing investigation](docs/TIMING_INVESTIGATION.md).
 
-### Inspect a model (unreleased)
+### Inspect a model (v0.1.1)
 
 ```sh
 ./build-release/cinder info examples/mnist/mnist.cnd
@@ -374,8 +376,8 @@ leak checking remains unavailable. See the [CI workflow](.github/workflows/ci.ym
   arithmetic and produce an error. Passing fixtures, fault injection, and
   sanitizers are not an exhaustive correctness or memory-safety proof.
 - Tiny-model benchmark intervals may be unresolved by the clock. Measurements
-  are not portable performance guarantees. `cinder info` is an unreleased addition after
-  v0.1.0; see the [inspection guide](docs/INFO.md).
+  are not portable performance guarantees. `cinder info` is available in v0.1.1;
+  see the [inspection guide](docs/INFO.md).
 
 ## Repository layout
 
@@ -401,7 +403,7 @@ Development history and evidence remain in the [roadmap](ROADMAP.md),
 [timing investigation](docs/TIMING_INVESTIGATION.md),
 [robustness review](docs/ROBUSTNESS_REVIEW.md), and
 [M6 verification](docs/M6_VERIFICATION.md). The [release notes](RELEASE_NOTES.md)
-describe v0.1.0's scope and constraints. The
+describe v0.1.1 changes and the published v0.1.0 scope and constraints. The
 [release report](docs/RELEASE_VERIFICATION.md) preserves verification of candidate
 `1e5a5f6` and publication of `v0.1.0` at `d4e96db`, with CI evidence for each.
 

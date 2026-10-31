@@ -273,7 +273,7 @@ Usage:
 Every line ends with LF. The global reason for missing/unknown commands or extra
 arguments to `--version` is `expected --version, run, bench, or info.` Existing
 `run` argument reasons, successful output, and operational errors stay as defined
-in [CLI.md](CLI.md). Benchmark usage was added October 28; the unreleased
+in [CLI.md](CLI.md). Benchmark usage was added October 28; the v0.1.1
 [inspection command](INFO.md) adds `info` on October 31. Successful
 `run`/`--version` output is unchanged.
 
