@@ -207,10 +207,13 @@ the evidence; any further development belongs to the separate
 [post-MVP roadmap](#17-post-mvp-roadmap).
 
 **Post-MVP update — October 31, 2026:** `cinder info` and read-only metadata
-access are implemented in `c082f17`. Version **0.1.1** and its
-[release notes](RELEASE_NOTES.md) are prepared for owner publication. Push,
-macOS/Linux CI, tag creation, and publication remain pending for this candidate;
-the completed v0.1.0 milestones are unchanged.
+access are implemented in `c082f17`. The owner published
+[**v0.1.1 — Model Inspection**](https://github.com/farukumarx64/cinder/releases/tag/v0.1.1)
+at **01:51:39 Africa/Lagos**, tagged at `df3d57b`. All five macOS/Linux jobs in
+[CI run 41152307334](https://github.com/farukumarx64/cinder/actions/runs/41152307334)
+passed for that exact commit on attempt 1. See the
+[publication record](docs/INFO.md#v011-publication-record) and
+[release notes](RELEASE_NOTES.md). The completed v0.1.0 milestones are unchanged.
 
 ### Phase 0 checklist
 
@@ -336,7 +339,7 @@ cinder bench <model.cnd> <input.bin> --iterations N
 ```
 
 `cinder info` was part of the original plan and was deferred beyond v0.1.0.
-It is now implemented for v0.1.1 (publication pending); see the
+It is now released in v0.1.1; see the
 [scope decision](docs/RELEASE_AUDIT.md#scope-decision-defer-cinder-info-beyond-v010)
 and the [post-MVP backlog](#17-post-mvp-roadmap). The export → load → inference
 workflow and its Python validation remain the release goal.
@@ -416,7 +419,7 @@ Reconciled at M7 closure on October 30, 2026; the
 **Deferred beyond v0.1.0:**
 
 - [x] CLI model inspection (`cinder info`), implemented October 31, 2026 in the
-  v0.1.1 source tree (publication pending); see [implementation and verification](docs/INFO.md).
+  released v0.1.1; see [implementation and verification](docs/INFO.md).
   It remains outside the published v0.1.0 scope, as decided in the
   [October 29 scope review](docs/RELEASE_AUDIT.md#scope-decision-defer-cinder-info-beyond-v010).
 
@@ -1721,7 +1724,7 @@ release-candidate gates below.
 - [x] Verify final documented commands and required checks on October 30 for `1e5a5f6`. Fresh checkout Debug/Release and ASan+UBSan pass 38/38 each; a fresh Python environment passes 47/47; all eight native leak checks report zero leaks. After the authorized push, the direct GitHub clone matches the tested tree and all five macOS/Linux CI jobs pass on the first attempt, including Linux ASan/UBSan/LeakSanitizer. Version, numerical, lifecycle, and failure tests pass with no compiler warnings. See [the candidate report](docs/RELEASE_VERIFICATION.md) and [CI run 41029277234](https://github.com/farukumarx64/cinder/actions/runs/41029277234).
 - [x] Publish `v0.1.0`: the owner published [Cinder v0.1.0 — Initial Release](https://github.com/farukumarx64/cinder/releases/tag/v0.1.0) on October 30, 2026, at 14:54:41 Africa/Lagos (UTC+01:00), tagged at `d4e96dba8decb81df3c5cf32d17d0877fae6170e`. All five jobs in [CI run 41066635400](https://github.com/farukumarx64/cinder/actions/runs/41066635400) pass on the first attempt for that exact commit. The [publication record](docs/RELEASE_VERIFICATION.md#publication-record) preserves the release metadata and evidence. **M7 closed October 30, 2026.**
 
-`cinder info` is **implemented for v0.1.1 (publication pending)** on October 31, 2026.
+`cinder info` was **released in v0.1.1** on October 31, 2026.
 See [the decision](docs/RELEASE_AUDIT.md#scope-decision-defer-cinder-info-beyond-v010)
 and [backlog](#17-post-mvp-roadmap). Existing passing checks must remain green;
 M6 and M7 are complete.
@@ -1736,13 +1739,19 @@ Deferred features belong to future versions and do not reopen this release's sco
 
 # 17. Post-MVP Roadmap
 
-**Implemented October 31, 2026 for v0.1.1 (publication pending): `cinder info <model.cnd>`.**
+**Released October 31, 2026 in v0.1.1: `cinder info <model.cnd>`.**
 Reuse the validated loader, inspect read-only metadata, and report dimensions,
 ordered layers, and parameter counts. Test reporting, malformed files,
 allocation failures, output failures, cleanup, and recovery. See the
 [command/API guide and actual verification](docs/INFO.md).
 This preserves the [v0.1.0 scope decision](docs/RELEASE_AUDIT.md#scope-decision-defer-cinder-info-beyond-v010);
-v0.1.1 is prepared for owner publication, and M7 remains closed.
+v0.1.1 is published at `df3d57b`, and M7 remains closed.
+
+- [x] Implement inspection and read-only metadata access with cleanup/error tests.
+- [x] Set version `0.1.1`, update the release notes, and verify affected local checks.
+- [x] Verify all five macOS/Linux CI jobs for the tagged commit.
+- [x] Owner publishes `v0.1.1`; record the release URL, publication time, tagged
+  commit, and [CI evidence](docs/INFO.md#v011-publication-record).
 
 ```sh
 ./build-release/cinder info examples/mnist/mnist.cnd

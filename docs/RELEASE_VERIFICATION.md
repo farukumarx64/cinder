@@ -1,5 +1,8 @@
 # v0.1.0 release-candidate verification — October 30, 2026
 
+This historical report covers v0.1.0. For **v0.1.1**, released October 31,
+see its [publication and CI record](INFO.md#v011-publication-record).
+
 **Release-candidate verification is complete: local checks and all five hosted
 CI jobs pass.** The
 candidate is `1e5a5f657d962dd062e073432ca5d864fcfba04a`, whose executable reports

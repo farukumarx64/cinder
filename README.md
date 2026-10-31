@@ -9,9 +9,12 @@ float32 parameters and vectors. A Python exporter converts supported PyTorch
 models to `.cnd` files. Training happens outside the C runtime; the C build
 needs no Python or third-party numerical library.
 
-**Current source: v0.1.1 — publication pending.** The executable reports
-`Cinder 0.1.1`. The [release notes](RELEASE_NOTES.md) describe the new model
-inspection command and its compatibility with existing models.
+**Released:** [v0.1.1 — Model Inspection](https://github.com/farukumarx64/cinder/releases/tag/v0.1.1)
+on **October 31, 2026**, tagged at `df3d57b`. The executable reports
+`Cinder 0.1.1`. All five macOS/Linux CI jobs passed for the tagged commit;
+see the [publication record](docs/INFO.md#v011-publication-record).
+The [release notes](RELEASE_NOTES.md) describe the new model inspection command
+and its compatibility with existing models.
 
 **Previously released:** [v0.1.0](https://github.com/farukumarx64/cinder/releases/tag/v0.1.0)
 on **October 30, 2026**. The [publication record](docs/RELEASE_VERIFICATION.md#publication-record)

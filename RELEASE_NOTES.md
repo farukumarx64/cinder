@@ -1,8 +1,9 @@
 # Cinder v0.1.1 — Model Inspection
 
-**Prepared October 31, 2026; publication pending.** The source reports
-`Cinder 0.1.1`. The owner will create tag `v0.1.1` and publish the release after
-pushing the candidate and checking macOS/Linux CI.
+**Released October 31, 2026:** [Cinder v0.1.1 — Model Inspection](https://github.com/farukumarx64/cinder/releases/tag/v0.1.1).
+The published tag points to `df3d57b`; the executable reports `Cinder 0.1.1`.
+The owner published at **01:51:39 Africa/Lagos (UTC+01:00)** after all five
+macOS/Linux CI jobs passed for that exact commit.
 
 ## Added
 
@@ -48,9 +49,13 @@ all 22 inspection allocation points for each example model, output failures,
 and subsequent recovery. Ordinary C tests use committed fixtures without
 Python or downloads.
 
-See [the inspection report](docs/INFO.md#verification) for the dated results and
-v0.1.1 version checks. Hosted macOS/Linux CI for this candidate is pending;
-previous release CI is not evidence for this revision.
+Hosted [CI run 41152307334](https://github.com/farukumarx64/cinder/actions/runs/41152307334)
+passed all five jobs on attempt 1 for `df3d57b`: macOS Debug/Release and Linux
+Release each passed 39/39 tests; Linux Debug including Python passed 48/48;
+Linux ASan/UBSan/LeakSanitizer passed 39/39. See the
+[publication record](docs/INFO.md#v011-publication-record) for the full tagged
+commit, timestamps, job links, and saved evidence. Earlier local results retain
+their original attribution in [the inspection report](docs/INFO.md#verification).
 
 ---
 

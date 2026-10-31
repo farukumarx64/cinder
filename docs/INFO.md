@@ -1,8 +1,9 @@
 # Model inspection
 
-**Implemented October 31, 2026; included in v0.1.1, publication pending.** The
-published v0.1.0 tag does not contain `info`. The current source reports
-`Cinder 0.1.1`; the owner will create the tag and publish the release separately.
+**Released October 31, 2026 in [v0.1.1](https://github.com/farukumarx64/cinder/releases/tag/v0.1.1).**
+The tagged commit is `df3d57b`, and the executable reports `Cinder 0.1.1`.
+See the [publication record](#v011-publication-record) for the release and
+passing macOS/Linux CI. The published v0.1.0 tag does not contain `info`.
 
 ## Command
 
@@ -190,6 +191,38 @@ with exit 0 and empty stderr. A negative control using `EXPECTED_VERSION=0.1.0`
 fails as expected. The earlier full-suite and leak results above remain the
 implementation evidence; this version-only follow-up reruns the relevant checks.
 
-The README, current command guides, roadmap, and release notes identify v0.1.1
-as prepared with publication pending. The published v0.1.0 notes are unchanged.
-No push, tag creation, release publication, or hosted CI run was performed here.
+This preparation step updated the README, command guides, roadmap, and release
+notes before owner publication. The published v0.1.0 notes remain unchanged.
+Subsequent publication and hosted checks are recorded below.
+
+## v0.1.1 publication record
+
+The owner published **Cinder v0.1.1 — Model Inspection** on October 31, 2026.
+GitHub reports `draft: false` and `prerelease: false`.
+
+| Field | Recorded value |
+| --- | --- |
+| Release | [Cinder v0.1.1 — Model Inspection](https://github.com/farukumarx64/cinder/releases/tag/v0.1.1) |
+| Published | **October 31, 2026, 01:51:39 Africa/Lagos (UTC+01:00)**; `2026-10-31T00:51:39Z` |
+| Tag | `v0.1.1`, pointing directly to the commit below |
+| Tagged commit | [`df3d57b5fe20a092debd263f2a4ee3d41547fa10`](https://github.com/farukumarx64/cinder/commit/df3d57b5fe20a092debd263f2a4ee3d41547fa10) |
+| CI | [Run 41152307334](https://github.com/farukumarx64/cinder/actions/runs/41152307334), **success**, attempt **1** |
+
+The workflow's `head_sha` and every job's revision match the tagged commit.
+All five jobs completed successfully, including their build and test steps.
+The job logs confirm the test counts:
+
+| Job | Result |
+| --- | --- |
+| [macOS Debug](https://github.com/farukumarx64/cinder/actions/runs/41152307334/job/124391374746) | 39/39 passed |
+| [macOS Release](https://github.com/farukumarx64/cinder/actions/runs/41152307334/job/124391374881) | 39/39 passed |
+| [Linux Debug, including Python](https://github.com/farukumarx64/cinder/actions/runs/41152307334/job/124391374690) | 48/48 passed |
+| [Linux Release](https://github.com/farukumarx64/cinder/actions/runs/41152307334/job/124391374892) | 39/39 passed |
+| [Linux ASan + UBSan + LeakSanitizer](https://github.com/farukumarx64/cinder/actions/runs/41152307334/job/124391374535) | 39/39 passed |
+
+[Saved publication metadata](verification/2026-10-31-release-publication.json)
+records the release, timezone-aware publication timestamp, tag, full commit,
+CI run, job/step results, and test-count excerpts with their API source URLs.
+These were read-only GitHub checks; no tag, release, workflow, or runtime code
+was changed while recording the results. The earlier local implementation and
+version-preparation checks above retain their original scope and revisions.
